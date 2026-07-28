@@ -67,8 +67,9 @@ Every marketplace plugin must:
 - include a valid `.codex-plugin/plugin.json` and package-local documentation;
 - declare its own capabilities, trust boundary, dependencies, licensing, and release version;
 - remain useful without another Andrew Cox plugin unless an explicit optional relationship is documented;
-- be pinned to immutable source before the catalog advertises it; and
-- pass repository validation and an evidence-proportional release review.
+- be pinned to a resolvable immutable tag or commit before the catalog advertises it;
+- pass Plugin Creator validation and an evidence-proportional release review in the change that adds it; and
+- add its package-specific validation to repository CI before becoming available.
 
 ## Local development
 
