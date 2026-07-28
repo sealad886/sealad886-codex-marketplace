@@ -1,8 +1,16 @@
 # Contributing
 
-Contributions that make Project Delivery clearer, safer, more evidence-driven, or more adaptable across repositories are welcome.
+Contributions that make Andrew Cox's Codex Plugin Marketplace or one of its contained plugins clearer, safer, more evidence-driven, or more adaptable are welcome.
 
-## Before changing the plugin
+## Choose the owning scope
+
+- Marketplace-level changes own catalog metadata, repository policy, shared CI, issue templates, and cross-plugin documentation.
+- Plugin changes belong under the canonical `plugins/<plugin-id>/` package and must follow that plugin's documented contracts and validation workflow.
+- Do not create cross-plugin runtime dependencies merely to share prompts, assets, terminology, or implementation details.
+
+Project Delivery is currently the only published plugin. The guidance below is its contribution contract; future plugins must document an equivalent self-contained contract in their own package.
+
+## Before changing Project Delivery
 
 1. Open or reference an issue when the change affects lifecycle semantics, artifact contracts, compatibility, or safety.
 2. Inspect the shared operating model and the owning skill before adding a new concept.
