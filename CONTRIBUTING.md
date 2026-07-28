@@ -1,6 +1,6 @@
 # Contributing
 
-Contributions that make Andrew Cox's Codex Plugin Marketplace or one of its contained plugins clearer, safer, more evidence-driven, or more adaptable are welcome.
+Contributions that make the sealad886 Codex Marketplace or one of its contained plugins clearer, safer, more evidence-driven, or more adaptable are welcome.
 
 ## Choose the owning scope
 

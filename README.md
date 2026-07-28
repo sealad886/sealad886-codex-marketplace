@@ -1,18 +1,18 @@
-# Andrew Cox's Codex Plugin Marketplace
+# sealad886 Codex Marketplace
 
-[![Validate plugins](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/validate.yml)
-[![HOL Plugin Scanner](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
+[![Validate plugins](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml)
+[![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 This repository is Andrew Cox's public marketplace for original Codex plugins. Each plugin is independently useful, versioned, documented, validated, and packaged beneath `plugins/<plugin-id>/`; the marketplace is the catalog and distribution boundary, not a shared runtime dependency.
 
-The repository and marketplace are both named `andrew-cox-codex-marketplace`. Individual plugin IDs remain stable, so installing Project Delivery uses the selector `project-delivery@andrew-cox-codex-marketplace` and its skills remain `project-delivery:<skill>`.
+The repository and marketplace are both named `sealad886-codex-marketplace`. Individual plugin IDs remain stable, so installing Project Delivery uses the selector `project-delivery@sealad886-codex-marketplace` and its skills remain `project-delivery:<skill>`.
 
 ## Available plugins
 
 | Plugin | Stable version | Purpose | Install selector |
 |---|---:|---|---|
-| [Project Delivery](plugins/project-delivery/README.md) | `1.4.0` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@andrew-cox-codex-marketplace` |
+| [Project Delivery](plugins/project-delivery/README.md) | `1.4.0` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 
@@ -21,30 +21,16 @@ Project Delivery is self-contained. It does not wrap, re-export, or require the 
 Add the hosted marketplace, then install the plugin you want:
 
 ```bash
-codex plugin marketplace add sealad886/andrew-cox-codex-marketplace --ref main
-codex plugin add project-delivery@andrew-cox-codex-marketplace
+codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
+codex plugin add project-delivery@sealad886-codex-marketplace
 ```
 
 Start a fresh Codex task after installation so the current plugin catalog and skill metadata are loaded.
 
-### Migrate the former Project Delivery marketplace
-
-The repository was formerly published as `sealad886/project-delivery`, with marketplace ID `project-delivery`. Add and verify the new selector before removing the old control-plane entries:
-
-```bash
-codex plugin marketplace add sealad886/andrew-cox-codex-marketplace --ref main
-codex plugin add project-delivery@andrew-cox-codex-marketplace
-codex plugin list
-codex plugin remove project-delivery@project-delivery
-codex plugin marketplace remove project-delivery
-```
-
-The plugin ID, version, package contents, icons, and skill selectors do not change during this migration. The marketplace remains pinned to the immutable `v1.4.0` package; the rename changes repository and catalog identity, not the released plugin bytes.
-
 ## Repository and package boundaries
 
 ```text
-andrew-cox-codex-marketplace/
+sealad886-codex-marketplace/
 ├── .agents/plugins/marketplace.json   hosted marketplace catalog
 ├── .github/                           repository CI and templates
 ├── references/                        research, audit, and release evidence
@@ -76,8 +62,8 @@ Every marketplace plugin must:
 Clone the marketplace outside any personal plugin destination:
 
 ```bash
-git clone https://github.com/sealad886/andrew-cox-codex-marketplace.git ~/src/andrew-cox-codex-marketplace
-cd ~/src/andrew-cox-codex-marketplace
+git clone https://github.com/sealad886/sealad886-codex-marketplace.git ~/src/sealad886-codex-marketplace
+cd ~/src/sealad886-codex-marketplace
 ```
 
 For Project Delivery, materialize the exact validated package into a separate local source:

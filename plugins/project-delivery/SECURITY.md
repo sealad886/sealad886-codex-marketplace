@@ -6,7 +6,7 @@ Security fixes are made on the latest published release. Older versions may be a
 
 ## Reporting a vulnerability
 
-Please use [GitHub private vulnerability reporting](https://github.com/sealad886/andrew-cox-codex-marketplace/security/advisories/new). Do not open a public issue for a suspected vulnerability or include credentials, personal data, private repository content, or exploit details in public discussion.
+Please use [GitHub private vulnerability reporting](https://github.com/sealad886/sealad886-codex-marketplace/security/advisories/new). Do not open a public issue for a suspected vulnerability or include credentials, personal data, private repository content, or exploit details in public discussion.
 
 Include, when safely available:
 
