@@ -12,7 +12,7 @@ Canonical package: `plugins/project-delivery/`
 
 Project Delivery stable `1.4.0` is published and passes its post-publication hosted installation canary. The immutable release tag identifies artifact merge `db6aa16`; the later untagged catalog merge `950bdd3` points the Git-backed marketplace at `v1.4.0`. The 64-file stable package passes local and hosted validation, the current 157-test regression suite, Plugin Creator validation, exact tag/install parity, independent release review, and a fresh-process catalog/asset canary.
 
-The stable promotion changes release identity only; it preserves the public capability surface already validated in `1.4.0-rc.1`. At the 2026-07-21 validation date, the active pre-rename selector was `project-delivery@project-delivery` at `~/.codex/plugins/cache/project-delivery/project-delivery/1.4.0`; the temporary personal canary registration was removed after hosted parity passed, preventing duplicate selector exposure. Provider connectors and domain-specific evidence plugins remain outside the replacement scope.
+The stable promotion changes release identity only; it preserves the public capability surface already validated in `1.4.0-rc.1`. Hosted parity confirmed exactly one enabled Project Delivery `1.4.0` installation from the immutable GitHub ref; the temporary personal canary registration was removed after that check, preventing duplicate selector exposure. Provider connectors and domain-specific evidence plugins remain outside the replacement scope.
 
 ## Evidence
 
@@ -32,7 +32,7 @@ The stable promotion changes release identity only; it preserves the public capa
 | Legacy dependencies | Pass: no hard dependency on Boss, Epic/Epic Harness, or Superpowers in the installable package |
 | Hosted PR checks | Pass: validate, HOL scan, plugin-scanner, and GitGuardian on release PR #4 and marketplace PR #5 |
 | Pre-release personal canary | Pass: `project-delivery@personal` version `1.4.0+codex.20260721203943`; registration removed after hosted parity passed |
-| Hosted install before marketplace rename | Pass: exactly one enabled Project Delivery entry, `project-delivery@project-delivery` version `1.4.0`, sourced from GitHub ref `v1.4.0` |
+| Hosted install | Pass: exactly one enabled Project Delivery entry, version `1.4.0`, sourced from GitHub ref `v1.4.0` |
 | Tag/install parity | Pass: exact 64-file source/cache comparison; payload SHA-256 `f48258fe08d51de3a392cfdedbac1f326c516daeda3d6ca9c0879c6c417f48f1` |
 | RC fresh-process smoke | Pass: exact `1.4.0-rc.1` marker, installed manifest/orchestrator match, and expected `small-bug-planning` route under planning-only authority |
 | Stable hosted fresh-process smoke | Pass: orchestrator and all 13 selectors prompt-visible; 28/28 PNGs decode at expected dimensions; 26/26 YAML icon references resolve; no duplicate selector, stale version, or legacy dependency |
@@ -66,7 +66,7 @@ The latest iOS Backup Viewer canary correctly refused a release-ready verdict be
 
 - Stable release `v1.4.0` is published at immutable artifact merge `db6aa16`.
 - The untagged Git-backed marketplace pointer at catalog merge `950bdd3` resolves immutable ref `v1.4.0`; hosted install and fresh-process catalog/asset canary pass.
-- Keep `project-delivery@sealad886-codex-marketplace` installed as the canonical generic PM/software-delivery workflow after completing the supported add-first selector migration. The 2026-07-21 result above remains historical evidence for the unchanged `v1.4.0` package.
+- Keep `project-delivery@sealad886-codex-marketplace` installed as the canonical generic PM/software-delivery workflow. The 2026-07-21 result above remains historical evidence for the unchanged `v1.4.0` package.
 - Keep `v1.4.0-rc.1` available as a bounded rollback artifact; stable `v1.4.0` is the active source.
 - Uninstall Boss, Epic/Epic Harness, Superpowers, or other superseded generic workflow plugins only after confirming the stable tagged package remains available and the desired rollback source is recorded.
 - Keep provider connectors, platform tools, security scanners, and domain-specific plugins unless separately judged redundant.

@@ -27,24 +27,6 @@ codex plugin add project-delivery@sealad886-codex-marketplace
 
 Start a fresh Codex task after installation so the current plugin catalog and skill metadata are loaded.
 
-### Migrate a former marketplace name
-
-The repository was formerly published as `sealad886/project-delivery`, with marketplace ID `project-delivery`, and briefly as `sealad886/andrew-cox-codex-marketplace`, with marketplace ID `andrew-cox-codex-marketplace`. Add and verify the canonical selector before removing any former control-plane entries:
-
-```bash
-codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
-codex plugin add project-delivery@sealad886-codex-marketplace
-codex plugin list
-codex plugin remove project-delivery@andrew-cox-codex-marketplace
-codex plugin marketplace remove andrew-cox-codex-marketplace
-codex plugin remove project-delivery@project-delivery
-codex plugin marketplace remove project-delivery
-```
-
-Run only the removal pair or pairs that `codex plugin list` still reports. Do not remove a former selector until the canonical selector is installed, enabled, and verified.
-
-The plugin ID, version, package contents, icons, and skill selectors do not change during this migration. The marketplace remains pinned to the immutable `v1.4.0` package; the rename changes repository and catalog identity, not the released plugin bytes.
-
 ## Repository and package boundaries
 
 ```text

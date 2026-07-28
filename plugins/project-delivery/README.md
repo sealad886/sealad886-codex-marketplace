@@ -126,8 +126,6 @@ codex plugin add project-delivery@sealad886-codex-marketplace
 
 Start a fresh Codex task, then invoke `$project-delivery:delivery-orchestrator` for an end-to-end request or a bounded Project Delivery skill directly. The marketplace currently resolves Project Delivery to the validated `v1.4.0` tag.
 
-If Codex still has a former `project-delivery@project-delivery` or `project-delivery@andrew-cox-codex-marketplace` selector, follow the add-first migration in the [marketplace README](https://github.com/sealad886/sealad886-codex-marketplace#migrate-a-former-marketplace-name). Verify the new selector before removing former plugin and marketplace entries.
-
 ## Local development install
 
 Project Delivery is a standalone plugin with a deliberately clean package boundary. Clone the development repository outside the personal plugin destination:
