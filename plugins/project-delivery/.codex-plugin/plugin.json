@@ -6,8 +6,8 @@
     "name": "Andrew Cox",
     "url": "https://github.com/sealad886"
   },
-  "homepage": "https://github.com/sealad886/project-delivery",
-  "repository": "https://github.com/sealad886/project-delivery",
+  "homepage": "https://github.com/sealad886/andrew-cox-codex-marketplace/tree/main/plugins/project-delivery",
+  "repository": "https://github.com/sealad886/andrew-cox-codex-marketplace",
   "license": "MIT",
   "keywords": [
     "project-management",
@@ -24,7 +24,7 @@
     "longDescription": "Project Delivery provides one coherent, repository-grounded lifecycle for clarifying requests, defining requirements, designing solutions, coordinating systems of record, planning delivery, implementing changes, producing test evidence, updating canonical documentation, reviewing risk, preparing releases, and capturing improvements. It scales from documentation and small fixes to multi-PR, multi-release initiatives without requiring any provider integration.",
     "developerName": "Andrew Cox",
     "category": "Developer Tools",
-    "websiteURL": "https://github.com/sealad886/project-delivery",
+    "websiteURL": "https://github.com/sealad886/andrew-cox-codex-marketplace/tree/main/plugins/project-delivery",
     "capabilities": [
       "Interactive",
       "Read",

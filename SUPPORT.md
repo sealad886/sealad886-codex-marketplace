@@ -1,6 +1,6 @@
 # Support
 
-Use [GitHub Issues](https://github.com/sealad886/project-delivery/issues) for reproducible bugs, coherent enhancements, and public documentation questions. Use the issue forms so version, routing scope, evidence, and limitations stay visible.
+Use [GitHub Issues](https://github.com/sealad886/andrew-cox-codex-marketplace/issues) for reproducible marketplace or plugin bugs, coherent enhancements, and public documentation questions. Identify the affected plugin ID and version when applicable, and use the issue forms so scope, evidence, and limitations stay visible.
 
 For suspected vulnerabilities, follow [SECURITY.md](SECURITY.md) and report privately. Do not use public issues for secrets, personal data, private repository excerpts, or exploit details.
 

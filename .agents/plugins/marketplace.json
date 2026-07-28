@@ -1,14 +1,14 @@
 {
-  "name": "project-delivery",
+  "name": "andrew-cox-codex-marketplace",
   "interface": {
-    "displayName": "Project Delivery"
+    "displayName": "Andrew Cox's Codex Plugin Marketplace"
   },
   "plugins": [
     {
       "name": "project-delivery",
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/sealad886/project-delivery.git",
+        "url": "https://github.com/sealad886/andrew-cox-codex-marketplace.git",
         "ref": "v1.4.0",
         "path": "./plugins/project-delivery"
       },

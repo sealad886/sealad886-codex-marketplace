@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/sealad886/project-delivery/blob/main/plugins/project-delivery/skills/.shared/live-route-receipt-v3.schema.json",
+  "$id": "https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/plugins/project-delivery/skills/.shared/live-route-receipt-v3.schema.json",
   "title": "Project Delivery sealed semantic route observation",
   "type": "object",
   "additionalProperties": false,

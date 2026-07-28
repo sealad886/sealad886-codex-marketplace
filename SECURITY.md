@@ -6,7 +6,7 @@ Security fixes are made on the latest published release. Older versions may be a
 
 ## Reporting a vulnerability
 
-Please use [GitHub private vulnerability reporting](https://github.com/sealad886/project-delivery/security/advisories/new). Do not open a public issue for a suspected vulnerability or include credentials, personal data, private repository content, or exploit details in public discussion.
+Please use [GitHub private vulnerability reporting](https://github.com/sealad886/andrew-cox-codex-marketplace/security/advisories/new). Do not open a public issue for a suspected vulnerability or include credentials, personal data, private repository content, or exploit details in public discussion.
 
 Include, when safely available:
 
@@ -21,4 +21,4 @@ You should receive an acknowledgement within seven days. Assessment, remediation
 
 ## Scope
 
-The installed Project Delivery package contains instructions, templates, and icons. Repository-only maintainer tooling includes standard-library validation scripts outside the installed package boundary. Project Delivery does not bundle an MCP server, app, hook, telemetry, credentials, executable validation code, or a network service. Reports about an optional third-party connector, platform tool, repository, or provider should normally go to that component's owner unless Project Delivery itself creates the unsafe behavior.
+The marketplace catalog and each installed plugin have separate package boundaries. The current Project Delivery package contains instructions, templates, and icons; repository-only maintainer tooling includes standard-library validation scripts outside that installed package. Project Delivery does not bundle an MCP server, app, hook, telemetry, credentials, executable validation code, or a network service. Reports about an optional third-party connector, platform tool, repository, or provider should normally go to that component's owner unless this marketplace or one of its plugins creates the unsafe behavior.

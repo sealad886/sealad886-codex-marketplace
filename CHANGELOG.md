@@ -1,10 +1,14 @@
 # Changelog
 
-This file records user-visible changes to Project Delivery. Dates use ISO 8601 and versions follow Semantic Versioning.
+This file records user-visible marketplace and Project Delivery changes. Dates use ISO 8601 and plugin versions follow Semantic Versioning.
 
 ## Unreleased
 
-No changes yet.
+### Changed
+
+- Renamed the hosting repository and marketplace to `andrew-cox-codex-marketplace`, while preserving the `project-delivery` plugin ID, all skill selectors, and the immutable `v1.4.0` package.
+- Reframed the repository documentation and validator as a multi-plugin marketplace, with unique contained plugin entries and immutable `git-subdir` sources.
+- Updated current repository, security, support, manifest, and schema links to the canonical renamed location.
 
 ## 1.4.0 - 2026-07-21
 

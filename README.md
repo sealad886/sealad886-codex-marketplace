@@ -1,69 +1,98 @@
-<p align="center">
-  <img src="plugins/project-delivery/assets/project-delivery-logo.png" width="160" alt="Project Delivery compass and route logo">
-</p>
+# Andrew Cox's Codex Plugin Marketplace
 
-# Project Delivery
-
-[![Validate plugin](https://github.com/sealad886/project-delivery/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/project-delivery/actions/workflows/validate.yml)
-[![HOL Plugin Scanner](https://github.com/sealad886/project-delivery/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/project-delivery/actions/workflows/hol-plugin-scanner.yml)
+[![Validate plugins](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/validate.yml)
+[![HOL Plugin Scanner](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Project Delivery is a self-contained Codex plugin for taking software work from an incomplete idea through requirements, design, planning, implementation, verification, documentation, review, security and operational readiness, release, and learning. It scales from small fixes to multi-PR and multi-release initiatives while preserving repository conventions, user authority, traceability, and evidence-based gates.
+This repository is Andrew Cox's public marketplace for original Codex plugins. Each plugin is independently useful, versioned, documented, validated, and packaged beneath `plugins/<plugin-id>/`; the marketplace is the catalog and distribution boundary, not a shared runtime dependency.
 
-The complete user and capability guide lives with the installable package in [plugins/project-delivery/README.md](plugins/project-delivery/README.md).
+The repository and marketplace are both named `andrew-cox-codex-marketplace`. Individual plugin IDs remain stable, so installing Project Delivery uses the selector `project-delivery@andrew-cox-codex-marketplace` and its skills remain `project-delivery:<skill>`.
 
-## Safe package boundary
+## Available plugins
 
-The canonical plugin is the exact subtree at [plugins/project-delivery](plugins/project-delivery). Repository-only CI, tests, audit evidence, contributor tooling, and virtual environments stay outside that directory.
+| Plugin | Stable version | Purpose | Install selector |
+|---|---:|---|---|
+| [Project Delivery](plugins/project-delivery/README.md) | `1.4.0` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@andrew-cox-codex-marketplace` |
+
+Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
+
+## Install from the marketplace
+
+Add the hosted marketplace, then install the plugin you want:
+
+```bash
+codex plugin marketplace add sealad886/andrew-cox-codex-marketplace --ref main
+codex plugin add project-delivery@andrew-cox-codex-marketplace
+```
+
+Start a fresh Codex task after installation so the current plugin catalog and skill metadata are loaded.
+
+### Migrate the former Project Delivery marketplace
+
+The repository was formerly published as `sealad886/project-delivery`, with marketplace ID `project-delivery`. Add and verify the new selector before removing the old control-plane entries:
+
+```bash
+codex plugin marketplace add sealad886/andrew-cox-codex-marketplace --ref main
+codex plugin add project-delivery@andrew-cox-codex-marketplace
+codex plugin list
+codex plugin remove project-delivery@project-delivery
+codex plugin marketplace remove project-delivery
+```
+
+The plugin ID, version, package contents, icons, and skill selectors do not change during this migration. The marketplace remains pinned to the immutable `v1.4.0` package; the rename changes repository and catalog identity, not the released plugin bytes.
+
+## Repository and package boundaries
 
 ```text
-project-delivery/
-├── .github/                     repository CI and templates
-├── references/                  research, audit, and release evidence
-├── scripts/                     dependency-free validation and packaging tools
-├── tests/                       semantic contracts and regression tests
+andrew-cox-codex-marketplace/
+├── .agents/plugins/marketplace.json   hosted marketplace catalog
+├── .github/                           repository CI and templates
+├── references/                        research, audit, and release evidence
+├── scripts/                           dependency-free validation and packaging tools
+├── tests/                             semantic contracts and regression tests
 └── plugins/
-    └── project-delivery/        canonical installable plugin
+    └── project-delivery/              canonical installable plugin
         ├── .codex-plugin/plugin.json
+        ├── README.md
+        ├── LICENSE
         ├── assets/
         └── skills/
 ```
 
-This boundary is a security and reproducibility requirement. Codex `0.144.6` copies every regular file beneath a local plugin source into its cache; `.codexignore` is not an installation filter. Local and Git-backed marketplace entries must therefore point at the prepared plugin directory or use `git-subdir`, never the development checkout root.
+Only a plugin's own subtree is installable. Repository CI, tests, contributor tooling, audit evidence, Git metadata, and development environments stay outside installed payloads. Marketplace entries use `git-subdir` and immutable release refs so Codex receives the intended package rather than the repository root.
 
-## Local development install
+Every marketplace plugin must:
 
-Clone the source outside the personal plugin destination, then materialize the exact validated package:
+- have a unique lower-case hyphen-case plugin ID and contained `plugins/<plugin-id>/` path;
+- include a valid `.codex-plugin/plugin.json` and package-local documentation;
+- declare its own capabilities, trust boundary, dependencies, licensing, and release version;
+- remain useful without another Andrew Cox plugin unless an explicit optional relationship is documented;
+- be pinned to immutable source before the catalog advertises it; and
+- pass repository validation and an evidence-proportional release review.
+
+## Local development
+
+Clone the marketplace outside any personal plugin destination:
 
 ```bash
-git clone https://github.com/sealad886/project-delivery.git ~/src/project-delivery
-cd ~/src/project-delivery
+git clone https://github.com/sealad886/andrew-cox-codex-marketplace.git ~/src/andrew-cox-codex-marketplace
+cd ~/src/andrew-cox-codex-marketplace
+```
+
+For Project Delivery, materialize the exact validated package into a separate local source:
+
+```bash
 python3 scripts/check_distribution_bundle.py plugins/project-delivery \
   --output ~/plugins/project-delivery
 ```
 
-For later iterations, add `--replace`. Replacement first proves that the destination is an exact, clean Project Delivery distribution and is not inside a Git checkout or Python environment. Missing, extra, forbidden, executable, symlinked, or unsupported entries block the swap; a failed atomic swap restores the prior clean distribution or retains its backup path for recovery.
+Use `--replace` only for a destination that the materializer proves is an exact, clean Project Delivery distribution. Then use Codex's system Plugin Creator workflow to validate, register, cachebust, and reinstall that prepared local source. Do not point a local marketplace at the development checkout root or hand-edit Codex-managed cache state.
 
-Then use Codex's system Plugin Creator skill to validate, register, cachebust, and install the prepared `~/plugins/project-delivery` folder through the personal marketplace. Do not hand-edit Codex configuration. Start a fresh Codex task after each reinstall.
-
-The repository also carries marketplace metadata for Git-backed installation. The public entry uses `git-subdir` with `./plugins/project-delivery` and is pinned to immutable stable release ref `v1.4.0`; future package releases must advance that ref in a separate untagged catalog commit after the new tag exists.
-
-### Upgrade from the 1.3.x checkout layout
-
-Project Delivery 1.3.x told users to clone the development repository directly to `~/plugins/project-delivery`. Do not use `--replace` on that checkout: the refusal is deliberate, because a materializer must never erase Git history, local changes, or repository-only files.
-
-1. Record the current plugin selector, enabled/version state, source revision, Git status, remotes, manifest hash, and any local changes without copying credentials into the record.
-2. Move the entire 1.3.x checkout intact to a separate source/rollback location such as `~/src/project-delivery-1.3-backup`; do not delete it. Verify its revision and status after the move.
-3. Clone or update the candidate in a separate development path, validate `plugins/project-delivery/`, and materialize it into the now-vacant `~/plugins/project-delivery` destination without `--replace` for the first migration.
-4. Use Plugin Creator's supported validation, cachebuster, and `project-delivery@personal` reinstall flow. Read back the personal marketplace name and installed source; do not hand-edit marketplace or cache state.
-5. Compare the prepared source and versioned installed cache with `scripts/check_installed_parity.py`, then start a fresh task and verify selectors, icons, routing, and a bounded repository canary.
-6. Keep both the 1.3.x checkout and the clean candidate source until forward and backward recovery have been rehearsed. To recover, use the recorded owning control plane and supported reinstall path, restore the recorded source identity, read back state, and verify from another fresh task; a retained cache alone is not rollback proof.
-
-The [migration and decommission record](references/migration-and-decommission.md) defines the complete rollback evidence and legacy-plugin observation gates.
+The detailed product, lifecycle, installation, migration, and trust documentation lives in the [Project Delivery package guide](plugins/project-delivery/README.md).
 
 ## Validation
 
-Use the project `.venv` when present; the checks themselves use only Python's standard library.
+The current checks use only Python's standard library:
 
 ```bash
 python3 scripts/check_plugin.py plugins/project-delivery --layout source
@@ -73,17 +102,14 @@ python3 scripts/check_route_receipts.py \
   --root . --allow-subset --allow-historical-annotations
 python3 scripts/check_distribution_bundle.py plugins/project-delivery
 python3 scripts/check_marketplace.py .
-python3 scripts/check_installed_parity.py <prepared-plugin-source> <installed-cache-version-dir>
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-The package-boundary check rejects undeclared files, symlinks, unsupported file types, source-only directories, broken internal references, and missing skill metadata. Release validation additionally uses Plugin Creator, Skill Creator, the pinned HOL scanner, an isolated install/rollback rehearsal, fresh-task behavioral canaries, and independent review.
-
-Routing policy has two deliberately separated representations: installed `skills/.shared/route-profiles-v1.json` supplies runtime semantics, while repository-only `tests/route-contracts.json` supplies schema-v3 canary prompts and expected semantics. `scripts/check_routes.py` requires their profile IDs and semantic fields to remain in exact parity before either representation can support release evidence.
+Release validation also includes the system Plugin Creator validator, exact package/cache comparison, the pinned HOL scanner, fresh-task canaries where behavior is claimed, and independent review. Static package and icon checks are reported separately from live Codex UI evidence.
 
 ## Governance
 
-- [Plugin guide](plugins/project-delivery/README.md)
+- [Project Delivery guide](plugins/project-delivery/README.md)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 - [Security policy](SECURITY.md)
@@ -93,4 +119,4 @@ Routing policy has two deliberately separated representations: installed `skills
 - [Migration and decommission map](references/migration-and-decommission.md)
 - [Validation report](references/validation-report.md)
 
-Project Delivery is maintained by Andrew Cox and licensed under the [MIT License](LICENSE). Copyright © 2026 Andrew Cox.
+This marketplace and its current Project Delivery plugin are maintained by Andrew Cox and licensed under the [MIT License](LICENSE). Copyright © 2026 Andrew Cox.
