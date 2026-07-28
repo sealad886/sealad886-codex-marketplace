@@ -4,13 +4,13 @@
 
 # Project Delivery
 
-[![Validate plugin](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/validate.yml)
-[![HOL Plugin Scanner](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/andrew-cox-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
+[![Validate plugin](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml)
+[![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Project Delivery is a self-contained Codex plugin that turns an incomplete idea or bounded request into a traceable, production-oriented change. It provides one repository-grounded, risk-scaled evidence spine from outcome through requirements, design, planning, implementation, verification, documentation, independent review, security and operational readiness, release, and learning.
 
-It is published through [Andrew Cox's Codex Plugin Marketplace](https://github.com/sealad886/andrew-cox-codex-marketplace). The marketplace ID is `andrew-cox-codex-marketplace`; the plugin ID, display name, skill selectors, and package boundary remain `project-delivery`.
+It is published through the [sealad886 Codex Marketplace](https://github.com/sealad886/sealad886-codex-marketplace). The marketplace ID is `sealad886-codex-marketplace`; the plugin ID, display name, skill selectors, and package boundary remain `project-delivery`.
 
 It is designed to become the sole generic project-management and software-delivery workflow after its adoption gates pass. It does not replace authenticated connectors, CI systems, platform tooling, security scanners, deployment providers, observability systems, or other specialist evidence sources.
 
@@ -117,24 +117,24 @@ DEC/ADR → affected REQ/WI/TEST → RELEASE disposition
 
 ## Install from the hosted marketplace
 
-Add Andrew Cox's marketplace and install the immutable stable package:
+Add the sealad886 marketplace and install the immutable stable package:
 
 ```bash
-codex plugin marketplace add sealad886/andrew-cox-codex-marketplace --ref main
-codex plugin add project-delivery@andrew-cox-codex-marketplace
+codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
+codex plugin add project-delivery@sealad886-codex-marketplace
 ```
 
 Start a fresh Codex task, then invoke `$project-delivery:delivery-orchestrator` for an end-to-end request or a bounded Project Delivery skill directly. The marketplace currently resolves Project Delivery to the validated `v1.4.0` tag.
 
-If Codex still has the former `project-delivery@project-delivery` selector, follow the add-first migration in the [marketplace README](https://github.com/sealad886/andrew-cox-codex-marketplace#migrate-the-former-project-delivery-marketplace). Verify the new selector before removing the former plugin and marketplace entries.
+If Codex still has a former `project-delivery@project-delivery` or `project-delivery@andrew-cox-codex-marketplace` selector, follow the add-first migration in the [marketplace README](https://github.com/sealad886/sealad886-codex-marketplace#migrate-a-former-marketplace-name). Verify the new selector before removing former plugin and marketplace entries.
 
 ## Local development install
 
 Project Delivery is a standalone plugin with a deliberately clean package boundary. Clone the development repository outside the personal plugin destination:
 
 ```bash
-git clone https://github.com/sealad886/andrew-cox-codex-marketplace.git ~/src/andrew-cox-codex-marketplace
-cd ~/src/andrew-cox-codex-marketplace
+git clone https://github.com/sealad886/sealad886-codex-marketplace.git ~/src/sealad886-codex-marketplace
+cd ~/src/sealad886-codex-marketplace
 python3 scripts/check_distribution_bundle.py plugins/project-delivery \
   --output ~/plugins/project-delivery
 ```
@@ -145,7 +145,7 @@ For later iterations, rerun the materializer with `--replace`. It replaces only 
 
 Version 1.3.x instructed users to clone the development repository directly into `~/plugins/project-delivery`. Preserve that checkout intact: record its plugin/source/revision/status identity, move it to a separate rollback location such as `~/src/project-delivery-1.3-backup`, verify the moved checkout, and materialize the new nested package into the now-vacant personal destination. Do not use `--replace` against the old checkout.
 
-Then use Plugin Creator's supported cachebuster/reinstall flow, read back `project-delivery@personal`, compare the prepared source with the versioned installed cache, and verify selectors, icons, routing, and a bounded repository canary from a fresh task. Keep both sources until a forward-and-back recovery through the recorded control plane has passed; retained cache bytes alone are not rollback proof. The repository's [migration guide](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/references/migration-and-decommission.md) defines the full evidence record.
+Then use Plugin Creator's supported cachebuster/reinstall flow, read back `project-delivery@personal`, compare the prepared source with the versioned installed cache, and verify selectors, icons, routing, and a bounded repository canary from a fresh task. Keep both sources until a forward-and-back recovery through the recorded control plane has passed; retained cache bytes alone are not rollback proof. The repository's [migration guide](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/migration-and-decommission.md) defines the full evidence record.
 
 Then ask Codex's system Plugin Creator skill to validate and install the prepared package:
 
@@ -184,7 +184,7 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 
 The distribution check validates the exact 64-file canonical package boundary, including all five shared runtime resources, and can materialize that byte-defined payload into a separate personal-plugin folder. It rejects undeclared files, symlinks, unsupported file types, source-only paths, and broken runtime references. Installed-cache parity and fresh-task behavior remain separate release gates.
 
-Release validation also includes Plugin Creator validation, Skill Creator validation for all 13 skills, exact prepared-source/cache comparison, an isolated install/rollback rehearsal, the pinned HOL scanner, fresh-task canaries, and independent review. Current evidence and limitations are recorded in the [validation report](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/references/validation-report.md).
+Release validation also includes Plugin Creator validation, Skill Creator validation for all 13 skills, exact prepared-source/cache comparison, an isolated install/rollback rehearsal, the pinned HOL scanner, fresh-task canaries, and independent review. Current evidence and limitations are recorded in the [validation report](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/validation-report.md).
 
 ## Trust, privacy, and dependencies
 
@@ -192,7 +192,7 @@ Project Delivery bundles no MCP server, app, hook, telemetry, network service, c
 
 Repository instructions and user authority remain controlling. External issue trackers, source hosts, document stores, communication tools, calendars, CI systems, deployment platforms, security tools, and memory systems are optional adapters used only when available, relevant, and authorized. Secrets and personal data must not be copied into delivery artifacts or public evidence.
 
-See [SECURITY.md](SECURITY.md) for private vulnerability reporting and the [support policy](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/SUPPORT.md) for support boundaries.
+See [SECURITY.md](SECURITY.md) for private vulnerability reporting and the [support policy](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/SUPPORT.md) for support boundaries.
 
 ## Migration and replacement
 
@@ -206,18 +206,18 @@ Project Delivery is intended to replace generic project-management and software-
 6. confirm packaged files, explicit and orchestrated loading, semantic routing, artifacts, stable plugin state, and absence of legacy invocation/runtime requests; and
 7. uninstall only after an observation period and explicit user confirmation.
 
-Specialist platform, provider, security, CI, deployment, and observability tools may remain because they supply access or evidence rather than competing lifecycle authority. The [detailed migration map](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/references/migration-and-decommission.md) remains with the standalone plugin source.
+Specialist platform, provider, security, CI, deployment, and observability tools may remain because they supply access or evidence rather than competing lifecycle authority. The [detailed migration map](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/migration-and-decommission.md) remains with the standalone plugin source.
 
 ## Project governance
 
-- [Marketplace](https://github.com/sealad886/andrew-cox-codex-marketplace)
-- [Contributing](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/CONTRIBUTING.md)
+- [Marketplace](https://github.com/sealad886/sealad886-codex-marketplace)
+- [Contributing](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/CONTRIBUTING.md)
 - [Security policy](SECURITY.md)
-- [Support](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/SUPPORT.md)
-- [Changelog](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/CHANGELOG.md)
-- [Design brief](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/references/design-brief.md)
-- [Environment and capability audit](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/references/environment-audit.md)
-- [Research sources](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/references/research-sources.md)
-- [Validation report](https://github.com/sealad886/andrew-cox-codex-marketplace/blob/main/references/validation-report.md)
+- [Support](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/SUPPORT.md)
+- [Changelog](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/CHANGELOG.md)
+- [Design brief](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/design-brief.md)
+- [Environment and capability audit](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/environment-audit.md)
+- [Research sources](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/research-sources.md)
+- [Validation report](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/validation-report.md)
 
 Project Delivery is maintained by Andrew Cox and licensed under the [MIT License](LICENSE). Copyright © 2026 Andrew Cox.

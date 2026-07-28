@@ -1,14 +1,14 @@
 {
-  "name": "andrew-cox-codex-marketplace",
+  "name": "sealad886-codex-marketplace",
   "interface": {
-    "displayName": "Andrew Cox's Codex Plugin Marketplace"
+    "displayName": "sealad886 Codex Marketplace"
   },
   "plugins": [
     {
       "name": "project-delivery",
       "source": {
         "source": "git-subdir",
-        "url": "https://github.com/sealad886/andrew-cox-codex-marketplace.git",
+        "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
         "ref": "v1.4.0",
         "path": "./plugins/project-delivery"
       },

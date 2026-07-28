@@ -66,7 +66,7 @@ The latest iOS Backup Viewer canary correctly refused a release-ready verdict be
 
 - Stable release `v1.4.0` is published at immutable artifact merge `db6aa16`.
 - The untagged Git-backed marketplace pointer at catalog merge `950bdd3` resolves immutable ref `v1.4.0`; hosted install and fresh-process catalog/asset canary pass.
-- Keep `project-delivery@andrew-cox-codex-marketplace` installed as the canonical generic PM/software-delivery workflow after completing the supported add-first selector migration. The 2026-07-21 result above remains historical evidence for the unchanged `v1.4.0` package.
+- Keep `project-delivery@sealad886-codex-marketplace` installed as the canonical generic PM/software-delivery workflow after completing the supported add-first selector migration. The 2026-07-21 result above remains historical evidence for the unchanged `v1.4.0` package.
 - Keep `v1.4.0-rc.1` available as a bounded rollback artifact; stable `v1.4.0` is the active source.
 - Uninstall Boss, Epic/Epic Harness, Superpowers, or other superseded generic workflow plugins only after confirming the stable tagged package remains available and the desired rollback source is recorded.
 - Keep provider connectors, platform tools, security scanners, and domain-specific plugins unless separately judged redundant.

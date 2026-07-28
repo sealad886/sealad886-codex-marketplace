@@ -89,7 +89,7 @@ def example_entry(source_ref: str) -> dict[str, object]:
         "name": "example-plugin",
         "source": {
             "source": "git-subdir",
-            "url": "https://github.com/sealad886/andrew-cox-codex-marketplace.git",
+            "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
             "ref": source_ref,
             "path": "./plugins/example-plugin",
         },

@@ -6,7 +6,7 @@ This file records user-visible marketplace and Project Delivery changes. Dates u
 
 ### Changed
 
-- Renamed the hosting repository and marketplace to `andrew-cox-codex-marketplace`, while preserving the `project-delivery` plugin ID, all skill selectors, and the immutable `v1.4.0` package.
+- Renamed the hosting repository and marketplace from `project-delivery`, through the interim `andrew-cox-codex-marketplace` name, to `sealad886-codex-marketplace`, while preserving the `project-delivery` plugin ID, all skill selectors, and the immutable `v1.4.0` package.
 - Reframed the repository documentation and validator as a multi-plugin marketplace, with unique contained plugin entries and resolvable immutable `git-subdir` sources whose pinned package identity is inspected.
 - Updated current repository, security, support, manifest, and schema links to the canonical renamed location.
 

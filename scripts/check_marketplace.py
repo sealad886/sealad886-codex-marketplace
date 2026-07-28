@@ -13,10 +13,10 @@ import time
 from pathlib import Path
 
 
-MARKETPLACE_NAME = "andrew-cox-codex-marketplace"
-MARKETPLACE_DISPLAY_NAME = "Andrew Cox's Codex Plugin Marketplace"
+MARKETPLACE_NAME = "sealad886-codex-marketplace"
+MARKETPLACE_DISPLAY_NAME = "sealad886 Codex Marketplace"
 REPOSITORY_SOURCE_URL = (
-    "https://github.com/sealad886/andrew-cox-codex-marketplace.git"
+    "https://github.com/sealad886/sealad886-codex-marketplace.git"
 )
 PROJECT_DELIVERY_PLUGIN_NAME = "project-delivery"
 PROJECT_DELIVERY_SOURCE_REF = "v1.4.0"
