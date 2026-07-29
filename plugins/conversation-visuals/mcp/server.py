@@ -38,10 +38,19 @@ def public_http_url(value: Any) -> bool:
     except UnicodeDecodeError:
         return False
     if "%" in decoded_hostname or any(
-        character in decoded_hostname for character in "/\\@?#[]"
+        character in "/\\@?#[]"
+        or character.isspace()
+        or ord(character) < 32
+        or ord(character) == 127
+        for character in decoded_hostname
     ):
         return False
-    normalized_hostname = decoded_hostname.rstrip(".").lower()
+    try:
+        normalized_hostname = (
+            decoded_hostname.encode("idna").decode("ascii").rstrip(".").lower()
+        )
+    except UnicodeError:
+        return False
     if (
         not normalized_hostname
         or normalized_hostname == "localhost"
