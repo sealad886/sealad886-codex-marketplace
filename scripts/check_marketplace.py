@@ -19,21 +19,20 @@ REPOSITORY_SOURCE_URL = (
     "https://github.com/sealad886/sealad886-codex-marketplace.git"
 )
 PROJECT_DELIVERY_PLUGIN_NAME = "project-delivery"
-PROJECT_DELIVERY_SOURCE_REF = "v1.4.0"
 EXPECTED_SOURCE_TYPE = "git-subdir"
 EXPECTED_LICENSE_SHA256 = "486b9c74f1d5bf1a5be12a8fe070db7cfad5a4901f083d4810a677b32f2d4993"
 EXPECTED_COPYRIGHT = "Copyright (c) 2026 Andrew Cox"
 PLUGIN_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+SEMVER_PATTERN = (
+    r"(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
+    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+)
 IMMUTABLE_TAG = re.compile(
-    r"^(?:[a-z0-9][a-z0-9._-]*-)?v?\d+\.\d+\.\d+"
-    r"(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$"
+    rf"^(?:[a-z0-9][a-z0-9._-]*-)?v?(?P<version>{SEMVER_PATTERN})$"
 )
 COMMIT_SHA = re.compile(r"^[0-9a-f]{40}$")
-SEMVER = re.compile(
-    r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
-    r"(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
-    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$"
-)
+SEMVER = re.compile(rf"^{SEMVER_PATTERN}$")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -68,6 +67,13 @@ def is_immutable_ref(value: object) -> bool:
     )
 
 
+def version_from_tag(value: object) -> str | None:
+    if not isinstance(value, str) or COMMIT_SHA.fullmatch(value):
+        return None
+    match = IMMUTABLE_TAG.fullmatch(value)
+    return match.group("version") if match is not None else None
+
+
 def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[bytes]:
     return subprocess.run(
         ["git", "-C", str(root), *args],
@@ -100,6 +106,7 @@ def resolve_source_commit(
 def inspect_pinned_source(
     root: Path,
     commit: str,
+    source_ref: object,
     source_path: object,
     name: str,
     category: object,
@@ -148,6 +155,13 @@ def inspect_pinned_source(
     version = pinned_manifest.get("version")
     if not isinstance(version, str) or not SEMVER.fullmatch(version):
         errors.append(f"{label} pinned manifest version must be valid Semantic Versioning")
+    else:
+        tagged_version = version_from_tag(source_ref)
+        if tagged_version is not None and version != tagged_version:
+            errors.append(
+                f"{label} source.ref version {tagged_version!r} must match "
+                f"pinned manifest version {version!r}"
+            )
     if not isinstance(pinned_manifest.get("description"), str) or not pinned_manifest.get(
         "description", ""
     ).strip():
@@ -265,6 +279,7 @@ def validate_entry(
         pinned_license_bytes, pinned_errors = inspect_pinned_source(
             root,
             source_commit,
+            source_ref,
             source.get("path"),
             name,
             entry.get("category"),
@@ -282,11 +297,6 @@ def validate_entry(
             errors.append(f"{label} working-tree package license must be non-empty")
 
     if name == PROJECT_DELIVERY_PLUGIN_NAME:
-        if source_ref != PROJECT_DELIVERY_SOURCE_REF:
-            errors.append(
-                "Project Delivery marketplace source.ref must be immutable release "
-                f"{PROJECT_DELIVERY_SOURCE_REF!r}"
-            )
         root_license = root / "LICENSE"
         try:
             root_bytes = root_license.read_bytes()
@@ -383,9 +393,15 @@ def main(argv: list[str] | None = None) -> int:
             encoding="utf-8"
         )
     )
+    project_delivery_entry = next(
+        entry
+        for entry in marketplace["plugins"]
+        if entry["name"] == PROJECT_DELIVERY_PLUGIN_NAME
+    )
+    project_delivery_ref = project_delivery_entry["source"]["ref"]
     print(
         f"PASS marketplace={MARKETPLACE_NAME} plugins={len(marketplace['plugins'])} "
-        f"project-delivery-ref={PROJECT_DELIVERY_SOURCE_REF} "
+        f"project-delivery-ref={project_delivery_ref} "
         "source=git-subdir policy=AVAILABLE/ON_INSTALL license_parity=true"
     )
     return 0

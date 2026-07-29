@@ -63,10 +63,21 @@ def create_repository_fixture(root: Path) -> dict[str, object]:
     marketplace = json.loads(
         (REPOSITORY_ROOT / MARKETPLACE_PATH).read_text(encoding="utf-8")
     )
+    source_ref = marketplace["plugins"][0]["source"]["ref"]
+    manifest_path = (
+        root
+        / "plugins"
+        / "project-delivery"
+        / ".codex-plugin"
+        / "plugin.json"
+    )
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["version"] = source_ref.removeprefix("v")
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     write_marketplace(root, marketplace)
     run_git(root, "init", "-q")
     commit_fixture(root, "fixture: add Project Delivery")
-    run_git(root, "tag", "v1.4.0")
+    run_git(root, "tag", source_ref)
     return marketplace
 
 
@@ -142,6 +153,19 @@ class MarketplaceTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("does not resolve to an exact local tag or commit", result.stdout)
+
+    def test_tag_version_must_match_pinned_manifest_version(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repository"
+            marketplace = create_repository_fixture(root)
+            marketplace["plugins"][0]["source"]["ref"] = "v9.9.9"
+            write_marketplace(root, marketplace)
+            run_git(root, "tag", "v9.9.9")
+
+            result = run_checker(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("source.ref version '9.9.9' must match", result.stdout)
 
     def test_wrong_marketplace_repository_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

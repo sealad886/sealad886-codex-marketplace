@@ -124,7 +124,7 @@ codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
 codex plugin add project-delivery@sealad886-codex-marketplace
 ```
 
-Start a fresh Codex task, then invoke `$project-delivery:delivery-orchestrator` for an end-to-end request or a bounded Project Delivery skill directly. The marketplace currently resolves Project Delivery to the validated `v1.4.0` tag.
+Start a fresh Codex task, then invoke `$project-delivery:delivery-orchestrator` for an end-to-end request or a bounded Project Delivery skill directly. The marketplace resolves Project Delivery through a validated immutable release tag.
 
 ## Local development install
 
@@ -139,11 +139,7 @@ python3 scripts/check_distribution_bundle.py plugins/project-delivery \
 
 For later iterations, rerun the materializer with `--replace`. It replaces only an exact clean Project Delivery distribution outside any Git checkout or Python environment, and refuses missing, extra, forbidden, executable, symlinked, or unsupported entries. A failed swap restores the prior clean distribution or retains its backup path for recovery. This separation is required because Codex recursively copies a local source directory and does not treat `.codexignore` as a packaging filter.
 
-### Upgrade from the 1.3.x checkout layout
-
-Version 1.3.x instructed users to clone the development repository directly into `~/plugins/project-delivery`. Preserve that checkout intact: record its plugin/source/revision/status identity, move it to a separate rollback location such as `~/src/project-delivery-1.3-backup`, verify the moved checkout, and materialize the new nested package into the now-vacant personal destination. Do not use `--replace` against the old checkout.
-
-Then use Plugin Creator's supported cachebuster/reinstall flow, read back `project-delivery@personal`, compare the prepared source with the versioned installed cache, and verify selectors, icons, routing, and a bounded repository canary from a fresh task. Keep both sources until a forward-and-back recovery through the recorded control plane has passed; retained cache bytes alone are not rollback proof. The repository's [migration guide](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/migration-and-decommission.md) defines the full evidence record.
+Then use Plugin Creator's supported cachebuster/reinstall flow, read back `project-delivery@personal`, compare the prepared source with the versioned installed cache, and verify selectors, icons, routing, and a bounded repository canary from a fresh task. Keep the last known-good immutable package available until source/cache parity, fresh-task pickup, and rollback checks pass. The repository's [decommission guide](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/references/migration-and-decommission.md) defines the full evidence record.
 
 Then ask Codex's system Plugin Creator skill to validate and install the prepared package:
 
