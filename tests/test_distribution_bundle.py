@@ -171,6 +171,29 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("not portable", result.stdout)
 
+    def test_windows_absolute_local_mcp_dependency_returns_an_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": [r"C:\Users\alice\server.py"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("absolute local MCP dependency is not portable", result.stdout)
+
     def test_absolute_local_mcp_command_returns_a_validation_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

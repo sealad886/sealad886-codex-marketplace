@@ -74,12 +74,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def is_absolute_path(value: str) -> bool:
+    return Path(value).is_absolute() or PureWindowsPath(value).is_absolute()
+
+
 def safe_relative_path(value: str) -> Path:
     normalized = value.replace("\\", "/")
     while normalized.startswith("./"):
         normalized = normalized[2:]
     candidate = Path(normalized)
-    if candidate.is_absolute() or ".." in candidate.parts:
+    if is_absolute_path(value) or ".." in candidate.parts:
         raise ValueError(f"unsafe manifest path: {value}")
     return candidate
 
@@ -127,7 +131,7 @@ def add_local_mcp_dependencies(
         command = server.get("command")
         if not isinstance(command, str) or not command.strip():
             raise ValueError("local MCP server command must be a non-empty string")
-        if Path(command).is_absolute() or PureWindowsPath(command).is_absolute():
+        if is_absolute_path(command):
             raise ValueError(f"absolute local MCP command is not portable: {command}")
         command_source = (cwd / command).resolve()
         if not command_source.is_relative_to(resolved_root):
@@ -146,7 +150,7 @@ def add_local_mcp_dependencies(
             if not isinstance(argument, str):
                 raise ValueError("local MCP server args must contain only strings")
             is_explicit_path = argument.startswith(("./", "../"))
-            if Path(argument).is_absolute():
+            if is_absolute_path(argument):
                 raise ValueError(
                     f"absolute local MCP dependency is not portable: {argument}"
                 )
