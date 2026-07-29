@@ -49,6 +49,16 @@ class ConversationVisualsTests(unittest.TestCase):
         self.assertTrue(result["consent_required"])
         self.assertEqual(result["disposition"], "suggest-first")
 
+    def test_inferred_expensive_visuals_require_consent_in_automatic_mode(self) -> None:
+        for kind in ("generated-image", "slides"):
+            with self.subTest(kind=kind):
+                result = SERVER.plan_visual(
+                    {"requested_kind": kind, "utility": "high"}
+                )
+
+                self.assertTrue(result["consent_required"])
+                self.assertEqual(result["disposition"], "suggest-first")
+
     def test_sourced_result_requires_originating_source(self) -> None:
         with self.assertRaisesRegex(ValueError, "originating source"):
             SERVER.normalize_visual(

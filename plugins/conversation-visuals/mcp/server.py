@@ -86,9 +86,7 @@ def plan_visual(arguments: dict[str, Any]) -> dict[str, Any]:
             "narrate": "slides",
         }.get(intent, "diagram")
         expensive = kind in {"generated-image", "slides", "video"}
-        consent_required = kind == "video" or (
-            expensive and preference == "suggest-first" and not explicit
-        )
+        consent_required = kind == "video" or (expensive and not explicit)
         disposition = "suggest-first" if consent_required else "produce"
         rationale = (
             "Explicit or sufficiently useful visual treatment selected; "
