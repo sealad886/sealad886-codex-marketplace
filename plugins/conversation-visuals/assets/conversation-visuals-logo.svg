@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+  <title id="title">Conversation Visuals</title>
+  <rect width="512" height="512" rx="104" fill="#5B43D6"/>
+  <path d="M104 112h304a48 48 0 0 1 48 48v176a48 48 0 0 1-48 48H264l-88 64v-64h-72a48 48 0 0 1-48-48V160a48 48 0 0 1 48-48Z" fill="#fff"/>
+  <circle cx="190" cy="202" r="38" fill="#F6B73C"/>
+  <path d="m104 336 90-86 58 54 55-46 101 78H104Z" fill="#32A88B"/>
+</svg>

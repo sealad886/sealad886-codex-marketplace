@@ -32,7 +32,7 @@ OPTIONAL_ROOT_FILES = {
     "yarn.lock",
 }
 COMPONENT_FIELDS = ("skills", "scripts", "mcpServers", "apps", "app", "appConfig", "hooks")
-SHARED_RUNTIME_PATHS = (
+PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/operating-model.md",
     "skills/.shared/artifact-templates.md",
     "skills/.shared/external-systems.md",
@@ -92,6 +92,26 @@ def add_declared_path(root: Path, selected: set[Path], value: str) -> None:
         raise ValueError(f"declared path does not exist: {value}")
 
 
+def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> None:
+    """Include local command arguments referenced by a declared MCP config."""
+    config_path = safe_relative_path(value)
+    config = json.loads((root / config_path).read_text(encoding="utf-8"))
+    servers = config.get("mcpServers", {})
+    if not isinstance(servers, dict):
+        raise ValueError("mcpServers config must contain an object")
+    for server in servers.values():
+        if not isinstance(server, dict):
+            continue
+        for argument in server.get("args", []):
+            if not isinstance(argument, str) or not argument.startswith(("./", "../")):
+                continue
+            dependency = safe_relative_path(argument)
+            source = root / dependency
+            if not source.is_file():
+                raise ValueError(f"local MCP dependency does not exist: {argument}")
+            selected.add(dependency)
+
+
 def select_paths(root: Path) -> set[Path]:
     manifest_path = root / ".codex-plugin" / "plugin.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -102,6 +122,8 @@ def select_paths(root: Path) -> set[Path]:
         value = manifest.get(field)
         if isinstance(value, str):
             add_declared_path(root, selected, value)
+            if field == "mcpServers":
+                add_local_mcp_dependencies(root, selected, value)
 
     interface = manifest.get("interface", {})
     if isinstance(interface, dict):
@@ -214,9 +236,24 @@ def validate_distribution_tree(
     selected: list[Path],
 ) -> list[str]:
     errors, skill_count, _ = validate(destination, "source")
-    if skill_count != 13:
-        errors.append(f"runtime closure must contain 13 skills, found {skill_count}")
-    for required in SHARED_RUNTIME_PATHS:
+    manifest = json.loads(
+        (destination / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    plugin_name = manifest.get("name")
+    if skill_count < 1:
+        errors.append("runtime closure must contain at least one skill")
+    expected_skill_count = 13 if plugin_name == "project-delivery" else None
+    if expected_skill_count is not None and skill_count != expected_skill_count:
+        errors.append(
+            f"runtime closure must contain {expected_skill_count} skills, "
+            f"found {skill_count}"
+        )
+    shared_runtime_paths = (
+        PROJECT_DELIVERY_SHARED_RUNTIME_PATHS
+        if plugin_name == "project-delivery"
+        else ()
+    )
+    for required in shared_runtime_paths:
         if not (destination / required).is_file():
             errors.append(f"runtime closure is missing dependency: {required}")
 
@@ -393,8 +430,12 @@ def materialize_runtime_closure(
 
 
 def validate_runtime_closure(root: Path) -> tuple[list[str], int, str]:
-    with tempfile.TemporaryDirectory(prefix="project-delivery-runtime-closure-") as temporary:
-        destination = Path(temporary) / "project-delivery"
+    manifest = json.loads(
+        (root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    plugin_name = manifest["name"]
+    with tempfile.TemporaryDirectory(prefix=f"{plugin_name}-runtime-closure-") as temporary:
+        destination = Path(temporary) / plugin_name
         errors, selected, digest = build_runtime_closure(root, destination)
     return errors, len(selected), digest
 
@@ -418,9 +459,20 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     action = "materialized" if args.output else "validated"
     output = f" output={Path(args.output).expanduser().resolve()}" if args.output else ""
+    manifest = json.loads(
+        (root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    plugin_name = manifest["name"]
+    _, skill_count, _ = validate(root, "source")
+    shared_runtime_count = (
+        len(PROJECT_DELIVERY_SHARED_RUNTIME_PATHS)
+        if plugin_name == "project-delivery"
+        else 0
+    )
     print(
-        f"PASS action={action} selected_files={selected_count} skills=13 "
-        f"shared_runtime={len(SHARED_RUNTIME_PATHS)} payload_sha256={digest}{output}"
+        f"PASS action={action} plugin={plugin_name} selected_files={selected_count} "
+        f"skills={skill_count} shared_runtime={shared_runtime_count} "
+        f"payload_sha256={digest}{output}"
     )
     return 0
 

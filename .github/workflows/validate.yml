@@ -18,8 +18,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Validate plugin structure
+      - name: Validate Project Delivery structure
         run: python3 scripts/check_plugin.py plugins/project-delivery --layout source
+
+      - name: Validate Conversation Visuals structure
+        run: python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
 
       - name: Validate route contracts
         run: python3 scripts/check_routes.py .
@@ -29,6 +32,12 @@ jobs:
 
       - name: Validate exact distribution payload
         run: python3 scripts/check_distribution_bundle.py plugins/project-delivery
+
+      - name: Validate Conversation Visuals distribution payload
+        run: python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
+
+      - name: Validate Conversation Visuals MCP
+        run: python3 plugins/conversation-visuals/mcp/server.py --self-test
 
       - name: Validate repository marketplace and license parity
         run: python3 scripts/check_marketplace.py .

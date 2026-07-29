@@ -14,6 +14,15 @@ The repository and marketplace are both named `sealad886-codex-marketplace`. Ind
 |---|---:|---|---|
 | [Project Delivery](plugins/project-delivery/README.md) | `1.4.1` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
 
+## Release candidate
+
+[Conversation Visuals](plugins/conversation-visuals/README.md) `0.1.0` is a
+self-contained plugin for adding relevant sourced and generated visuals to
+supported Codex and ChatGPT conversations. Its package and local MCP are under
+validation. It will be added to the installable catalog only after the exact
+package is committed and the marketplace can pin an immutable tag containing
+it; the repository does not advertise an unresolvable or mutable release.
+
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 
 ## Install from the marketplace
@@ -37,7 +46,8 @@ sealad886-codex-marketplace/
 ├── scripts/                           dependency-free validation and packaging tools
 ├── tests/                             semantic contracts and regression tests
 └── plugins/
-    └── project-delivery/              canonical installable plugin
+    ├── project-delivery/              canonical installable plugin
+    └── conversation-visuals/          visual conversation plugin candidate
         ├── .codex-plugin/plugin.json
         ├── README.md
         ├── LICENSE
@@ -83,11 +93,14 @@ The current checks use only Python's standard library:
 
 ```bash
 python3 scripts/check_plugin.py plugins/project-delivery --layout source
+python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
 python3 scripts/check_routes.py .
 python3 scripts/check_route_receipts.py \
   tests/fixtures/blind-route-observations-v1.3.1.json \
   --root . --allow-subset --allow-historical-annotations
 python3 scripts/check_distribution_bundle.py plugins/project-delivery
+python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
+python3 plugins/conversation-visuals/mcp/server.py --self-test
 python3 scripts/check_marketplace.py .
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```

@@ -4,7 +4,22 @@ This file records user-visible marketplace and Project Delivery changes. Dates u
 
 ## Unreleased
 
-No changes yet.
+### Added
+
+- Conversation Visuals `0.1.0` release-candidate package with four skills for
+  conservative conversational visual selection, sourced-media research,
+  disclosed visual generation, and short visual storytelling.
+- A dependency-free local MCP server that plans visual treatments and validates
+  accessibility, originating-source, generated-media disclosure, and public-URL
+  invariants without reading files, accessing the network, or calling providers.
+- Package, behavioral, protocol, URL-safety, distribution, and CI validation for
+  Conversation Visuals, including a separate pinned HOL scanner job.
+
+### Changed
+
+- Generalized distribution validation so independently versioned marketplace
+  plugins can declare different skill counts and local MCP script dependencies
+  while preserving Project Delivery's exact 13-skill shared-runtime contract.
 
 ## 1.4.1 - 2026-07-29
 
