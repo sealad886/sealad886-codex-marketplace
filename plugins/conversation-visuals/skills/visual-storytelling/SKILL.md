@@ -46,8 +46,9 @@ unrequested formal deck.
 ## Outputs and handoff
 
 Return an inline sequence, slide artifact, storyboard, or supported short clip
-plus a concise narrative summary. Each frame has a purpose, accessible
-description, provenance, and citations or generation disclosure as applicable.
+plus a concise narrative summary and a guarded media URL or opaque host-issued
+`artifact_ref`. Each frame has a purpose, accessible description, provenance,
+and citations or generation disclosure as applicable.
 Hand final placement and host-limit messaging to `visual-companion`.
 
 ## Completion evidence

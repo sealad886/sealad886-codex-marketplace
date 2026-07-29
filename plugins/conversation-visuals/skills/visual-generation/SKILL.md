@@ -48,8 +48,9 @@ available before requesting an edit.
 ## Outputs and handoff
 
 Return a normalized generated or mixed visual result with title, relevance,
-alt text, safe media reference, generation disclosure, provider/model only when
-known, sources for factual inputs, and warnings. Hand multi-frame work to
+alt text, a guarded media URL or opaque host-issued `artifact_ref`, generation
+disclosure, provider/model only when known, sources for factual inputs, and
+warnings. Hand multi-frame work to
 `visual-storytelling` and conversational placement to `visual-companion`.
 
 ## Completion evidence

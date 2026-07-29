@@ -72,6 +72,21 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertIn("plugin name must be lower-case hyphen-case", result.stdout)
             self.assertNotIn("Traceback", result.stderr)
 
+    def test_overlong_manifest_name_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            manifest_path = source / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["name"] = "a" * 240
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("must not exceed 64 characters", result.stdout)
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_non_array_mcp_args_returns_a_validation_error(self) -> None:
         invalid_values = (
             (None, "local MCP server args must be an array"),
@@ -118,6 +133,43 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("local MCP config must contain an object", result.stdout)
             self.assertNotIn("Traceback", result.stderr)
+
+    def test_non_object_mcp_server_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps({"mcpServers": {"conversation-visuals": []}}),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("server config must contain an object", result.stdout)
+
+    def test_absolute_local_mcp_dependency_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["/tmp/server.py"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("not portable", result.stdout)
 
     def test_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

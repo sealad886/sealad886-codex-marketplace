@@ -51,6 +51,7 @@ FORBIDDEN_DISTRIBUTION_PARTS = {
     "tests",
 }
 PLUGIN_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
+MAX_PLUGIN_NAME_LENGTH = 64
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -106,7 +107,7 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
         raise ValueError("mcpServers config must contain an object")
     for server in servers.values():
         if not isinstance(server, dict):
-            continue
+            raise ValueError("each local MCP server config must contain an object")
         cwd_value = server.get("cwd", ".")
         if not isinstance(cwd_value, str):
             raise ValueError("local MCP server cwd must be a string")
@@ -124,7 +125,9 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
                 raise ValueError("local MCP server args must contain only strings")
             is_explicit_path = argument.startswith(("./", "../"))
             if Path(argument).is_absolute():
-                continue
+                raise ValueError(
+                    f"absolute local MCP dependency is not portable: {argument}"
+                )
             source = (cwd / argument).resolve()
             if not source.is_relative_to(resolved_root):
                 raise ValueError(
@@ -185,6 +188,10 @@ def read_plugin_name(root: Path) -> str:
     plugin_name = manifest["name"]
     if not isinstance(plugin_name, str) or not PLUGIN_NAME.fullmatch(plugin_name):
         raise ValueError("plugin name must be lower-case hyphen-case")
+    if len(plugin_name) > MAX_PLUGIN_NAME_LENGTH:
+        raise ValueError(
+            f"plugin name must not exceed {MAX_PLUGIN_NAME_LENGTH} characters"
+        )
     return plugin_name
 
 

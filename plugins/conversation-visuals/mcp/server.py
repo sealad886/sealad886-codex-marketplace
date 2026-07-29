@@ -30,7 +30,11 @@ def public_http_url(value: Any) -> bool:
     Hostname resolution and redirect validation belong to the approved host
     fetcher because this dependency-free metadata server never fetches URLs.
     """
-    if not isinstance(value, str) or len(value) > 4096:
+    if (
+        not isinstance(value, str)
+        or len(value) > 4096
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
         return False
     try:
         parsed = urlparse(value)
@@ -83,6 +87,15 @@ def public_http_url(value: Any) -> bool:
 
 
 def plan_visual(arguments: dict[str, Any]) -> dict[str, Any]:
+    unknown_fields = set(arguments) - {
+        "intent",
+        "explicit",
+        "utility",
+        "preference",
+        "requested_kind",
+    }
+    if unknown_fields:
+        raise ValueError(f"unsupported plan_visual fields: {sorted(unknown_fields)}")
     intent_value = arguments.get("intent", "explain")
     if not isinstance(intent_value, str):
         raise ValueError("intent must be a string")
@@ -154,6 +167,20 @@ def plan_visual(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
+    unknown_fields = set(arguments) - {
+        "kind",
+        "provenance",
+        "title",
+        "summary",
+        "alt_text",
+        "media_url",
+        "artifact_ref",
+        "sources",
+        "generation_disclosure",
+        "warnings",
+    }
+    if unknown_fields:
+        raise ValueError(f"unsupported normalize_visual fields: {sorted(unknown_fields)}")
     provenance = arguments.get("provenance")
     if not isinstance(provenance, str) or provenance not in {
         "sourced",
@@ -182,6 +209,17 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     media_url = arguments.get("media_url")
     if media_url is not None and not public_http_url(media_url):
         raise ValueError("media_url must be a public HTTP(S) URL without credentials")
+    artifact_ref = arguments.get("artifact_ref")
+    if artifact_ref is not None and (
+        not isinstance(artifact_ref, str)
+        or not artifact_ref.strip()
+        or len(artifact_ref) > 4096
+        or any(
+            ord(character) < 32 or ord(character) == 127
+            for character in artifact_ref
+        )
+    ):
+        raise ValueError("artifact_ref must be a non-empty host-issued reference")
     sources = arguments.get("sources", [])
     if not isinstance(sources, list) or len(sources) > 10:
         raise ValueError("sources must be an array with at most 10 entries")
@@ -223,6 +261,8 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     disclosure = disclosure_value.strip()
     if provenance in {"generated", "mixed"} and not disclosure:
         raise ValueError("generated and mixed visuals require a generation disclosure")
+    if provenance in {"generated", "mixed"} and not (media_url or artifact_ref):
+        raise ValueError("generated and mixed visuals require a media or artifact reference")
 
     kind = arguments.get("kind")
     if kind is None:
@@ -246,6 +286,7 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
         "summary": summary,
         "alt_text": alt_text,
         "media_url": media_url,
+        "artifact_ref": artifact_ref.strip() if artifact_ref is not None else None,
         "sources": normalized_sources,
         "generation": {
             "generated": provenance in {"generated", "mixed"},
@@ -301,6 +342,10 @@ TOOLS = [
                 "summary": {"type": "string"},
                 "alt_text": {"type": "string"},
                 "media_url": {"type": "string"},
+                "artifact_ref": {
+                    "type": "string",
+                    "description": "Opaque host-issued local artifact, attachment, or resource reference. The server records but never dereferences it.",
+                },
                 "sources": {"type": "array", "items": {"type": "object"}},
                 "generation_disclosure": {"type": "string"},
                 "warnings": {"type": "array", "items": {"type": "string"}},
@@ -333,17 +378,50 @@ def handle(request: Any) -> dict[str, Any] | None:
 
     method = request.get("method")
     request_id = request.get("id")
+    if request.get("jsonrpc") != "2.0":
+        return error_response(None, -32600, "Invalid Request: jsonrpc must be 2.0")
+    if "id" in request and (
+        isinstance(request_id, bool) or not isinstance(request_id, (str, int))
+    ):
+        return error_response(
+            None,
+            -32600,
+            "Invalid Request: id must be a string or integer",
+        )
     if not isinstance(method, str):
-        return error_response(request_id, -32600, "Invalid Request: method is required")
-    if "id" not in request:
+        return error_response(None, -32600, "Invalid Request: method is required")
+
+    is_notification = "id" not in request
+
+    def request_error(code: int, message: str) -> dict[str, Any] | None:
+        if is_notification:
+            return None
+        return error_response(request_id, code, message)
+
+    if "params" in request and not isinstance(request["params"], dict):
+        return request_error(-32602, "Invalid params: expected an object")
+    if is_notification:
         return None
     if method == "initialize":
         params = request.get("params", {})
         if not isinstance(params, dict):
-            return error_response(
-                request_id,
+            return request_error(
                 -32602,
                 "Invalid params: expected an object",
+            )
+        protocol_version = params.get("protocolVersion")
+        capabilities = params.get("capabilities")
+        client_info = params.get("clientInfo")
+        if (
+            not isinstance(protocol_version, str)
+            or not isinstance(capabilities, dict)
+            or not isinstance(client_info, dict)
+            or not isinstance(client_info.get("name"), str)
+            or not isinstance(client_info.get("version"), str)
+        ):
+            return request_error(
+                -32602,
+                "Invalid params: initialize requires protocolVersion, capabilities, and clientInfo",
             )
         result = {
             "protocolVersion": PROTOCOL_VERSION,
@@ -351,35 +429,37 @@ def handle(request: Any) -> dict[str, Any] | None:
             "serverInfo": SERVER_INFO,
         }
     elif method == "tools/list":
+        params = request.get("params", {})
+        if "cursor" in params and not isinstance(params["cursor"], str):
+            return request_error(-32602, "Invalid params: cursor must be a string")
         result = {"tools": TOOLS}
     elif method == "tools/call":
         params = request.get("params", {})
         if not isinstance(params, dict):
-            return error_response(
-                request_id,
+            return request_error(
                 -32602,
                 "Invalid params: expected an object",
             )
+        tool_name = params.get("name")
+        if tool_name not in {"plan_visual", "normalize_visual"}:
+            return request_error(-32602, f"Unknown tool: {tool_name}")
         arguments = params.get("arguments", {})
         if not isinstance(arguments, dict):
-            return error_response(
-                request_id,
+            return request_error(
                 -32602,
                 "Invalid params: arguments must be an object",
             )
         try:
-            if params.get("name") == "plan_visual":
+            if tool_name == "plan_visual":
                 result = result_content(plan_visual(arguments))
-            elif params.get("name") == "normalize_visual":
-                result = result_content(normalize_visual(arguments))
             else:
-                raise ValueError(f"unknown tool: {params.get('name')}")
+                result = result_content(normalize_visual(arguments))
         except (TypeError, ValueError) as error:
             result = result_content({"error": str(error)}, is_error=True)
     elif method == "ping":
         result = {}
     else:
-        return error_response(request_id, -32601, f"Method not found: {method}")
+        return request_error(-32601, f"Method not found: {method}")
     return {"jsonrpc": "2.0", "id": request_id, "result": result}
 
 

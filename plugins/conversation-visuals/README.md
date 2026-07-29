@@ -21,6 +21,10 @@ host fetcher enforces public-address resolution, redirect checks, and DNS-
 rebinding protection at fetch time; otherwise the plugin uses an originating-
 page link.
 
+Generated results carry either a guarded remote media URL or an opaque
+host-issued `artifact_ref` for a local artifact, attachment, or resource. The
+metadata server records that reference but never opens, reads, or publishes it.
+
 No API key is bundled or required for the baseline. Provider permissions,
 workspace policy, product plan, and host capability still apply. Installing a
 plugin cannot silently grant those external permissions.

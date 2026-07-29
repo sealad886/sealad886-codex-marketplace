@@ -111,6 +111,7 @@ class ConversationVisualsTests(unittest.TestCase):
                     "title": "Unsupported kind",
                     "alt_text": "A generated visual.",
                     "generation_disclosure": "Generated for this conversation.",
+                    "artifact_ref": "attachment:unsupported-kind",
                 }
             )
 
@@ -121,6 +122,7 @@ class ConversationVisualsTests(unittest.TestCase):
                 "title": "Generated visual",
                 "alt_text": "A generated visual.",
                 "generation_disclosure": "Generated for this conversation.",
+                "artifact_ref": "/tmp/generated-visual.png",
             }
         )
         sourced = SERVER.normalize_visual(
@@ -184,6 +186,10 @@ class ConversationVisualsTests(unittest.TestCase):
             "https://example.com:bad/item",
             "https://example.com:99999/item",
             "file:///tmp/item.png",
+            "https://example.com/a\nb",
+            "https://example.com/a\rb",
+            "https://example.com/a\tb",
+            "https://example.com/item#unsafe\nfragment",
         )
 
         for url in rejected:
@@ -198,7 +204,11 @@ class ConversationVisualsTests(unittest.TestCase):
                     "jsonrpc": "2.0",
                     "id": 1,
                     "method": "initialize",
-                    "params": {"protocolVersion": "1900-01-01"},
+                    "params": {
+                        "protocolVersion": "1900-01-01",
+                        "capabilities": {},
+                        "clientInfo": {"name": "test-client", "version": "1.0"},
+                    },
                 },
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
             )
@@ -293,6 +303,72 @@ class ConversationVisualsTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         responses = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(responses, [{"jsonrpc": "2.0", "id": 3, "result": {}}])
+
+    def test_generated_results_require_a_usable_reference(self) -> None:
+        with self.assertRaisesRegex(ValueError, "media or artifact reference"):
+            SERVER.normalize_visual(
+                {
+                    "provenance": "generated",
+                    "title": "Missing artifact",
+                    "alt_text": "A generated visual with no artifact.",
+                    "generation_disclosure": "Generated for this conversation.",
+                }
+            )
+
+        normalized = SERVER.normalize_visual(
+            {
+                "provenance": "generated",
+                "title": "Local artifact",
+                "alt_text": "A generated visual stored by the host.",
+                "generation_disclosure": "Generated for this conversation.",
+                "artifact_ref": "/tmp/generated visual.png",
+            }
+        )
+        self.assertEqual(normalized["artifact_ref"], "/tmp/generated visual.png")
+
+    def test_mcp_rejects_invalid_envelopes_and_unknown_tools(self) -> None:
+        invalid_requests = (
+            {},
+            {"id": 1, "method": "ping"},
+            {"jsonrpc": "1.0", "id": 2, "method": "ping"},
+            {"jsonrpc": "2.0", "id": 1.5, "method": "ping"},
+            {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "initialize",
+                "params": {},
+            },
+            {
+                "jsonrpc": "2.0",
+                "id": 5,
+                "method": "tools/call",
+                "params": {"name": "missing-tool", "arguments": {}},
+            },
+            {
+                "jsonrpc": "2.0",
+                "id": 6,
+                "method": "tools/list",
+                "params": {"cursor": 1},
+            },
+        )
+
+        responses = [SERVER.handle(request) for request in invalid_requests]
+
+        self.assertEqual(
+            [response["error"]["code"] for response in responses],
+            [-32600, -32600, -32600, -32600, -32602, -32602, -32602],
+        )
+        self.assertEqual(
+            [response["id"] for response in responses],
+            [None, None, None, None, 4, 5, 6],
+        )
+        self.assertIn("Unknown tool", responses[-2]["error"]["message"])
+
+    def test_tool_arguments_reject_undeclared_fields(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported plan_visual fields"):
+            SERVER.plan_visual({"unexpected": True})
+        with self.assertRaisesRegex(ValueError, "unsupported normalize_visual fields"):
+            SERVER.normalize_visual({"unexpected": True})
 
     def test_manifest_declares_bundled_mcp_and_four_skills(self) -> None:
         manifest = json.loads(
