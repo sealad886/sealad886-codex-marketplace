@@ -486,10 +486,11 @@ def main() -> int:
         self_test()
         return 0
     for line in sys.stdin:
+        request: Any = None
         try:
             request = json.loads(line)
             response = handle(request)
-        except (UnicodeError, json.JSONDecodeError) as error:
+        except (UnicodeError, json.JSONDecodeError, RecursionError) as error:
             response = {
                 "jsonrpc": "2.0",
                 "id": None,

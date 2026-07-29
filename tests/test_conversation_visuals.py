@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import importlib.util
+import io
 import json
 import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 REPOSITORY_ROOT = Path(__file__).parents[1]
@@ -273,6 +275,29 @@ class ConversationVisualsTests(unittest.TestCase):
             {tool["name"] for tool in responses[3]["result"]["tools"]},
             {"plan_visual", "normalize_visual"},
         )
+
+    def test_decoder_recursion_does_not_terminate_process(self) -> None:
+        original_loads = json.loads
+        ping = json.dumps({"jsonrpc": "2.0", "id": 3, "method": "ping"})
+        output = io.StringIO()
+
+        def load_line(line: str) -> object:
+            if line == "too-deep\n":
+                raise RecursionError("maximum nesting exceeded")
+            return original_loads(line)
+
+        with (
+            mock.patch.object(SERVER.json, "loads", side_effect=load_line),
+            mock.patch.object(SERVER.sys, "stdin", io.StringIO("too-deep\n" + ping + "\n")),
+            mock.patch.object(SERVER.sys, "stdout", output),
+            mock.patch.object(SERVER.sys, "argv", [str(SERVER_PATH)]),
+        ):
+            result = SERVER.main()
+
+        self.assertEqual(result, 0)
+        responses = [json.loads(line) for line in output.getvalue().splitlines()]
+        self.assertEqual(responses[0]["error"]["code"], -32700)
+        self.assertEqual(responses[1], {"jsonrpc": "2.0", "id": 3, "result": {}})
 
     def test_mcp_notifications_never_receive_responses(self) -> None:
         requests = "\n".join(

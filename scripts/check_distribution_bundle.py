@@ -95,14 +95,21 @@ def add_declared_path(root: Path, selected: set[Path], value: str) -> None:
         raise ValueError(f"declared path does not exist: {value}")
 
 
-def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> None:
+def add_local_mcp_dependencies(
+    root: Path,
+    selected: set[Path],
+    declaration: str | dict[str, object],
+) -> None:
     """Include local command arguments referenced by a declared MCP config."""
-    config_path = safe_relative_path(value)
-    config = json.loads((root / config_path).read_text(encoding="utf-8"))
-    if not isinstance(config, dict):
-        raise ValueError("local MCP config must contain an object")
+    if isinstance(declaration, str):
+        config_path = safe_relative_path(declaration)
+        config = json.loads((root / config_path).read_text(encoding="utf-8"))
+        if not isinstance(config, dict):
+            raise ValueError("local MCP config must contain an object")
+        servers = config.get("mcpServers", {})
+    else:
+        servers = declaration
     resolved_root = root.resolve()
-    servers = config.get("mcpServers", {})
     if not isinstance(servers, dict):
         raise ValueError("mcpServers config must contain an object")
     for server in servers.values():
@@ -155,6 +162,8 @@ def select_paths(root: Path) -> set[Path]:
             add_declared_path(root, selected, value)
             if field == "mcpServers":
                 add_local_mcp_dependencies(root, selected, value)
+        elif field == "mcpServers" and isinstance(value, dict):
+            add_local_mcp_dependencies(root, selected, value)
 
     interface = manifest.get("interface", {})
     if isinstance(interface, dict):

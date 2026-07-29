@@ -194,6 +194,26 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_inline_local_mcp_dependency_is_included(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            manifest_path = source / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["mcpServers"] = {
+                "conversation-visuals": {
+                    "command": "python3",
+                    "args": ["./mcp/server.py"],
+                    "cwd": ".",
+                }
+            }
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+            (source / ".mcp.json").unlink()
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_unprefixed_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
