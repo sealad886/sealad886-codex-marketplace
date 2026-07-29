@@ -155,8 +155,15 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     if provenance in {"generated", "mixed"} and not disclosure:
         raise ValueError("generated and mixed visuals require a generation disclosure")
 
+    kind = arguments.get("kind", "source-image")
+    if kind not in VISUAL_KINDS:
+        raise ValueError(f"unsupported kind: {kind}")
+    warnings = arguments.get("warnings", [])
+    if not isinstance(warnings, list):
+        raise ValueError("warnings must be an array")
+
     return {
-        "kind": arguments.get("kind", "image"),
+        "kind": kind,
         "provenance": provenance,
         "title": title,
         "summary": str(arguments.get("summary", "")).strip()[:1000],
@@ -167,7 +174,7 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
             "generated": provenance in {"generated", "mixed"},
             "disclosure": disclosure or None,
         },
-        "warnings": [str(item)[:500] for item in arguments.get("warnings", [])[:10]],
+        "warnings": [str(item)[:500] for item in warnings[:10]],
     }
 
 
@@ -205,7 +212,11 @@ TOOLS = [
             "type": "object",
             "required": ["provenance", "title", "alt_text"],
             "properties": {
-                "kind": {"type": "string"},
+                "kind": {
+                    "type": "string",
+                    "enum": sorted(VISUAL_KINDS),
+                    "default": "source-image",
+                },
                 "provenance": {
                     "type": "string",
                     "enum": ["sourced", "generated", "mixed"],
@@ -232,16 +243,34 @@ def result_content(value: dict[str, Any], is_error: bool = False) -> dict[str, A
     }
 
 
-def handle(request: dict[str, Any]) -> dict[str, Any] | None:
+def error_response(request_id: Any, code: int, message: str) -> dict[str, Any]:
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "error": {"code": code, "message": message},
+    }
+
+
+def handle(request: Any) -> dict[str, Any] | None:
+    if not isinstance(request, dict):
+        return error_response(None, -32600, "Invalid Request: expected an object")
+
     method = request.get("method")
     request_id = request.get("id")
+    if not isinstance(method, str):
+        return error_response(request_id, -32600, "Invalid Request: method is required")
     if method == "notifications/initialized":
         return None
     if method == "initialize":
+        params = request.get("params", {})
+        if not isinstance(params, dict):
+            return error_response(
+                request_id,
+                -32602,
+                "Invalid params: expected an object",
+            )
         result = {
-            "protocolVersion": request.get("params", {}).get(
-                "protocolVersion", PROTOCOL_VERSION
-            ),
+            "protocolVersion": PROTOCOL_VERSION,
             "capabilities": {"tools": {}},
             "serverInfo": SERVER_INFO,
         }
@@ -249,7 +278,19 @@ def handle(request: dict[str, Any]) -> dict[str, Any] | None:
         result = {"tools": TOOLS}
     elif method == "tools/call":
         params = request.get("params", {})
+        if not isinstance(params, dict):
+            return error_response(
+                request_id,
+                -32602,
+                "Invalid params: expected an object",
+            )
         arguments = params.get("arguments", {})
+        if not isinstance(arguments, dict):
+            return error_response(
+                request_id,
+                -32602,
+                "Invalid params: arguments must be an object",
+            )
         try:
             if params.get("name") == "plan_visual":
                 result = result_content(plan_visual(arguments))
@@ -262,11 +303,7 @@ def handle(request: dict[str, Any]) -> dict[str, Any] | None:
     elif method == "ping":
         result = {}
     else:
-        return {
-            "jsonrpc": "2.0",
-            "id": request_id,
-            "error": {"code": -32601, "message": f"Method not found: {method}"},
-        }
+        return error_response(request_id, -32601, f"Method not found: {method}")
     return {"jsonrpc": "2.0", "id": request_id, "result": result}
 
 
@@ -302,6 +339,9 @@ def main() -> int:
                 "id": None,
                 "error": {"code": -32700, "message": f"Parse error: {error}"},
             }
+        except Exception:
+            request_id = request.get("id") if isinstance(request, dict) else None
+            response = error_response(request_id, -32603, "Internal error")
         if response is not None:
             print(json.dumps(response, separators=(",", ":")), flush=True)
     return 0

@@ -69,6 +69,18 @@ class ConversationVisualsTests(unittest.TestCase):
                 }
             )
 
+    def test_normalized_result_rejects_unsupported_visual_kind(self) -> None:
+        with self.assertRaisesRegex(ValueError, "unsupported kind"):
+            SERVER.normalize_visual(
+                {
+                    "kind": "image",
+                    "provenance": "generated",
+                    "title": "Unsupported kind",
+                    "alt_text": "A generated visual.",
+                    "generation_disclosure": "Generated for this conversation.",
+                }
+            )
+
     def test_private_and_credentialed_urls_are_rejected(self) -> None:
         rejected = (
             "http://127.0.0.1/item",
@@ -89,7 +101,7 @@ class ConversationVisualsTests(unittest.TestCase):
                     "jsonrpc": "2.0",
                     "id": 1,
                     "method": "initialize",
-                    "params": {"protocolVersion": "2025-06-18"},
+                    "params": {"protocolVersion": "1900-01-01"},
                 },
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
             )
@@ -106,7 +118,52 @@ class ConversationVisualsTests(unittest.TestCase):
         responses = [json.loads(line) for line in result.stdout.splitlines()]
         self.assertEqual(responses[0]["result"]["serverInfo"]["name"], "conversation-visuals")
         self.assertEqual(
+            responses[0]["result"]["protocolVersion"],
+            SERVER.PROTOCOL_VERSION,
+        )
+        self.assertEqual(
             {tool["name"] for tool in responses[1]["result"]["tools"]},
+            {"plan_visual", "normalize_visual"},
+        )
+
+    def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:
+        requests = "\n".join(
+            json.dumps(item)
+            for item in (
+                [],
+                {
+                    "jsonrpc": "2.0",
+                    "id": 1,
+                    "method": "tools/call",
+                    "params": None,
+                },
+                {
+                    "jsonrpc": "2.0",
+                    "id": 2,
+                    "method": "tools/call",
+                    "params": {"name": "plan_visual", "arguments": None},
+                },
+                {"jsonrpc": "2.0", "id": 3, "method": "tools/list"},
+            )
+        )
+
+        result = subprocess.run(
+            [sys.executable, str(SERVER_PATH)],
+            input=requests + "\n",
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        responses = [json.loads(line) for line in result.stdout.splitlines()]
+        self.assertEqual(
+            [response["error"]["code"] for response in responses[:3]],
+            [-32600, -32602, -32602],
+        )
+        self.assertEqual(responses[3]["id"], 3)
+        self.assertEqual(
+            {tool["name"] for tool in responses[3]["result"]["tools"]},
             {"plan_visual", "normalize_visual"},
         )
 

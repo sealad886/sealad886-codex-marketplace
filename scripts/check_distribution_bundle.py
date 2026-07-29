@@ -102,8 +102,13 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
     for server in servers.values():
         if not isinstance(server, dict):
             continue
-        for argument in server.get("args", []):
-            if not isinstance(argument, str) or not argument.startswith(("./", "../")):
+        arguments = server.get("args", [])
+        if not isinstance(arguments, list):
+            raise ValueError("local MCP server args must be an array")
+        for argument in arguments:
+            if not isinstance(argument, str):
+                raise ValueError("local MCP server args must contain only strings")
+            if not argument.startswith(("./", "../")):
                 continue
             dependency = safe_relative_path(argument)
             source = root / dependency
@@ -353,7 +358,16 @@ def materialize_runtime_closure(
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         plugin_name = manifest["name"]
-    except (OSError, UnicodeError, json.JSONDecodeError, KeyError) as error:
+        if not isinstance(plugin_name, str) or not plugin_name:
+            raise ValueError("plugin name must be a non-empty string")
+    except (
+        OSError,
+        UnicodeError,
+        json.JSONDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as error:
         return [f"cannot resolve plugin identity: {error}"], 0, ""
 
     lexical_output = Path(os.path.abspath(os.fspath(output.expanduser())))
@@ -430,10 +444,21 @@ def materialize_runtime_closure(
 
 
 def validate_runtime_closure(root: Path) -> tuple[list[str], int, str]:
-    manifest = json.loads(
-        (root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
-    )
-    plugin_name = manifest["name"]
+    manifest_path = root / ".codex-plugin" / "plugin.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        plugin_name = manifest["name"]
+        if not isinstance(plugin_name, str) or not plugin_name:
+            raise ValueError("plugin name must be a non-empty string")
+    except (
+        OSError,
+        UnicodeError,
+        json.JSONDecodeError,
+        KeyError,
+        TypeError,
+        ValueError,
+    ) as error:
+        return [f"cannot resolve plugin identity: {error}"], 0, ""
     with tempfile.TemporaryDirectory(prefix=f"{plugin_name}-runtime-closure-") as temporary:
         destination = Path(temporary) / plugin_name
         errors, selected, digest = build_runtime_closure(root, destination)

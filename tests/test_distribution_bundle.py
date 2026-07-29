@@ -13,6 +13,7 @@ from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).parents[1]
 PLUGIN_ROOT = REPOSITORY_ROOT / "plugins" / "project-delivery"
+CONVERSATION_VISUALS_ROOT = REPOSITORY_ROOT / "plugins" / "conversation-visuals"
 CHECKER = REPOSITORY_ROOT / "scripts" / "check_distribution_bundle.py"
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
@@ -41,6 +42,56 @@ def run_checker(*arguments: str, root: Path = PLUGIN_ROOT) -> subprocess.Complet
 
 
 class DistributionBundleTests(unittest.TestCase):
+    def test_malformed_manifest_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".codex-plugin" / "plugin.json").write_text(
+                "{",
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("cannot resolve plugin identity", result.stdout)
+            self.assertNotIn("Traceback", result.stderr)
+
+    def test_non_array_mcp_args_returns_a_validation_error(self) -> None:
+        invalid_values = (
+            (None, "local MCP server args must be an array"),
+            (
+                ["./mcp/server.py", 1],
+                "local MCP server args must contain only strings",
+            ),
+        )
+        for arguments, expected_error in invalid_values:
+            with (
+                self.subTest(arguments=arguments),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                source = Path(temporary) / "conversation-visuals"
+                shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+                (source / ".mcp.json").write_text(
+                    json.dumps(
+                        {
+                            "mcpServers": {
+                                "conversation-visuals": {
+                                    "command": "python3",
+                                    "args": arguments,
+                                }
+                            }
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                result = run_checker(root=source)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(expected_error, result.stdout)
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_materialized_distribution_is_exact_and_source_free(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "project-delivery"
