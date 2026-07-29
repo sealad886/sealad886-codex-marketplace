@@ -13,7 +13,7 @@ import sys
 import tempfile
 import time
 import uuid
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from check_plugin import validate
 
@@ -124,6 +124,21 @@ def add_local_mcp_dependencies(
             raise ValueError(f"local MCP server cwd escapes plugin root: {cwd_value}")
         if not cwd.is_dir():
             raise ValueError(f"local MCP server cwd does not exist: {cwd_value}")
+        command = server.get("command")
+        if not isinstance(command, str) or not command.strip():
+            raise ValueError("local MCP server command must be a non-empty string")
+        if Path(command).is_absolute() or PureWindowsPath(command).is_absolute():
+            raise ValueError(f"absolute local MCP command is not portable: {command}")
+        command_source = (cwd / command).resolve()
+        if not command_source.is_relative_to(resolved_root):
+            raise ValueError(f"local MCP command escapes plugin root: {command}")
+        command_is_explicit_path = command.startswith(("./", "../")) or any(
+            separator in command for separator in ("/", "\\")
+        )
+        if command_source.is_file():
+            selected.add(command_source.relative_to(resolved_root))
+        elif command_is_explicit_path:
+            raise ValueError(f"local MCP command does not exist: {command}")
         arguments = server.get("args", [])
         if not isinstance(arguments, list):
             raise ValueError("local MCP server args must be an array")
