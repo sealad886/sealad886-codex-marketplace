@@ -1,0 +1,8 @@
+# Advisory authoring exclusions only; Codex does not use this file as an install filter.
+.git/
+.github/
+.venv/
+__pycache__/
+tests/
+*.pyc
+.DS_Store
