@@ -176,6 +176,7 @@ class ConversationVisualsTests(unittest.TestCase):
             "http://%31%32%37.0.0.1/item",
             "http://%2531%2532%2537.0.0.1/item",
             "http://127%2e0%2e0%2e1/item",
+            "http://127.0.0.1%3a80/item",
             "http://127.0.0.1%09/item",
             "http://127。0。0。1/item",
             "http://localhost./item",

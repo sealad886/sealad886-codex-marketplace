@@ -99,6 +99,25 @@ def add_declared_path(root: Path, selected: set[Path], value: str) -> None:
         raise ValueError(f"declared path does not exist: {value}")
 
 
+def is_python_command(command: str) -> bool:
+    command_name = Path(command.replace("\\", "/")).name
+    return re.fullmatch(
+        r"(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?", command_name
+    ) is not None
+
+
+def python_script_operand(command: str, arguments: list[str]) -> str | None:
+    """Return the first Python script operand that must exist locally."""
+    if not is_python_command(command):
+        return None
+    for argument in arguments:
+        if argument in ("-", "-c", "-m"):
+            return None
+        if argument.lower().endswith((".py", ".pyw")):
+            return argument
+    return None
+
+
 def add_python_module_dependencies(
     root: Path,
     cwd: Path,
@@ -107,8 +126,7 @@ def add_python_module_dependencies(
     arguments: list[str],
 ) -> None:
     """Include bundled modules launched through a Python ``-m`` operand."""
-    command_name = Path(command.replace("\\", "/")).name
-    if not re.fullmatch(r"(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?", command_name):
+    if not is_python_command(command):
         return
     resolved_root = root.resolve()
     for index, argument in enumerate(arguments[:-1]):
@@ -198,10 +216,13 @@ def add_local_mcp_dependencies(
         arguments = server.get("args", [])
         if not isinstance(arguments, list):
             raise ValueError("local MCP server args must be an array")
+        if not all(isinstance(argument, str) for argument in arguments):
+            raise ValueError("local MCP server args must contain only strings")
+        required_python_script = python_script_operand(command, arguments)
         for argument in arguments:
-            if not isinstance(argument, str):
-                raise ValueError("local MCP server args must contain only strings")
-            is_explicit_path = argument.startswith(("./", "../"))
+            is_explicit_path = argument.startswith(
+                ("./", "../")
+            ) or argument == required_python_script
             if is_absolute_path(argument):
                 raise ValueError(
                     f"absolute local MCP dependency is not portable: {argument}"

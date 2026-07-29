@@ -57,7 +57,7 @@ def public_http_url(value: Any) -> bool:
     except UnicodeDecodeError:
         return False
     if "%" in decoded_hostname or any(
-        character in "/\\@?#[]"
+        character in ":/\\@?#[]"
         or character.isspace()
         or ord(character) < 32
         or ord(character) == 127
