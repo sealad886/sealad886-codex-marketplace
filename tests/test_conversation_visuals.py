@@ -71,6 +71,17 @@ class ConversationVisualsTests(unittest.TestCase):
                 self.assertTrue(result["consent_required"])
                 self.assertEqual(result["disposition"], "suggest-first")
 
+    def test_non_boolean_explicit_flag_is_rejected(self) -> None:
+        with self.assertRaisesRegex(ValueError, "explicit must be a boolean"):
+            SERVER.plan_visual(
+                {
+                    "preference": "quiet",
+                    "explicit": "false",
+                    "requested_kind": "video",
+                    "utility": "high",
+                }
+            )
+
     def test_sourced_result_requires_originating_source(self) -> None:
         with self.assertRaisesRegex(ValueError, "originating source"):
             SERVER.normalize_visual(
@@ -126,6 +137,30 @@ class ConversationVisualsTests(unittest.TestCase):
         self.assertEqual(generated["kind"], "generated-image")
         self.assertEqual(sourced["kind"], "source-image")
 
+    def test_required_text_metadata_rejects_non_strings(self) -> None:
+        invalid_values = (
+            ("title", None, "title must be a string"),
+            ("alt_text", False, "alt_text must be a string"),
+            (
+                "generation_disclosure",
+                False,
+                "generation_disclosure must be a string",
+            ),
+        )
+        for field, value, expected_error in invalid_values:
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError,
+                expected_error,
+            ):
+                arguments = {
+                    "provenance": "generated",
+                    "title": "Generated visual",
+                    "alt_text": "A generated visual.",
+                    "generation_disclosure": "Generated for this conversation.",
+                }
+                arguments[field] = value
+                SERVER.normalize_visual(arguments)
+
     def test_private_and_credentialed_urls_are_rejected(self) -> None:
         rejected = (
             "http://127.0.0.1/item",
@@ -143,6 +178,9 @@ class ConversationVisualsTests(unittest.TestCase):
             "http://media.localhost/item",
             "http://169.254.169.254/latest/meta-data",
             "https://user:secret@example.com/item",
+            "https://example.com:/item",
+            "https://example.com:bad/item",
+            "https://example.com:99999/item",
             "file:///tmp/item.png",
         )
 

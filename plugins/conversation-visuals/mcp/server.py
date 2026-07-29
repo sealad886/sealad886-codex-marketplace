@@ -27,12 +27,22 @@ PREFERENCES = {"automatic", "suggest-first", "on-request", "quiet"}
 def public_http_url(value: Any) -> bool:
     if not isinstance(value, str) or len(value) > 4096:
         return False
-    parsed = urlparse(value)
+    try:
+        parsed = urlparse(value)
+        username = parsed.username
+        password = parsed.password
+        port = parsed.port
+        hostname = parsed.hostname
+    except ValueError:
+        return False
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return False
-    if parsed.username or parsed.password:
+    if username or password:
         return False
-    hostname = parsed.hostname
+    if port is not None and not 1 <= port <= 65535:
+        return False
+    if parsed.netloc.endswith(":"):
+        return False
     try:
         decoded_hostname = unquote(hostname, errors="strict") if hostname else ""
     except UnicodeDecodeError:
@@ -75,16 +85,23 @@ def public_http_url(value: Any) -> bool:
 
 
 def plan_visual(arguments: dict[str, Any]) -> dict[str, Any]:
-    intent = str(arguments.get("intent", "explain")).strip()[:80] or "explain"
-    explicit = bool(arguments.get("explicit", False))
+    intent_value = arguments.get("intent", "explain")
+    if not isinstance(intent_value, str):
+        raise ValueError("intent must be a string")
+    intent = intent_value.strip()[:80] or "explain"
+    explicit = arguments.get("explicit", False)
+    if not isinstance(explicit, bool):
+        raise ValueError("explicit must be a boolean")
     utility = arguments.get("utility", "medium")
     preference = arguments.get("preference", "automatic")
-    if preference not in PREFERENCES:
+    if not isinstance(preference, str) or preference not in PREFERENCES:
         raise ValueError(f"unsupported preference: {preference}")
-    if utility not in {"low", "medium", "high"}:
+    if not isinstance(utility, str) or utility not in {"low", "medium", "high"}:
         raise ValueError(f"unsupported utility: {utility}")
     requested_kind = arguments.get("requested_kind")
-    if requested_kind is not None and requested_kind not in VISUAL_KINDS:
+    if requested_kind is not None and (
+        not isinstance(requested_kind, str) or requested_kind not in VISUAL_KINDS
+    ):
         raise ValueError(f"unsupported requested_kind: {requested_kind}")
 
     if preference == "quiet" and not explicit:
@@ -140,14 +157,29 @@ def plan_visual(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     provenance = arguments.get("provenance")
-    if provenance not in {"sourced", "generated", "mixed"}:
+    if not isinstance(provenance, str) or provenance not in {
+        "sourced",
+        "generated",
+        "mixed",
+    }:
         raise ValueError("provenance must be sourced, generated, or mixed")
-    title = str(arguments.get("title", "")).strip()
-    alt_text = str(arguments.get("alt_text", "")).strip()
+    title_value = arguments.get("title")
+    alt_text_value = arguments.get("alt_text")
+    if not isinstance(title_value, str):
+        raise ValueError("title must be a string")
+    if not isinstance(alt_text_value, str):
+        raise ValueError("alt_text must be a string")
+    title = title_value.strip()
+    alt_text = alt_text_value.strip()
     if not title or len(title) > 200:
         raise ValueError("title must contain 1 to 200 characters")
     if not alt_text or len(alt_text) > 2000:
         raise ValueError("alt_text must contain 1 to 2000 characters")
+
+    summary_value = arguments.get("summary", "")
+    if not isinstance(summary_value, str):
+        raise ValueError("summary must be a string")
+    summary = summary_value.strip()[:1000]
 
     media_url = arguments.get("media_url")
     if media_url is not None and not public_http_url(media_url):
@@ -159,32 +191,45 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     for source in sources:
         if not isinstance(source, dict):
             raise ValueError("each source must be an object")
-        source_title = str(source.get("title", "")).strip()
+        source_title_value = source.get("title")
+        if not isinstance(source_title_value, str):
+            raise ValueError("each source title must be a string")
+        source_title = source_title_value.strip()
         source_url = source.get("url")
         if not source_title or not public_http_url(source_url):
             raise ValueError("each source needs a title and public HTTP(S) URL")
+        publisher = source.get("publisher", "")
+        license_name = source.get("license", "unknown")
+        retrieved_at = source.get("retrieved_at", "")
+        if not isinstance(publisher, str):
+            raise ValueError("source publisher must be a string")
+        if not isinstance(license_name, str):
+            raise ValueError("source license must be a string")
+        if not isinstance(retrieved_at, str):
+            raise ValueError("source retrieved_at must be a string")
         normalized_sources.append(
             {
                 "title": source_title[:300],
                 "url": source_url,
-                "publisher": str(source.get("publisher", "")).strip()[:200] or None,
-                "license": str(source.get("license", "unknown")).strip()[:200]
-                or "unknown",
-                "retrieved_at": str(source.get("retrieved_at", "")).strip()[:80]
-                or None,
+                "publisher": publisher.strip()[:200] or None,
+                "license": license_name.strip()[:200] or "unknown",
+                "retrieved_at": retrieved_at.strip()[:80] or None,
             }
         )
     if provenance in {"sourced", "mixed"} and not normalized_sources:
         raise ValueError("sourced and mixed visuals require an originating source")
 
-    disclosure = str(arguments.get("generation_disclosure", "")).strip()
+    disclosure_value = arguments.get("generation_disclosure", "")
+    if not isinstance(disclosure_value, str):
+        raise ValueError("generation_disclosure must be a string")
+    disclosure = disclosure_value.strip()
     if provenance in {"generated", "mixed"} and not disclosure:
         raise ValueError("generated and mixed visuals require a generation disclosure")
 
     kind = arguments.get("kind")
     if kind is None:
         kind = "source-image" if provenance == "sourced" else "generated-image"
-    if kind not in VISUAL_KINDS:
+    if not isinstance(kind, str) or kind not in VISUAL_KINDS:
         raise ValueError(f"unsupported kind: {kind}")
     if provenance == "sourced" and kind == "generated-image":
         raise ValueError("sourced provenance cannot use generated-image kind")
@@ -193,12 +238,14 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     warnings = arguments.get("warnings", [])
     if not isinstance(warnings, list):
         raise ValueError("warnings must be an array")
+    if not all(isinstance(item, str) for item in warnings):
+        raise ValueError("warnings must contain only strings")
 
     return {
         "kind": kind,
         "provenance": provenance,
         "title": title,
-        "summary": str(arguments.get("summary", "")).strip()[:1000],
+        "summary": summary,
         "alt_text": alt_text,
         "media_url": media_url,
         "sources": normalized_sources,
@@ -206,7 +253,7 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
             "generated": provenance in {"generated", "mixed"},
             "disclosure": disclosure or None,
         },
-        "warnings": [str(item)[:500] for item in warnings[:10]],
+        "warnings": [item[:500] for item in warnings[:10]],
     }
 
 
