@@ -107,6 +107,18 @@ class DistributionBundleTests(unittest.TestCase):
                 self.assertIn(expected_error, result.stdout)
                 self.assertNotIn("Traceback", result.stderr)
 
+    def test_non_object_mcp_config_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text("[]", encoding="utf-8")
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("local MCP config must contain an object", result.stdout)
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

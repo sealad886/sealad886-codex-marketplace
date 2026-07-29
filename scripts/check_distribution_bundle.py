@@ -98,6 +98,8 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
     """Include local command arguments referenced by a declared MCP config."""
     config_path = safe_relative_path(value)
     config = json.loads((root / config_path).read_text(encoding="utf-8"))
+    if not isinstance(config, dict):
+        raise ValueError("local MCP config must contain an object")
     resolved_root = root.resolve()
     servers = config.get("mcpServers", {})
     if not isinstance(servers, dict):

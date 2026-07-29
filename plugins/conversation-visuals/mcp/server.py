@@ -74,14 +74,7 @@ def public_http_url(value: Any) -> bool:
             address = ipaddress.ip_address(socket.inet_aton(normalized_hostname))
         except OSError:
             return True
-    return not (
-        address.is_private
-        or address.is_loopback
-        or address.is_link_local
-        or address.is_multicast
-        or address.is_reserved
-        or address.is_unspecified
-    )
+    return address.is_global and not address.is_multicast
 
 
 def plan_visual(arguments: dict[str, Any]) -> dict[str, Any]:
