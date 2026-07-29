@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import ipaddress
 import json
+import socket
 import sys
 from typing import Any
 from urllib.parse import urlparse
@@ -32,12 +33,20 @@ def public_http_url(value: Any) -> bool:
     if parsed.username or parsed.password:
         return False
     hostname = parsed.hostname
-    if not hostname or hostname.lower() == "localhost":
+    normalized_hostname = hostname.rstrip(".").lower() if hostname else ""
+    if (
+        not normalized_hostname
+        or normalized_hostname == "localhost"
+        or normalized_hostname.endswith(".localhost")
+    ):
         return False
     try:
-        address = ipaddress.ip_address(hostname)
+        address = ipaddress.ip_address(normalized_hostname)
     except ValueError:
-        return True
+        try:
+            address = ipaddress.ip_address(socket.inet_aton(normalized_hostname))
+        except OSError:
+            return True
     return not (
         address.is_private
         or address.is_loopback
@@ -86,7 +95,9 @@ def plan_visual(arguments: dict[str, Any]) -> dict[str, Any]:
             "narrate": "slides",
         }.get(intent, "diagram")
         expensive = kind in {"generated-image", "slides", "video"}
-        consent_required = kind == "video" or (expensive and not explicit)
+        consent_required = not explicit and (
+            preference == "suggest-first" or expensive
+        )
         disposition = "suggest-first" if consent_required else "produce"
         rationale = (
             "Explicit or sufficiently useful visual treatment selected; "
@@ -153,9 +164,15 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     if provenance in {"generated", "mixed"} and not disclosure:
         raise ValueError("generated and mixed visuals require a generation disclosure")
 
-    kind = arguments.get("kind", "source-image")
+    kind = arguments.get("kind")
+    if kind is None:
+        kind = "source-image" if provenance == "sourced" else "generated-image"
     if kind not in VISUAL_KINDS:
         raise ValueError(f"unsupported kind: {kind}")
+    if provenance == "sourced" and kind == "generated-image":
+        raise ValueError("sourced provenance cannot use generated-image kind")
+    if provenance == "generated" and kind == "source-image":
+        raise ValueError("generated provenance cannot use source-image kind")
     warnings = arguments.get("warnings", [])
     if not isinstance(warnings, list):
         raise ValueError("warnings must be an array")
@@ -213,7 +230,6 @@ TOOLS = [
                 "kind": {
                     "type": "string",
                     "enum": sorted(VISUAL_KINDS),
-                    "default": "source-image",
                 },
                 "provenance": {
                     "type": "string",
@@ -307,7 +323,7 @@ def handle(request: Any) -> dict[str, Any] | None:
 
 def self_test() -> None:
     assert plan_visual({"utility": "low"})["disposition"] == "no-visual"
-    assert plan_visual({"explicit": True, "requested_kind": "video"})[
+    assert not plan_visual({"explicit": True, "requested_kind": "video"})[
         "consent_required"
     ]
     sourced = normalize_visual(

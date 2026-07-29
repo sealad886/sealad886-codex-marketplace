@@ -41,9 +41,21 @@ class ConversationVisualsTests(unittest.TestCase):
         self.assertEqual(result["disposition"], "produce")
         self.assertEqual(result["kind"], "diagram")
 
-    def test_video_always_requires_consent(self) -> None:
+    def test_explicit_video_request_is_authorized(self) -> None:
         result = SERVER.plan_visual(
             {"explicit": True, "requested_kind": "video", "utility": "high"}
+        )
+
+        self.assertFalse(result["consent_required"])
+        self.assertEqual(result["disposition"], "produce")
+
+    def test_suggest_first_applies_to_inferred_low_cost_visuals(self) -> None:
+        result = SERVER.plan_visual(
+            {
+                "preference": "suggest-first",
+                "requested_kind": "diagram",
+                "utility": "high",
+            }
         )
 
         self.assertTrue(result["consent_required"])
@@ -91,9 +103,39 @@ class ConversationVisualsTests(unittest.TestCase):
                 }
             )
 
+    def test_normalized_result_defaults_kind_from_provenance(self) -> None:
+        generated = SERVER.normalize_visual(
+            {
+                "provenance": "generated",
+                "title": "Generated visual",
+                "alt_text": "A generated visual.",
+                "generation_disclosure": "Generated for this conversation.",
+            }
+        )
+        sourced = SERVER.normalize_visual(
+            {
+                "provenance": "sourced",
+                "title": "Sourced visual",
+                "alt_text": "A sourced visual.",
+                "sources": [
+                    {"title": "Origin", "url": "https://example.com/item"}
+                ],
+            }
+        )
+
+        self.assertEqual(generated["kind"], "generated-image")
+        self.assertEqual(sourced["kind"], "source-image")
+
     def test_private_and_credentialed_urls_are_rejected(self) -> None:
         rejected = (
             "http://127.0.0.1/item",
+            "http://127.0.0.1./item",
+            "http://127.1/item",
+            "http://2130706433/item",
+            "http://0x7f000001/item",
+            "http://0177.0.0.1/item",
+            "http://localhost./item",
+            "http://media.localhost/item",
             "http://169.254.169.254/latest/meta-data",
             "https://user:secret@example.com/item",
             "file:///tmp/item.png",
