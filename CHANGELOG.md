@@ -4,9 +4,19 @@ This file records user-visible marketplace and Project Delivery changes. Dates u
 
 ## Unreleased
 
+No changes yet.
+
+## 1.4.1 - 2026-07-29
+
 ### Changed
 
+- Aligned Project Delivery's canonical package boundary, manifest, documentation, security links, and route-receipt schema identifier with the sealad886 Codex Marketplace repository.
 - Reframed the repository documentation and validator as a multi-plugin marketplace, with unique contained plugin entries and resolvable immutable `git-subdir` sources whose pinned package identity is inspected.
+
+### Fixed
+
+- Rejected marketplace entries whose immutable-looking Git reference does not resolve, lacks the advertised plugin subtree, or contains a mismatched package identity.
+- Preserved the existing 13-skill lifecycle and route contracts while fixing the installed package's canonical source metadata.
 
 ## 1.4.0 - 2026-07-21
 

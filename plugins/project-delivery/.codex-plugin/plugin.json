@@ -1,6 +1,6 @@
 {
   "name": "project-delivery",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "A repository-grounded, risk-scaled workflow for coordinating, planning, implementing, verifying, reviewing, releasing, and improving software changes.",
   "author": {
     "name": "Andrew Cox",
