@@ -98,12 +98,22 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
     """Include local command arguments referenced by a declared MCP config."""
     config_path = safe_relative_path(value)
     config = json.loads((root / config_path).read_text(encoding="utf-8"))
+    resolved_root = root.resolve()
     servers = config.get("mcpServers", {})
     if not isinstance(servers, dict):
         raise ValueError("mcpServers config must contain an object")
     for server in servers.values():
         if not isinstance(server, dict):
             continue
+        cwd_value = server.get("cwd", ".")
+        if not isinstance(cwd_value, str):
+            raise ValueError("local MCP server cwd must be a string")
+        cwd_relative = safe_relative_path(cwd_value)
+        cwd = (root / cwd_relative).resolve()
+        if not cwd.is_relative_to(resolved_root):
+            raise ValueError(f"local MCP server cwd escapes plugin root: {cwd_value}")
+        if not cwd.is_dir():
+            raise ValueError(f"local MCP server cwd does not exist: {cwd_value}")
         arguments = server.get("args", [])
         if not isinstance(arguments, list):
             raise ValueError("local MCP server args must be an array")
@@ -112,10 +122,14 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
                 raise ValueError("local MCP server args must contain only strings")
             if not argument.startswith(("./", "../")):
                 continue
-            dependency = safe_relative_path(argument)
-            source = root / dependency
+            source = (cwd / argument).resolve()
+            if not source.is_relative_to(resolved_root):
+                raise ValueError(
+                    f"local MCP dependency escapes plugin root: {argument}"
+                )
             if not source.is_file():
                 raise ValueError(f"local MCP dependency does not exist: {argument}")
+            dependency = source.relative_to(resolved_root)
             selected.add(dependency)
 
 

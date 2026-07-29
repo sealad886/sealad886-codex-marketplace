@@ -107,6 +107,53 @@ class DistributionBundleTests(unittest.TestCase):
                 self.assertIn(expected_error, result.stdout)
                 self.assertNotIn("Traceback", result.stderr)
 
+    def test_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["./server.py"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_local_mcp_dependency_cannot_escape_plugin_root(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["../../outside.py"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("local MCP dependency escapes plugin root", result.stdout)
+
     def test_materialized_distribution_is_exact_and_source_free(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "project-delivery"
