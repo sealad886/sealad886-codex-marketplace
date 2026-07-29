@@ -319,6 +319,29 @@ class DistributionBundleTests(unittest.TestCase):
 
                 self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_invalid_remote_mcp_url_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "type": "http",
+                                "url": "not a url",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("remote MCP server url is invalid", result.stdout)
+
     def test_python_module_launch_dependency_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -330,6 +353,36 @@ class DistributionBundleTests(unittest.TestCase):
                             "conversation-visuals": {
                                 "command": "python3",
                                 "args": ["-m", "mcp.server"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_nested_python_package_launch_includes_parent_initializer(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp").rmdir()
+            package = source / "pkg"
+            subpackage = package / "subpkg"
+            subpackage.mkdir(parents=True)
+            (package / "__init__.py").write_text("", encoding="utf-8")
+            (subpackage / "__init__.py").write_text("", encoding="utf-8")
+            (subpackage / "__main__.py").write_text("", encoding="utf-8")
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["-m", "pkg.subpkg"],
                             }
                         }
                     }

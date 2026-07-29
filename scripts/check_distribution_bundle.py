@@ -14,6 +14,7 @@ import tempfile
 import time
 import uuid
 from pathlib import Path, PureWindowsPath
+from urllib.parse import urlparse
 
 from check_plugin import validate
 
@@ -118,6 +119,21 @@ def python_script_operand(command: str, arguments: list[str]) -> str | None:
     return None
 
 
+def add_parent_package_initializers(
+    root: Path,
+    cwd: Path,
+    selected: set[Path],
+    dependency: Path,
+) -> None:
+    resolved_root = root.resolve()
+    for parent in dependency.parents:
+        if parent == cwd or not parent.is_relative_to(cwd):
+            break
+        initializer = parent / "__init__.py"
+        if initializer.is_file():
+            selected.add(initializer.relative_to(resolved_root))
+
+
 def add_python_module_dependencies(
     root: Path,
     cwd: Path,
@@ -146,18 +162,14 @@ def add_python_module_dependencies(
             raise ValueError(f"local Python module escapes plugin root: {module}")
         if module_file.is_file():
             selected.add(module_file.relative_to(resolved_root))
-            for parent in module_file.parents:
-                if parent == cwd or not parent.is_relative_to(cwd):
-                    break
-                initializer = parent / "__init__.py"
-                if initializer.is_file():
-                    selected.add(initializer.relative_to(resolved_root))
+            add_parent_package_initializers(root, cwd, selected, module_file)
         elif package_directory.is_dir():
             selected.update(
                 path.relative_to(resolved_root)
                 for path in package_directory.rglob("*")
                 if path.is_file()
             )
+            add_parent_package_initializers(root, cwd, selected, package_directory)
 
 
 def add_local_mcp_dependencies(
@@ -184,6 +196,20 @@ def add_local_mcp_dependencies(
             url = server["url"]
             if not isinstance(url, str) or not url.strip():
                 raise ValueError("remote MCP server url must be a non-empty string")
+            try:
+                parsed_url = urlparse(url)
+                port = parsed_url.port
+            except ValueError as error:
+                raise ValueError(f"remote MCP server url is invalid: {url}") from error
+            if (
+                parsed_url.scheme not in {"http", "https"}
+                or not parsed_url.netloc
+                or not parsed_url.hostname
+                or parsed_url.username is not None
+                or parsed_url.password is not None
+                or (port is not None and not 1 <= port <= 65535)
+            ):
+                raise ValueError(f"remote MCP server url is invalid: {url}")
             if any(field in server for field in ("command", "args", "cwd")):
                 raise ValueError(
                     "remote MCP server config cannot contain local command fields"
