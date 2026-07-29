@@ -9,7 +9,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "v1.4.0",
+        "ref": "v1.4.1",
         "path": "./plugins/project-delivery"
       },
       "policy": {

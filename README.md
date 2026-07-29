@@ -12,7 +12,7 @@ The repository and marketplace are both named `sealad886-codex-marketplace`. Ind
 
 | Plugin | Stable version | Purpose | Install selector |
 |---|---:|---|---|
-| [Project Delivery](plugins/project-delivery/README.md) | `1.4.0` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
+| [Project Delivery](plugins/project-delivery/README.md) | `1.4.1` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 

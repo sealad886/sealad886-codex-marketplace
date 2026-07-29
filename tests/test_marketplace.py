@@ -231,7 +231,9 @@ class MarketplaceTests(unittest.TestCase):
             root = Path(temporary) / "repository"
             marketplace = create_repository_fixture(root)
             add_example_plugin(root)
-            marketplace["plugins"].append(example_entry("v1.4.0"))
+            marketplace["plugins"].append(
+                example_entry(str(marketplace["plugins"][0]["source"]["ref"]))
+            )
             write_marketplace(root, marketplace)
 
             result = run_checker(root)
