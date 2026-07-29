@@ -25,6 +25,11 @@ PREFERENCES = {"automatic", "suggest-first", "on-request", "quiet"}
 
 
 def public_http_url(value: Any) -> bool:
+    """Apply static URL checks without claiming fetch-time network safety.
+
+    Hostname resolution and redirect validation belong to the approved host
+    fetcher because this dependency-free metadata server never fetches URLs.
+    """
     if not isinstance(value, str) or len(value) > 4096:
         return False
     try:
@@ -330,7 +335,7 @@ def handle(request: Any) -> dict[str, Any] | None:
     request_id = request.get("id")
     if not isinstance(method, str):
         return error_response(request_id, -32600, "Invalid Request: method is required")
-    if method == "notifications/initialized":
+    if "id" not in request:
         return None
     if method == "initialize":
         params = request.get("params", {})

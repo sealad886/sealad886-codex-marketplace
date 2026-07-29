@@ -122,7 +122,8 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
         for argument in arguments:
             if not isinstance(argument, str):
                 raise ValueError("local MCP server args must contain only strings")
-            if not argument.startswith(("./", "../")):
+            is_explicit_path = argument.startswith(("./", "../"))
+            if Path(argument).is_absolute():
                 continue
             source = (cwd / argument).resolve()
             if not source.is_relative_to(resolved_root):
@@ -130,7 +131,11 @@ def add_local_mcp_dependencies(root: Path, selected: set[Path], value: str) -> N
                     f"local MCP dependency escapes plugin root: {argument}"
                 )
             if not source.is_file():
-                raise ValueError(f"local MCP dependency does not exist: {argument}")
+                if is_explicit_path:
+                    raise ValueError(
+                        f"local MCP dependency does not exist: {argument}"
+                    )
+                continue
             dependency = source.relative_to(resolved_root)
             selected.add(dependency)
 

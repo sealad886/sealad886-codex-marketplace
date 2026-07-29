@@ -264,6 +264,36 @@ class ConversationVisualsTests(unittest.TestCase):
             {"plan_visual", "normalize_visual"},
         )
 
+    def test_mcp_notifications_never_receive_responses(self) -> None:
+        requests = "\n".join(
+            json.dumps(item)
+            for item in (
+                {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/initialized",
+                },
+                {
+                    "jsonrpc": "2.0",
+                    "method": "notifications/cancelled",
+                    "params": {"requestId": 9},
+                },
+                {"jsonrpc": "2.0", "method": "unknown/notification"},
+                {"jsonrpc": "2.0", "id": 3, "method": "ping"},
+            )
+        )
+
+        result = subprocess.run(
+            [sys.executable, str(SERVER_PATH)],
+            input=requests + "\n",
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        responses = [json.loads(line) for line in result.stdout.splitlines()]
+        self.assertEqual(responses, [{"jsonrpc": "2.0", "id": 3, "result": {}}])
+
     def test_manifest_declares_bundled_mcp_and_four_skills(self) -> None:
         manifest = json.loads(
             (PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(

@@ -142,6 +142,29 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_unprefixed_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["server.py"],
+                                "cwd": "mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_local_mcp_dependency_cannot_escape_plugin_root(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

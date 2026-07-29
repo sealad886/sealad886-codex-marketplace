@@ -40,7 +40,12 @@ originating source.
    is not automatically a source for every claim in the surrounding answer.
 7. When license or origin is unclear, link to the source page or use a different
    item rather than redistributing the full-resolution asset.
-8. If no reliable visual exists, say so and offer a clearly labelled generated
+8. Embed a remote media URL only through a host-native fetcher that enforces
+   public-address resolution, redirect revalidation, and DNS-rebinding
+   protection at fetch time. The bundled metadata normalizer does not fetch or
+   certify hostnames. Use a non-embedded originating-page link when that fetch
+   guarantee is unavailable.
+9. If no reliable visual exists, say so and offer a clearly labelled generated
    explanation through `visual-generation` when appropriate.
 
 ## Outputs and handoff

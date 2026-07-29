@@ -19,8 +19,14 @@ public issue.
   use the minimum derived query or brief.
 - Do not embed active third-party HTML, scripts, or untrusted SVG. Prefer a
   host-rendered image, a safe link to the origin, or a rasterized artifact.
-- Reject or avoid server-side retrieval of loopback, link-local, private-network,
-  and cloud-metadata URLs in any future remote adapter.
+- URL normalization performs static syntax and literal-address checks only; it
+  is not proof that a hostname is safe to fetch. Render remote media only through
+  a host fetcher that resolves every hostname, rejects every non-global address,
+  repeats those checks for redirects and reconnects, and pins the validated
+  destination to prevent DNS rebinding. Otherwise provide a non-embedded source
+  link.
+- Reject server-side retrieval of loopback, link-local, private-network, and
+  cloud-metadata destinations in any future remote adapter.
 
 This initial package does not deploy a remote MCP server, register a ChatGPT app,
 or store generated media. Those capabilities require a separate approved threat

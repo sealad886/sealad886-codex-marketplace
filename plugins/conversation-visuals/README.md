@@ -15,6 +15,12 @@ files, or calls a paid provider. The skills use the host's approved native web,
 image-generation, document, presentation, and media capabilities when those
 capabilities are available.
 
+URL normalization rejects credentials and known non-public address literals,
+but does not resolve or fetch hostnames. Remote media is embedded only when the
+host fetcher enforces public-address resolution, redirect checks, and DNS-
+rebinding protection at fetch time; otherwise the plugin uses an originating-
+page link.
+
 No API key is bundled or required for the baseline. Provider permissions,
 workspace policy, product plan, and host capability still apply. Installing a
 plugin cannot silently grant those external permissions.
