@@ -346,7 +346,30 @@ TOOLS = [
                     "type": "string",
                     "description": "Opaque host-issued local artifact, attachment, or resource reference. The server records but never dereferences it.",
                 },
-                "sources": {"type": "array", "items": {"type": "object"}},
+                "sources": {
+                    "type": "array",
+                    "maxItems": 10,
+                    "items": {
+                        "type": "object",
+                        "required": ["title", "url"],
+                        "properties": {
+                            "title": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 300,
+                            },
+                            "url": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4096,
+                                "description": "Public HTTP(S) source URL without credentials.",
+                            },
+                            "publisher": {"type": "string"},
+                            "license": {"type": "string"},
+                            "retrieved_at": {"type": "string"},
+                        },
+                    },
+                },
                 "generation_disclosure": {"type": "string"},
                 "warnings": {"type": "array", "items": {"type": "string"}},
             },

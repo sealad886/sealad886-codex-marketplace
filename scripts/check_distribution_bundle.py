@@ -99,6 +99,49 @@ def add_declared_path(root: Path, selected: set[Path], value: str) -> None:
         raise ValueError(f"declared path does not exist: {value}")
 
 
+def add_python_module_dependencies(
+    root: Path,
+    cwd: Path,
+    selected: set[Path],
+    command: str,
+    arguments: list[str],
+) -> None:
+    """Include bundled modules launched through a Python ``-m`` operand."""
+    command_name = Path(command.replace("\\", "/")).name
+    if not re.fullmatch(r"(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?", command_name):
+        return
+    resolved_root = root.resolve()
+    for index, argument in enumerate(arguments[:-1]):
+        if argument != "-m":
+            continue
+        module = arguments[index + 1]
+        parts = module.split(".")
+        if not parts or not all(part.isidentifier() for part in parts):
+            continue
+        module_path = cwd.joinpath(*parts)
+        module_file = module_path.with_suffix(".py").resolve()
+        package_directory = module_path.resolve()
+        if (
+            not module_file.is_relative_to(resolved_root)
+            or not package_directory.is_relative_to(resolved_root)
+        ):
+            raise ValueError(f"local Python module escapes plugin root: {module}")
+        if module_file.is_file():
+            selected.add(module_file.relative_to(resolved_root))
+            for parent in module_file.parents:
+                if parent == cwd or not parent.is_relative_to(cwd):
+                    break
+                initializer = parent / "__init__.py"
+                if initializer.is_file():
+                    selected.add(initializer.relative_to(resolved_root))
+        elif package_directory.is_dir():
+            selected.update(
+                path.relative_to(resolved_root)
+                for path in package_directory.rglob("*")
+                if path.is_file()
+            )
+
+
 def add_local_mcp_dependencies(
     root: Path,
     selected: set[Path],
@@ -119,6 +162,15 @@ def add_local_mcp_dependencies(
     for server in servers.values():
         if not isinstance(server, dict):
             raise ValueError("each local MCP server config must contain an object")
+        if "url" in server:
+            url = server["url"]
+            if not isinstance(url, str) or not url.strip():
+                raise ValueError("remote MCP server url must be a non-empty string")
+            if any(field in server for field in ("command", "args", "cwd")):
+                raise ValueError(
+                    "remote MCP server config cannot contain local command fields"
+                )
+            continue
         cwd_value = server.get("cwd", ".")
         if not isinstance(cwd_value, str):
             raise ValueError("local MCP server cwd must be a string")
@@ -167,6 +219,7 @@ def add_local_mcp_dependencies(
                 continue
             dependency = source.relative_to(resolved_root)
             selected.add(dependency)
+        add_python_module_dependencies(root, cwd, selected, command, arguments)
 
 
 def select_paths(root: Path) -> set[Path]:

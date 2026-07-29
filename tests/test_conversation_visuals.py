@@ -235,6 +235,21 @@ class ConversationVisualsTests(unittest.TestCase):
             {"plan_visual", "normalize_visual"},
         )
 
+    def test_normalize_visual_schema_describes_required_source_fields(self) -> None:
+        normalize_tool = next(
+            tool for tool in SERVER.TOOLS if tool["name"] == "normalize_visual"
+        )
+        source_items = normalize_tool["inputSchema"]["properties"]["sources"][
+            "items"
+        ]
+
+        self.assertEqual(set(source_items["required"]), {"title", "url"})
+        self.assertTrue(
+            {"title", "url", "publisher", "license", "retrieved_at"}.issubset(
+                source_items["properties"]
+            )
+        )
+
     def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:
         requests = "\n".join(
             json.dumps(item)

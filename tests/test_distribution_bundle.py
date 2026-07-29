@@ -287,6 +287,60 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_remote_mcp_server_has_no_local_dependency(self) -> None:
+        for inline in (False, True):
+            with (
+                self.subTest(inline=inline),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                source = Path(temporary) / "conversation-visuals"
+                shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+                remote_servers = {
+                    "conversation-visuals": {
+                        "type": "http",
+                        "url": "https://example.com/mcp",
+                    }
+                }
+                (source / "mcp" / "server.py").unlink()
+                (source / "mcp").rmdir()
+                if inline:
+                    manifest_path = source / ".codex-plugin" / "plugin.json"
+                    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    manifest["mcpServers"] = remote_servers
+                    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                    (source / ".mcp.json").unlink()
+                else:
+                    (source / ".mcp.json").write_text(
+                        json.dumps({"mcpServers": remote_servers}),
+                        encoding="utf-8",
+                    )
+
+                result = run_checker(root=source)
+
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_python_module_launch_dependency_is_included(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["-m", "mcp.server"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_unprefixed_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
