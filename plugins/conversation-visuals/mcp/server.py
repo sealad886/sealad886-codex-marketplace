@@ -8,7 +8,7 @@ import json
 import socket
 import sys
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 
 PROTOCOL_VERSION = "2025-06-18"
@@ -33,7 +33,15 @@ def public_http_url(value: Any) -> bool:
     if parsed.username or parsed.password:
         return False
     hostname = parsed.hostname
-    normalized_hostname = hostname.rstrip(".").lower() if hostname else ""
+    try:
+        decoded_hostname = unquote(hostname, errors="strict") if hostname else ""
+    except UnicodeDecodeError:
+        return False
+    if "%" in decoded_hostname or any(
+        character in decoded_hostname for character in "/\\@?#[]"
+    ):
+        return False
+    normalized_hostname = decoded_hostname.rstrip(".").lower()
     if (
         not normalized_hostname
         or normalized_hostname == "localhost"

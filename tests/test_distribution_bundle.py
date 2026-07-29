@@ -57,6 +57,21 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertIn("cannot resolve plugin identity", result.stdout)
             self.assertNotIn("Traceback", result.stderr)
 
+    def test_invalid_manifest_name_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            manifest_path = source / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["name"] = "bad/name"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("plugin name must be lower-case hyphen-case", result.stdout)
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_non_array_mcp_args_returns_a_validation_error(self) -> None:
         invalid_values = (
             (None, "local MCP server args must be an array"),

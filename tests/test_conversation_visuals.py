@@ -134,6 +134,8 @@ class ConversationVisualsTests(unittest.TestCase):
             "http://2130706433/item",
             "http://0x7f000001/item",
             "http://0177.0.0.1/item",
+            "http://%31%32%37.0.0.1/item",
+            "http://%2531%2532%2537.0.0.1/item",
             "http://localhost./item",
             "http://media.localhost/item",
             "http://169.254.169.254/latest/meta-data",

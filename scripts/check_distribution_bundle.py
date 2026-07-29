@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -49,6 +50,7 @@ FORBIDDEN_DISTRIBUTION_PARTS = {
     "scripts",
     "tests",
 }
+PLUGIN_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -154,6 +156,15 @@ def payload_sha256(root: Path, relative_paths: list[Path]) -> str:
         digest.update(len(contents).to_bytes(8, "big"))
         digest.update(contents)
     return digest.hexdigest()
+
+
+def read_plugin_name(root: Path) -> str:
+    manifest_path = root / ".codex-plugin" / "plugin.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    plugin_name = manifest["name"]
+    if not isinstance(plugin_name, str) or not PLUGIN_NAME.fullmatch(plugin_name):
+        raise ValueError("plugin name must be lower-case hyphen-case")
+    return plugin_name
 
 
 def copy_selected(root: Path, destination: Path, selected: list[Path]) -> None:
@@ -354,12 +365,8 @@ def materialize_runtime_closure(
     output: Path,
     replace: bool,
 ) -> tuple[list[str], int, str]:
-    manifest_path = root / ".codex-plugin" / "plugin.json"
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        plugin_name = manifest["name"]
-        if not isinstance(plugin_name, str) or not plugin_name:
-            raise ValueError("plugin name must be a non-empty string")
+        plugin_name = read_plugin_name(root)
     except (
         OSError,
         UnicodeError,
@@ -444,12 +451,8 @@ def materialize_runtime_closure(
 
 
 def validate_runtime_closure(root: Path) -> tuple[list[str], int, str]:
-    manifest_path = root / ".codex-plugin" / "plugin.json"
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        plugin_name = manifest["name"]
-        if not isinstance(plugin_name, str) or not plugin_name:
-            raise ValueError("plugin name must be a non-empty string")
+        plugin_name = read_plugin_name(root)
     except (
         OSError,
         UnicodeError,
