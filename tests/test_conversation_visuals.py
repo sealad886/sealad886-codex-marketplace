@@ -160,6 +160,7 @@ class ConversationVisualsTests(unittest.TestCase):
                 "provenance": "sourced",
                 "title": "Sourced visual",
                 "alt_text": "A sourced visual.",
+                "media_url": "https://example.com/item.png",
                 "sources": [
                     {"title": "Origin", "url": "https://example.com/item"}
                 ],
@@ -304,6 +305,13 @@ class ConversationVisualsTests(unittest.TestCase):
             ],
             2000,
         )
+        self.assertEqual(
+            normalize_tool["inputSchema"]["anyOf"],
+            [
+                {"required": ["media_url"]},
+                {"required": ["artifact_ref"]},
+            ],
+        )
 
     def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:
         requests = "\n".join(
@@ -372,6 +380,23 @@ class ConversationVisualsTests(unittest.TestCase):
         self.assertEqual(
             responses[3],
             {"jsonrpc": "2.0", "id": 4, "result": {}},
+        )
+
+    def test_blank_input_lines_are_ignored(self) -> None:
+        ping = '{"jsonrpc":"2.0","id":1,"method":"ping"}'
+        result = subprocess.run(
+            [sys.executable, str(SERVER_PATH)],
+            input=f"\n  \t\n{ping}\n\n",
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(
+            [json.loads(line) for line in result.stdout.splitlines()],
+            [{"jsonrpc": "2.0", "id": 1, "result": {}}],
         )
 
     def test_decoder_recursion_does_not_terminate_process(self) -> None:
@@ -449,6 +474,19 @@ class ConversationVisualsTests(unittest.TestCase):
             }
         )
         self.assertEqual(normalized["artifact_ref"], "/tmp/generated visual.png")
+
+    def test_sourced_results_require_a_usable_reference(self) -> None:
+        with self.assertRaisesRegex(ValueError, "media or artifact reference"):
+            SERVER.normalize_visual(
+                {
+                    "provenance": "sourced",
+                    "title": "Missing media",
+                    "alt_text": "A sourced visual with no renderable reference.",
+                    "sources": [
+                        {"title": "Origin", "url": "https://example.com/item"}
+                    ],
+                }
+            )
 
     def test_mcp_rejects_invalid_envelopes_and_unknown_tools(self) -> None:
         invalid_requests = (

@@ -134,11 +134,10 @@ def python_launch_operand(
     while index < len(arguments):
         argument = arguments[index]
         if argument == "--":
-            return (
-                ("script", arguments[index + 1])
-                if index + 1 < len(arguments)
-                else None
-            )
+            if index + 1 >= len(arguments):
+                return None
+            operand = arguments[index + 1]
+            return ("stdin", None) if operand == "-" else ("script", operand)
         if argument == "-":
             return ("stdin", None)
         if argument == "--check-hash-based-pycs":
@@ -192,14 +191,11 @@ def python_launch_operand(
     return None
 
 
-def python_script_operand(command: str, arguments: list[str]) -> str | None:
-    """Return the Python file or directory operand that must exist locally."""
-    launch = python_launch_operand(command, arguments)
-    return launch[1] if launch is not None and launch[0] == "script" else None
-
-
-def node_script_operand(command: str, arguments: list[str]) -> str | None:
-    """Return the Node script operand that must exist locally."""
+def node_launch_operand(
+    command: str,
+    arguments: list[str],
+) -> tuple[str, str | None] | None:
+    """Return Node's launch mode and its first program operand."""
     if not is_node_command(command):
         return None
     options_with_values = {
@@ -215,18 +211,21 @@ def node_script_operand(command: str, arguments: list[str]) -> str | None:
     while index < len(arguments):
         argument = arguments[index]
         if argument == "--":
-            return arguments[index + 1] if index + 1 < len(arguments) else None
+            if index + 1 >= len(arguments):
+                return None
+            operand = arguments[index + 1]
+            return ("stdin", None) if operand == "-" else ("script", operand)
         if argument == "-":
-            return None
+            return ("stdin", None)
         if argument in {"-e", "--eval", "-p", "--print"}:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
-            return None
+            return ("command", arguments[index + 1])
         if (
             (argument.startswith(("-e", "-p")) and len(argument) > 2)
             or argument.startswith(("--eval=", "--print="))
         ):
-            return None
+            return ("command", argument)
         if argument in options_with_values:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
@@ -235,7 +234,7 @@ def node_script_operand(command: str, arguments: list[str]) -> str | None:
         if argument.startswith("-"):
             index += 1
             continue
-        return argument
+        return ("script", argument)
     return None
 
 
@@ -350,6 +349,7 @@ def add_local_mcp_dependencies(
     root: Path,
     selected: set[Path],
     declaration: str | dict[str, object],
+    executable_commands: set[Path] | None = None,
 ) -> None:
     """Include local command arguments referenced by a declared MCP config."""
     if isinstance(declaration, str):
@@ -370,6 +370,13 @@ def add_local_mcp_dependencies(
             url = server["url"]
             if not isinstance(url, str) or not url.strip():
                 raise ValueError("remote MCP server url must be a non-empty string")
+            if any(
+                character.isspace()
+                or ord(character) < 32
+                or ord(character) == 127
+                for character in url
+            ):
+                raise ValueError(f"remote MCP server url is invalid: {url}")
             try:
                 parsed_url = urlparse(url)
                 port = parsed_url.port
@@ -379,6 +386,12 @@ def add_local_mcp_dependencies(
                 parsed_url.scheme not in {"http", "https"}
                 or not parsed_url.netloc
                 or not parsed_url.hostname
+                or any(
+                    character.isspace()
+                    or ord(character) < 32
+                    or ord(character) == 127
+                    for character in parsed_url.netloc
+                )
                 or parsed_url.username is not None
                 or parsed_url.password is not None
                 or (port is not None and not 1 <= port <= 65535)
@@ -410,7 +423,10 @@ def add_local_mcp_dependencies(
             separator in command for separator in ("/", "\\")
         )
         if command_source.is_file():
-            selected.add(command_source.relative_to(resolved_root))
+            relative_command = command_source.relative_to(resolved_root)
+            selected.add(relative_command)
+            if command_is_explicit_path and executable_commands is not None:
+                executable_commands.add(relative_command)
         elif command_is_explicit_path:
             raise ValueError(f"local MCP command does not exist: {command}")
         arguments = server.get("args", [])
@@ -418,10 +434,25 @@ def add_local_mcp_dependencies(
             raise ValueError("local MCP server args must be an array")
         if not all(isinstance(argument, str) for argument in arguments):
             raise ValueError("local MCP server args must contain only strings")
-        required_launch_script = python_script_operand(
-            command,
-            arguments,
-        ) or node_script_operand(command, arguments)
+        python_launch = python_launch_operand(command, arguments)
+        node_launch = node_launch_operand(command, arguments)
+        if is_python_command(command) and (
+            python_launch is None or python_launch[0] == "stdin"
+        ):
+            raise ValueError(
+                "local Python MCP launch requires a script, module, or command"
+            )
+        if is_node_command(command) and (
+            node_launch is None or node_launch[0] == "stdin"
+        ):
+            raise ValueError(
+                "local Node MCP launch requires a script or command"
+            )
+        required_launch_script = None
+        for launch in (python_launch, node_launch):
+            if launch is not None and launch[0] == "script":
+                required_launch_script = launch[1]
+                break
         dependency_arguments = list(arguments)
         dependency_arguments.extend(node_preload_operands(command, arguments))
         for argument in dependency_arguments:
@@ -452,7 +483,10 @@ def add_local_mcp_dependencies(
         add_python_module_dependencies(root, cwd, selected, command, arguments)
 
 
-def select_paths(root: Path) -> set[Path]:
+def select_paths(
+    root: Path,
+    executable_commands: set[Path] | None = None,
+) -> set[Path]:
     manifest_path = root / ".codex-plugin" / "plugin.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     selected = {Path(".codex-plugin/plugin.json")}
@@ -463,9 +497,19 @@ def select_paths(root: Path) -> set[Path]:
         if isinstance(value, str):
             add_declared_path(root, selected, value)
             if field == "mcpServers":
-                add_local_mcp_dependencies(root, selected, value)
+                add_local_mcp_dependencies(
+                    root,
+                    selected,
+                    value,
+                    executable_commands,
+                )
         elif field == "mcpServers" and isinstance(value, dict):
-            add_local_mcp_dependencies(root, selected, value)
+            add_local_mcp_dependencies(
+                root,
+                selected,
+                value,
+                executable_commands,
+            )
 
     interface = manifest.get("interface", {})
     if isinstance(interface, dict):
@@ -533,6 +577,7 @@ def inventory_tree(
     label: str,
     phase: str,
     forbidden_parts: set[str] | None = None,
+    executable_commands: set[Path] | None = None,
 ) -> tuple[set[Path], set[Path], list[str]]:
     if forbidden_parts is None:
         forbidden_parts = forbidden_distribution_parts(read_plugin_name(root))
@@ -554,7 +599,9 @@ def inventory_tree(
             continue
         if path.is_file():
             files.add(relative)
-            if path.stat().st_mode & 0o111:
+            if path.stat().st_mode & 0o111 and (
+                executable_commands is None or relative not in executable_commands
+            ):
                 errors.append(f"{label} contains executable file: {relative}")
         elif path.is_dir():
             directories.add(relative)
@@ -574,12 +621,14 @@ def validate_source_boundary(
     root: Path,
     selected: list[Path],
     forbidden_parts: set[str] | None = None,
+    executable_commands: set[Path] | None = None,
 ) -> list[str]:
     actual_files, actual_directories, errors = inventory_tree(
         root,
         "plugin package boundary",
         "BOUNDARY",
         forbidden_parts,
+        executable_commands,
     )
     expected_files = set(selected)
     expected_directory_set = expected_directories(expected_files)
@@ -599,6 +648,7 @@ def validate_distribution_tree(
     selected: list[Path],
     plugin_name: str,
     forbidden_parts: set[str],
+    executable_commands: set[Path] | None = None,
 ) -> list[str]:
     errors, skill_count, _ = validate(destination, "source")
     if skill_count < 1:
@@ -623,6 +673,7 @@ def validate_distribution_tree(
         "runtime closure",
         "RUNTIME",
         forbidden_parts,
+        executable_commands,
     )
     errors.extend(inventory_errors)
     expected_files = set(selected)
@@ -640,14 +691,22 @@ def validate_distribution_tree(
 
 def build_runtime_closure(root: Path, destination: Path) -> tuple[list[str], list[Path], str]:
     errors: list[str] = []
+    executable_commands: set[Path] = set()
     try:
         plugin_name = read_plugin_name(root)
-        selected = sorted(select_paths(root))
+        selected = sorted(select_paths(root, executable_commands))
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
         return [str(error)], [], ""
 
     forbidden_parts = forbidden_distribution_parts(plugin_name)
-    errors.extend(validate_source_boundary(root, selected, forbidden_parts))
+    errors.extend(
+        validate_source_boundary(
+            root,
+            selected,
+            forbidden_parts,
+            executable_commands,
+        )
+    )
     if errors:
         return errors, selected, ""
     copy_selected(root, destination, selected)
@@ -657,6 +716,7 @@ def build_runtime_closure(root: Path, destination: Path) -> tuple[list[str], lis
             selected,
             plugin_name,
             forbidden_parts,
+            executable_commands,
         )
     )
     digest = payload_sha256(destination, selected) if not errors else ""
@@ -708,8 +768,9 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
     if errors:
         return errors
 
+    executable_commands: set[Path] = set()
     try:
-        selected = sorted(select_paths(output))
+        selected = sorted(select_paths(output, executable_commands))
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
         return [f"refusing to replace output with invalid package boundary: {error}"]
 
@@ -717,6 +778,7 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
         output,
         selected,
         forbidden_distribution_parts(plugin_name),
+        executable_commands,
     )
     structural_errors, _, _ = validate(output, "source")
     errors.extend(f"refusing to replace unclean output: {error}" for error in boundary_errors)

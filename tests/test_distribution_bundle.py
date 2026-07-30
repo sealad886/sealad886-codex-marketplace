@@ -239,6 +239,8 @@ class DistributionBundleTests(unittest.TestCase):
                 "#!/usr/bin/env python3\n",
                 encoding="utf-8",
             )
+            launcher = source / "mcp" / "launcher.py"
+            os.chmod(launcher, launcher.stat().st_mode | 0o100)
             (source / "mcp" / "server.py").unlink()
             (source / ".mcp.json").write_text(
                 json.dumps(
@@ -355,6 +357,33 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("remote MCP server url is invalid", result.stdout)
+
+    def test_remote_mcp_url_with_authority_whitespace_is_rejected(self) -> None:
+        for url in ("https://exa mple.com/mcp", "https://example.\tcom/mcp"):
+            with (
+                self.subTest(url=url),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                source = Path(temporary) / "conversation-visuals"
+                shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+                (source / ".mcp.json").write_text(
+                    json.dumps(
+                        {
+                            "mcpServers": {
+                                "conversation-visuals": {
+                                    "type": "http",
+                                    "url": url,
+                                }
+                            }
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                result = run_checker(root=source)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("remote MCP server url is invalid", result.stdout)
 
     def test_python_module_launch_dependency_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -568,6 +597,39 @@ class DistributionBundleTests(unittest.TestCase):
             result = run_checker(root=source)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_interpreter_launch_cannot_consume_mcp_transport_as_source(self) -> None:
+        invalid_launches = (
+            ("python3", []),
+            ("python3", ["-"]),
+            ("node", []),
+            ("node", ["-"]),
+        )
+        for command, arguments in invalid_launches:
+            with (
+                self.subTest(command=command, arguments=arguments),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                source = Path(temporary) / "conversation-visuals"
+                shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+                (source / ".mcp.json").write_text(
+                    json.dumps(
+                        {
+                            "mcpServers": {
+                                "conversation-visuals": {
+                                    "command": command,
+                                    "args": arguments,
+                                }
+                            }
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                result = run_checker(root=source)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("MCP launch requires", result.stdout)
 
     def test_attached_node_preload_dependency_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

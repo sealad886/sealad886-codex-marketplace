@@ -270,6 +270,8 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("generated and mixed visuals require a generation disclosure")
     if provenance in {"generated", "mixed"} and not (media_url or artifact_ref):
         raise ValueError("generated and mixed visuals require a media or artifact reference")
+    if provenance == "sourced" and not (media_url or artifact_ref):
+        raise ValueError("sourced visuals require a media or artifact reference")
 
     kind = arguments.get("kind")
     if kind is None:
@@ -336,6 +338,10 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "required": ["provenance", "title", "alt_text"],
+            "anyOf": [
+                {"required": ["media_url"]},
+                {"required": ["artifact_ref"]},
+            ],
             "properties": {
                 "kind": {
                     "type": "string",
@@ -513,6 +519,7 @@ def self_test() -> None:
             "provenance": "sourced",
             "title": "Example",
             "alt_text": "An example visual.",
+            "media_url": "https://example.com/item.png",
             "sources": [{"title": "Origin", "url": "https://example.com/item"}],
         }
     )
@@ -536,6 +543,8 @@ def main() -> int:
         self_test()
         return 0
     for line in sys.stdin:
+        if not line.strip():
+            continue
         request: Any = None
         try:
             request = json.loads(line, parse_constant=reject_json_constant)
