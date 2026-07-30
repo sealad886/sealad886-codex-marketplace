@@ -18,6 +18,24 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate manifests with OpenAI Plugin Creator
+        env:
+          PLUGIN_VALIDATOR_SHA256: ebda00d55d7518b127f675f062fb5c6e7a1ffdc0a99df1a55ac594400d7d3228
+          PLUGIN_VALIDATOR_URL: https://raw.githubusercontent.com/openai/codex/2c351cb8646054427e0ea81a484233114b1234f7/codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py
+        run: |
+          validator_root="$RUNNER_TEMP/plugin-creator-validator"
+          validator_script="$validator_root/validate_plugin.py"
+          python3 -m venv "$validator_root/venv"
+          "$validator_root/venv/bin/python" -m pip install \
+            --disable-pip-version-check 'PyYAML==6.0.3'
+          curl --fail --location --silent --show-error \
+            "$PLUGIN_VALIDATOR_URL" --output "$validator_script"
+          echo "$PLUGIN_VALIDATOR_SHA256  $validator_script" | shasum -a 256 -c -
+          "$validator_root/venv/bin/python" "$validator_script" \
+            plugins/project-delivery
+          "$validator_root/venv/bin/python" "$validator_script" \
+            plugins/conversation-visuals
+
       - name: Validate Project Delivery structure
         run: python3 scripts/check_plugin.py plugins/project-delivery --layout source
 
