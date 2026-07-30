@@ -18,6 +18,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate repository marketplace and license parity
+        run: python3 scripts/check_marketplace.py .
+
       - name: Validate manifests with OpenAI Plugin Creator
         env:
           PLUGIN_VALIDATOR_SHA256: ebda00d55d7518b127f675f062fb5c6e7a1ffdc0a99df1a55ac594400d7d3228
@@ -31,10 +34,11 @@ jobs:
           curl --fail --location --silent --show-error \
             "$PLUGIN_VALIDATOR_URL" --output "$validator_script"
           echo "$PLUGIN_VALIDATOR_SHA256  $validator_script" | shasum -a 256 -c -
-          "$validator_root/venv/bin/python" "$validator_script" \
-            plugins/project-delivery
-          "$validator_root/venv/bin/python" "$validator_script" \
-            plugins/conversation-visuals
+          while IFS= read -r plugin_dir; do
+            "$validator_root/venv/bin/python" "$validator_script" "$plugin_dir"
+          done < <(
+            python3 -c 'import json; data = json.load(open(".agents/plugins/marketplace.json")); [print(entry["source"]["path"]) for entry in data["plugins"]]'
+          )
 
       - name: Validate Project Delivery structure
         run: python3 scripts/check_plugin.py plugins/project-delivery --layout source
@@ -56,9 +60,6 @@ jobs:
 
       - name: Validate Conversation Visuals MCP
         run: python3 plugins/conversation-visuals/mcp/server.py --self-test
-
-      - name: Validate repository marketplace and license parity
-        run: python3 scripts/check_marketplace.py .
 
       - name: Run validator regression tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
