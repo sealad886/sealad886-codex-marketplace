@@ -345,6 +345,12 @@ def node_launch_operand(
             raise ValueError(
                 f"local Node exit-only option cannot serve an MCP server: {argument}"
             )
+        if argument in {"--inspect-brk", "--inspect-wait"} or argument.startswith(
+            ("--inspect-brk=", "--inspect-wait=")
+        ):
+            raise ValueError(
+                f"local Node debugger-wait option cannot serve an MCP server: {argument}"
+            )
         if argument in {"-c", "--check"}:
             raise ValueError(
                 "local Node syntax-check mode cannot serve an MCP server"
@@ -566,6 +572,11 @@ def add_python_module_dependencies(
         selected.add(module_file.relative_to(resolved_root))
         add_parent_package_initializers(root, cwd, selected, module_file)
     elif package_directory.is_dir():
+        package_entrypoint = package_directory / "__main__.py"
+        if not package_entrypoint.is_file():
+            raise ValueError(
+                f"local Python package launch requires __main__.py: {module}"
+            )
         selected.update(
             path.relative_to(resolved_root)
             for path in package_directory.rglob("*")

@@ -315,15 +315,38 @@ class ConversationVisualsTests(unittest.TestCase):
         )
         self.assertEqual(
             normalize_tool["inputSchema"]["properties"]["title"],
-            {"type": "string", "minLength": 1, "maxLength": 200},
+            {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": r"\S",
+            },
         )
         self.assertEqual(
             normalize_tool["inputSchema"]["properties"]["alt_text"],
-            {"type": "string", "minLength": 1, "maxLength": 2000},
+            {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "pattern": r"\S",
+            },
         )
         self.assertEqual(
             normalize_tool["inputSchema"]["properties"]["media_url"],
             {"type": "string", "minLength": 1, "maxLength": 4096},
+        )
+        self.assertEqual(source_items["properties"]["title"]["pattern"], r"\S")
+        generation_constraint = next(
+            constraint
+            for constraint in normalize_tool["inputSchema"]["allOf"]
+            if "generation_disclosure"
+            in constraint["then"].get("properties", {})
+        )
+        self.assertEqual(
+            generation_constraint["then"]["properties"][
+                "generation_disclosure"
+            ]["pattern"],
+            r"\S",
         )
         self.assertEqual(
             {
@@ -333,7 +356,12 @@ class ConversationVisualsTests(unittest.TestCase):
                 ].items()
                 if key != "description"
             },
-            {"type": "string", "minLength": 1, "maxLength": 4096},
+            {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096,
+                "pattern": r"\S",
+            },
         )
         kind_constraints = {
             constraint["if"]["properties"]["provenance"]["const"]: set(

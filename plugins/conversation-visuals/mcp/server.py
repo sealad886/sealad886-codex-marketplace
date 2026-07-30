@@ -373,7 +373,10 @@ TOOLS = [
                     "then": {
                         "required": ["generation_disclosure"],
                         "properties": {
-                            "generation_disclosure": {"minLength": 1}
+                            "generation_disclosure": {
+                                "minLength": 1,
+                                "pattern": r"\S",
+                            }
                         },
                     },
                 },
@@ -419,12 +422,14 @@ TOOLS = [
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 200,
+                    "pattern": r"\S",
                 },
                 "summary": {"type": "string"},
                 "alt_text": {
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 2000,
+                    "pattern": r"\S",
                 },
                 "media_url": {
                     "type": "string",
@@ -435,6 +440,7 @@ TOOLS = [
                     "type": "string",
                     "minLength": 1,
                     "maxLength": 4096,
+                    "pattern": r"\S",
                     "description": "Opaque host-issued local artifact, attachment, or resource reference. The server records but never dereferences it.",
                 },
                 "sources": {
@@ -448,6 +454,7 @@ TOOLS = [
                                 "type": "string",
                                 "minLength": 1,
                                 "maxLength": 300,
+                                "pattern": r"\S",
                             },
                             "url": {
                                 "type": "string",

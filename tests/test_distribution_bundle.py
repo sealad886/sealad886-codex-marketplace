@@ -636,6 +636,41 @@ class DistributionBundleTests(unittest.TestCase):
                         result.stdout,
                     )
 
+    def test_node_debugger_wait_options_cannot_serve_an_mcp(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for option in (
+                "--inspect-brk",
+                "--inspect-brk=127.0.0.1:9229",
+                "--inspect-wait",
+                "--inspect-wait=127.0.0.1:9229",
+            ):
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": [option, "./mcp/server.py"],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "debugger-wait option cannot serve an MCP server",
+                        result.stdout,
+                    )
+
     def test_grouped_python_module_launch_dependency_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -690,6 +725,47 @@ class DistributionBundleTests(unittest.TestCase):
                         f"local Python module {expected_error}",
                         result.stdout,
                     )
+
+    def test_python_package_launch_requires_main_module(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp").rmdir()
+            package = source / "package_server"
+            package.mkdir()
+            (package / "__init__.py").write_text("", encoding="utf-8")
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["-m", "package_server"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            missing_entrypoint = run_checker(root=source)
+            (package / "__main__.py").write_text(
+                "print('ready')\n",
+                encoding="utf-8",
+            )
+            included_entrypoint = run_checker(root=source)
+
+            self.assertNotEqual(missing_entrypoint.returncode, 0)
+            self.assertIn(
+                "local Python package launch requires __main__.py",
+                missing_entrypoint.stdout,
+            )
+            self.assertEqual(
+                included_entrypoint.returncode,
+                0,
+                included_entrypoint.stdout + included_entrypoint.stderr,
+            )
 
     def test_python_application_arguments_do_not_select_modules(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
