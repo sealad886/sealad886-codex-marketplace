@@ -182,6 +182,19 @@ class MarketplaceTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("escapes the repository", result.stdout)
 
+    def test_non_string_source_type_fails_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repository"
+            marketplace = create_repository_fixture(root)
+            marketplace["plugins"][1]["source"]["source"] = []
+            write_marketplace(root, marketplace)
+
+            result = run_checker(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("source.source must be one of", result.stdout)
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_mutable_marketplace_ref_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repository"

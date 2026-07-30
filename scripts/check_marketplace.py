@@ -283,7 +283,10 @@ def validate_entry(
     if not isinstance(source, dict):
         return errors + [f"{label} source must be an object"]
     source_type = source.get("source")
-    if source_type not in ALLOWED_SOURCE_TYPES:
+    if (
+        not isinstance(source_type, str)
+        or source_type not in ALLOWED_SOURCE_TYPES
+    ):
         errors.append(
             f"{label} source.source must be one of {sorted(ALLOWED_SOURCE_TYPES)!r}"
         )
