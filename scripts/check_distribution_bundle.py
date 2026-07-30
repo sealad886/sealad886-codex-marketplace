@@ -589,6 +589,12 @@ def add_launch_dependencies(
             )
         if argument in module_dependencies and is_node_builtin_module(argument):
             continue
+        if argument in module_dependencies and not argument.startswith(
+            ("./", "../")
+        ):
+            raise ValueError(
+                f"local Node preload module cannot be resolved: {argument}"
+            )
         source = (cwd / argument).resolve()
         if not source.is_relative_to(resolved_root):
             raise ValueError(f"local MCP dependency escapes plugin root: {argument}")
@@ -694,19 +700,20 @@ def add_local_mcp_dependencies(
             raise ValueError("local MCP server command must be a non-empty string")
         if is_absolute_path(command):
             raise ValueError(f"absolute local MCP command is not portable: {command}")
-        command_source = (cwd / command).resolve()
-        if not command_source.is_relative_to(resolved_root):
-            raise ValueError(f"local MCP command escapes plugin root: {command}")
         command_is_explicit_path = command.startswith(("./", "../")) or any(
             separator in command for separator in ("/", "\\")
         )
-        if command_source.is_file():
-            relative_command = command_source.relative_to(resolved_root)
-            selected.add(relative_command)
-            if command_is_explicit_path and executable_commands is not None:
-                executable_commands.add(relative_command)
-        elif command_is_explicit_path:
-            raise ValueError(f"local MCP command does not exist: {command}")
+        if command_is_explicit_path:
+            command_source = (cwd / command).resolve()
+            if not command_source.is_relative_to(resolved_root):
+                raise ValueError(f"local MCP command escapes plugin root: {command}")
+            if command_source.is_file():
+                relative_command = command_source.relative_to(resolved_root)
+                selected.add(relative_command)
+                if executable_commands is not None:
+                    executable_commands.add(relative_command)
+            else:
+                raise ValueError(f"local MCP command does not exist: {command}")
         elif not is_python_command(command) and not is_node_command(command):
             raise ValueError(
                 f"unresolved bare local MCP command is not portable: {command}"

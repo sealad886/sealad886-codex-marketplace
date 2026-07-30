@@ -259,6 +259,38 @@ class DistributionBundleTests(unittest.TestCase):
                 result.stdout,
             )
 
+    def test_bare_local_mcp_command_does_not_resolve_from_server_cwd(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            coincident_command = source / "server"
+            coincident_command.write_text("#!/bin/sh\n", encoding="utf-8")
+            os.chmod(
+                coincident_command,
+                coincident_command.stat().st_mode | 0o100,
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "server",
+                                "args": [],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "unresolved bare local MCP command is not portable",
+                result.stdout,
+            )
+
     def test_relative_local_mcp_command_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -922,6 +954,13 @@ class DistributionBundleTests(unittest.TestCase):
             )
             config_path.write_text(json.dumps(config), encoding="utf-8")
             unresolved = run_checker(root=source)
+            coincident_directory = source / "definitely-missing-preload"
+            coincident_directory.mkdir()
+            (coincident_directory / "index.js").write_text(
+                "globalThis.ready = true;\n",
+                encoding="utf-8",
+            )
+            coincident = run_checker(root=source)
 
             self.assertEqual(
                 builtin.returncode,
@@ -932,6 +971,11 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertIn(
                 "local Node preload module cannot be resolved",
                 unresolved.stdout,
+            )
+            self.assertNotEqual(coincident.returncode, 0)
+            self.assertIn(
+                "local Node preload module cannot be resolved",
+                coincident.stdout,
             )
 
     def test_attached_node_env_file_is_included_and_required(self) -> None:
