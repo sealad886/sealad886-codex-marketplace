@@ -6,6 +6,15 @@ Versioning.
 
 ## Unreleased
 
+## 0.1.1 - 2026-07-30
+
+### Fixed
+
+- Made Conversation Visuals' complete manifest metadata, branding, starter
+  prompts, skills, and MCP capability visible in Codex before installation.
+
+## 0.1.0 - 2026-07-30
+
 ### Added
 
 - Conversation Visuals `0.1.0` package with four skills for

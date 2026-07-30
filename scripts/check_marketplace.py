@@ -19,7 +19,9 @@ REPOSITORY_SOURCE_URL = (
     "https://github.com/sealad886/sealad886-codex-marketplace.git"
 )
 PROJECT_DELIVERY_PLUGIN_NAME = "project-delivery"
-EXPECTED_SOURCE_TYPE = "git-subdir"
+PINNED_SOURCE_TYPE = "git-subdir"
+LOCAL_SOURCE_TYPE = "local"
+ALLOWED_SOURCE_TYPES = {PINNED_SOURCE_TYPE, LOCAL_SOURCE_TYPE}
 EXPECTED_LICENSE_SHA256 = "486b9c74f1d5bf1a5be12a8fe070db7cfad5a4901f083d4810a677b32f2d4993"
 EXPECTED_COPYRIGHT = "Copyright (c) 2026 Andrew Cox"
 PLUGIN_NAME = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -196,6 +198,67 @@ def inspect_pinned_source(
     return license_result.stdout, errors
 
 
+def validate_local_interface(
+    plugin_root: Path,
+    manifest: dict[str, object],
+    label: str,
+) -> list[str]:
+    """Validate metadata Codex exposes before a repository-local plugin is installed."""
+
+    errors: list[str] = []
+    interface = manifest.get("interface")
+    if not isinstance(interface, dict):
+        return [f"{label} local manifest interface must be an object"]
+
+    for field in (
+        "displayName",
+        "shortDescription",
+        "longDescription",
+        "developerName",
+        "category",
+    ):
+        value = interface.get(field)
+        if not isinstance(value, str) or not value.strip():
+            errors.append(
+                f"{label} local manifest interface.{field} must be non-empty"
+            )
+
+    capabilities = interface.get("capabilities")
+    if not isinstance(capabilities, list) or not capabilities or not all(
+        isinstance(value, str) and value.strip() for value in capabilities
+    ):
+        errors.append(
+            f"{label} local manifest interface.capabilities must be a non-empty "
+            "array of strings"
+        )
+
+    prompts = interface.get("defaultPrompt")
+    if not isinstance(prompts, list) or not 1 <= len(prompts) <= 3:
+        errors.append(
+            f"{label} local manifest interface.defaultPrompt must contain 1 to 3 prompts"
+        )
+    elif not all(
+        isinstance(prompt, str) and prompt.strip() and len(prompt) <= 128
+        for prompt in prompts
+    ):
+        errors.append(
+            f"{label} local manifest interface.defaultPrompt entries must be "
+            "non-empty strings of at most 128 characters"
+        )
+
+    for field in ("composerIcon", "logo"):
+        asset, asset_errors = safe_source_path(plugin_root, interface.get(field))
+        if asset_errors:
+            errors.extend(
+                error.replace("marketplace source.path", f"{label} interface.{field}")
+                for error in asset_errors
+            )
+        elif asset is None or not asset.is_file():
+            errors.append(f"{label} local manifest interface.{field} must name a file")
+
+    return errors
+
+
 def validate_entry(
     root: Path,
     entry: object,
@@ -219,21 +282,33 @@ def validate_entry(
     source = entry.get("source")
     if not isinstance(source, dict):
         return errors + [f"{label} source must be an object"]
-    if source.get("source") != EXPECTED_SOURCE_TYPE:
+    source_type = source.get("source")
+    if source_type not in ALLOWED_SOURCE_TYPES:
         errors.append(
-            f"{label} source.source must be {EXPECTED_SOURCE_TYPE!r}"
+            f"{label} source.source must be one of {sorted(ALLOWED_SOURCE_TYPES)!r}"
         )
-    if source.get("url") != REPOSITORY_SOURCE_URL:
-        errors.append(
-            f"{label} source.url must be {REPOSITORY_SOURCE_URL!r}"
-        )
-    source_ref = source.get("ref")
-    if not is_immutable_ref(source_ref):
-        errors.append(
-            f"{label} source.ref must be an immutable version tag or 40-character commit"
-        )
-    source_commit, ref_errors = resolve_source_commit(root, source_ref, label)
-    errors.extend(ref_errors)
+
+    source_ref: object = None
+    source_commit: str | None = None
+    if source_type == PINNED_SOURCE_TYPE:
+        if source.get("url") != REPOSITORY_SOURCE_URL:
+            errors.append(
+                f"{label} source.url must be {REPOSITORY_SOURCE_URL!r}"
+            )
+        source_ref = source.get("ref")
+        if not is_immutable_ref(source_ref):
+            errors.append(
+                f"{label} source.ref must be an immutable version tag or "
+                "40-character commit"
+            )
+        source_commit, ref_errors = resolve_source_commit(root, source_ref, label)
+        errors.extend(ref_errors)
+    elif source_type == LOCAL_SOURCE_TYPE:
+        for field in ("url", "ref"):
+            if field in source:
+                errors.append(
+                    f"{label} local source must not declare source.{field}"
+                )
 
     plugin_root, path_errors = safe_source_path(root, source.get("path"))
     errors.extend(path_errors)
@@ -265,6 +340,13 @@ def validate_entry(
         manifest = {}
     if manifest.get("name") != name:
         errors.append(f"{label} name must match target manifest name")
+    manifest_version = manifest.get("version")
+    if not isinstance(manifest_version, str) or not SEMVER.fullmatch(
+        manifest_version
+    ):
+        errors.append(
+            f"{label} target manifest version must be valid Semantic Versioning"
+        )
     manifest_interface = manifest.get("interface")
     manifest_category = (
         manifest_interface.get("category")
@@ -273,6 +355,8 @@ def validate_entry(
     )
     if entry.get("category") != manifest_category:
         errors.append(f"{label} category must match manifest interface.category")
+    if source_type == LOCAL_SOURCE_TYPE:
+        errors.extend(validate_local_interface(plugin_root, manifest, label))
 
     pinned_license_bytes: bytes | None = None
     if source_commit is not None:
@@ -399,10 +483,14 @@ def main(argv: list[str] | None = None) -> int:
         if entry["name"] == PROJECT_DELIVERY_PLUGIN_NAME
     )
     project_delivery_ref = project_delivery_entry["source"]["ref"]
+    source_types = sorted(
+        {entry["source"]["source"] for entry in marketplace["plugins"]}
+    )
     print(
         f"PASS marketplace={MARKETPLACE_NAME} plugins={len(marketplace['plugins'])} "
         f"project-delivery-ref={project_delivery_ref} "
-        "source=git-subdir policy=AVAILABLE/ON_INSTALL license_parity=true"
+        f"sources={','.join(source_types)} "
+        "policy=AVAILABLE/ON_INSTALL license_parity=true"
     )
     return 0
 

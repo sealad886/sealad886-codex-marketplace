@@ -21,9 +21,7 @@
     {
       "name": "conversation-visuals",
       "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "conversation-visuals-v0.1.0",
+        "source": "local",
         "path": "./plugins/conversation-visuals"
       },
       "policy": {

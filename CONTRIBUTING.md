@@ -60,9 +60,4 @@ Record exact commands, results, revision, and any checks not run. Static route-c
 
 Use focused Conventional Commits. Explain the problem, user impact, design choice, validation evidence, compatibility, and residual risk in the pull request. Version releases with Semantic Versioning based on the public plugin contract. Only maintainers publish tags and releases.
 
-Publish a Git-backed plugin in two stages so the catalog never advertises a missing ref:
-
-1. Merge the validated artifact change while the marketplace remains pinned to the current release.
-2. Create the annotated version tag and GitHub release from the exact merged artifact commit.
-3. In a follow-up catalog change, advance the marketplace ref and displayed stable version to the new tag.
-4. Merge only after the marketplace validator resolves the tag and proves that its version matches the pinned manifest.
+Follow the current Codex marketplace workflow for the selected source declaration. Keep the package manifest, catalog entry, displayed stable version, and validation expectations coherent in every release. Create the annotated version tag from the exact validated merge commit, and verify the installed plugin in a fresh task before closing the release.
