@@ -5,19 +5,15 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import ipaddress
 import json
 import os
 import re
-import shlex
 import shutil
-import socket
 import sys
 import tempfile
 import time
 import uuid
 from pathlib import Path, PurePosixPath, PureWindowsPath
-from urllib.parse import urlparse
 
 from check_plugin import validate
 
@@ -36,7 +32,7 @@ OPTIONAL_ROOT_FILES = {
     "pyproject.toml",
     "yarn.lock",
 }
-COMPONENT_FIELDS = ("skills", "scripts", "mcpServers", "apps", "app", "appConfig", "hooks")
+COMPONENT_FIELDS = ("skills", "scripts", "apps", "app", "appConfig", "hooks")
 PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/operating-model.md",
     "skills/.shared/artifact-templates.md",
@@ -44,6 +40,10 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/live-route-receipt-v3.schema.json",
     "skills/.shared/route-profiles-v1.json",
 )
+EXPECTED_SKILL_COUNTS = {
+    "conversation-visuals": 4,
+    "project-delivery": 13,
+}
 UNIVERSAL_FORBIDDEN_DISTRIBUTION_PARTS = {
     ".git",
     ".github",
@@ -55,82 +55,7 @@ UNIVERSAL_FORBIDDEN_DISTRIBUTION_PARTS = {
 PROJECT_DELIVERY_FORBIDDEN_DISTRIBUTION_PARTS = {"references", "scripts"}
 PLUGIN_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 MAX_PLUGIN_NAME_LENGTH = 64
-NODE_BUILTIN_MODULES = frozenset(
-    {
-        "_http_agent",
-        "_http_client",
-        "_http_common",
-        "_http_incoming",
-        "_http_outgoing",
-        "_http_server",
-        "_stream_duplex",
-        "_stream_passthrough",
-        "_stream_readable",
-        "_stream_transform",
-        "_stream_wrap",
-        "_stream_writable",
-        "_tls_common",
-        "_tls_wrap",
-        "assert",
-        "assert/strict",
-        "async_hooks",
-        "buffer",
-        "child_process",
-        "cluster",
-        "console",
-        "constants",
-        "crypto",
-        "dgram",
-        "diagnostics_channel",
-        "dns",
-        "dns/promises",
-        "domain",
-        "events",
-        "fs",
-        "fs/promises",
-        "http",
-        "http2",
-        "https",
-        "inspector",
-        "inspector/promises",
-        "module",
-        "net",
-        "node:sea",
-        "node:sqlite",
-        "node:test",
-        "node:test/reporters",
-        "os",
-        "path",
-        "path/posix",
-        "path/win32",
-        "perf_hooks",
-        "process",
-        "punycode",
-        "querystring",
-        "readline",
-        "readline/promises",
-        "repl",
-        "stream",
-        "stream/consumers",
-        "stream/promises",
-        "stream/web",
-        "string_decoder",
-        "sys",
-        "timers",
-        "timers/promises",
-        "tls",
-        "trace_events",
-        "tty",
-        "url",
-        "util",
-        "util/types",
-        "v8",
-        "vm",
-        "wasi",
-        "worker_threads",
-        "zlib",
-    }
-)
+SUPPORTED_MCP_SERVER_FIELDS = {"command", "args", "cwd", "tool_timeout_sec"}
 
 
 def forbidden_distribution_parts(plugin_name: str) -> set[str]:
@@ -173,7 +98,7 @@ def safe_relative_path(value: str) -> Path:
     while normalized.startswith("./"):
         normalized = normalized[2:]
     candidate = Path(normalized)
-    if is_absolute_path(value) or ".." in candidate.parts:
+    if not normalized or is_absolute_path(value) or ".." in candidate.parts:
         raise ValueError(f"unsafe manifest path: {value}")
     return candidate
 
@@ -189,1291 +114,71 @@ def add_declared_path(root: Path, selected: set[Path], value: str) -> None:
         raise ValueError(f"declared path does not exist: {value}")
 
 
-def is_python_command(command: str) -> bool:
-    command_name = Path(command.replace("\\", "/")).name
-    return re.fullmatch(
-        r"(?:python(?:\d+(?:\.\d+)*)?|py)(?:\.exe)?", command_name
-    ) is not None
+def add_local_python_mcp_dependencies(
+    root: Path,
+    selected: set[Path],
+    declaration: str,
+) -> None:
+    """Select the one local MCP launch contract used by Conversation Visuals."""
+    declaration_path = safe_relative_path(declaration)
+    config_path = root / declaration_path
+    if not config_path.is_file():
+        raise ValueError(f"declared path does not exist: {declaration}")
 
-
-def is_node_command(command: str) -> bool:
-    command_name = Path(command.replace("\\", "/")).name
-    return command_name in {"node", "node.exe"}
-
-
-def is_node_builtin_module(module: str) -> bool:
-    return module in NODE_BUILTIN_MODULES or (
-        module.startswith("node:")
-        and module.removeprefix("node:") in NODE_BUILTIN_MODULES
-    )
-
-
-def validate_python_xoption(value: str) -> None:
-    """Reject documented -X values that make Python fail before launch."""
-    name, separator, operand = value.partition("=")
-    optional_boolean_options = {
-        "context_aware_warnings",
-        "gil",
-        "thread_inherit_context",
-        "tlbc",
-        "utf8",
-    }
-    if name in optional_boolean_options:
-        valid = not separator or operand in {"0", "1"}
-    elif name == "frozen_modules":
-        valid = not separator or operand in {"on", "off"}
-    elif name == "cpu_count":
-        valid = bool(separator) and (
-            operand == "default" or (operand.isdecimal() and int(operand) > 0)
-        )
-    elif name == "int_max_str_digits":
-        valid = bool(separator) and operand.isdecimal() and (
-            int(operand) == 0 or int(operand) >= 640
-        )
-    elif name == "tracemalloc":
-        valid = not separator or (operand.isdecimal() and int(operand) >= 0)
-    elif name == "importtime":
-        valid = not separator or operand in {"1", "2"}
-    else:
-        # Python intentionally exposes unknown -X names through sys._xoptions,
-        # so only interpreter-reserved values with fatal constraints are gated.
-        valid = True
-    if not valid:
-        raise ValueError(f"local Python -X option value is invalid: {value}")
-
-
-def validate_node_inline_program(program: str) -> None:
-    """Reject inline programs whose module dependency closure is unbounded."""
-    if re.search(r"\brequire\b|\bimport\b(?!\s*\.)", program):
-        raise ValueError(
-            "local Node inline program dependencies cannot be established"
-        )
-
-
-def validate_python_inline_program(program: str) -> None:
-    """Reject inline programs whose import dependency closure is unbounded."""
-    if re.search(r"\b(?:from|import|importlib|__import__)\b", program):
-        raise ValueError(
-            "local Python inline program dependencies cannot be established"
-        )
-
-
-def ascii_decimal_in_range(value: str, minimum: int, maximum: int) -> bool:
-    """Parse a bounded ASCII decimal without hitting Python's digit limit."""
-    if re.fullmatch(r"[0-9]+", value) is None:
-        return False
-    significant = value.lstrip("0") or "0"
-    maximum_text = str(maximum)
-    if len(significant) > len(maximum_text):
-        return False
-    number = int(significant)
-    return minimum <= number <= maximum
-
-
-def validate_python_environment(environment: dict[str, str]) -> None:
-    """Validate Python environment values that affect interpreter startup."""
-    normalized: dict[str, str] = {}
-    for key, value in environment.items():
-        normalized_key = key.upper()
-        if normalized_key in normalized:
-            raise ValueError("local MCP server env keys must be portable")
-        normalized[normalized_key] = value
-    hash_seed = normalized.get("PYTHONHASHSEED", "")
-    if hash_seed and not (
-        hash_seed == "random"
-        or ascii_decimal_in_range(hash_seed, 0, 4_294_967_295)
-    ):
-        raise ValueError("local Python env PYTHONHASHSEED value is invalid")
-
-    boolean_values = {
-        "PYTHONUTF8",
-        "PYTHON_CONTEXT_AWARE_WARNINGS",
-        "PYTHON_THREAD_INHERIT_CONTEXT",
-    }
-    for key in boolean_values:
-        value = normalized.get(key, "")
-        if value and value not in {"0", "1"}:
-            raise ValueError(f"local Python env {key} value is invalid")
-
-    digit_limit = normalized.get("PYTHONINTMAXSTRDIGITS", "")
-    if digit_limit and not (
-        ascii_decimal_in_range(digit_limit, 0, 0)
-        or ascii_decimal_in_range(digit_limit, 640, 2_147_483_647)
-    ):
-        raise ValueError(
-            "local Python env PYTHONINTMAXSTRDIGITS value is invalid"
-        )
-
-    cpu_count = normalized.get("PYTHON_CPU_COUNT", "")
-    if cpu_count and not (
-        cpu_count == "default"
-        or ascii_decimal_in_range(cpu_count, 1, 2_147_483_647)
-    ):
-        raise ValueError("local Python env PYTHON_CPU_COUNT value is invalid")
-
-    frozen_modules = normalized.get("PYTHON_FROZEN_MODULES", "")
-    if frozen_modules and frozen_modules not in {"on", "off"}:
-        raise ValueError(
-            "local Python env PYTHON_FROZEN_MODULES value is invalid"
-        )
-
-    import_time = normalized.get("PYTHONPROFILEIMPORTTIME", "")
-    if import_time and import_time not in {"1", "2"}:
-        raise ValueError(
-            "local Python env PYTHONPROFILEIMPORTTIME value is invalid"
-        )
-
-    unbounded_startup = {
-        "PYTHONBREAKPOINT",
-        "PYTHONHOME",
-        "PYTHONIOENCODING",
-        "PYTHONMALLOC",
-        "PYTHONPATH",
-        "PYTHONPLATLIBDIR",
-        "PYTHONSTARTUP",
-        "PYTHONTRACEMALLOC",
-        "PYTHONUSERBASE",
-        "PYTHONWARNINGS",
-    }
-    if any(normalized.get(key, "") for key in unbounded_startup):
-        raise ValueError(
-            "local Python MCP env cannot establish startup closure"
-        )
-
-
-def python_ignores_environment(command: str, arguments: list[str]) -> bool:
-    """Return whether interpreter options ignore all PYTHON* variables."""
-    if not is_python_command(command):
-        return False
-    index = 0
-    while index < len(arguments):
-        argument = arguments[index]
-        if argument in {"--", "-"} or not argument.startswith("-"):
-            return False
-        if argument == "--check-hash-based-pycs":
-            index += 2
-            continue
-        if argument.startswith("--"):
-            index += 1
-            continue
-        options = argument[1:]
-        option_index = 0
-        consumed_following_value = False
-        while option_index < len(options):
-            option = options[option_index]
-            if option in {"E", "I"}:
-                return True
-            if option in {"c", "m"}:
-                return False
-            if option in {"W", "X"}:
-                consumed_following_value = option_index + 1 == len(options)
-                break
-            option_index += 1
-        index += 2 if consumed_following_value else 1
-    return False
-
-
-def validate_node_debug_address(option: str, value: str) -> None:
-    """Validate Node's optional debug host and constrained port."""
-    if not value:
-        raise ValueError(f"local Node {option} value is invalid: {value}")
-    port_text: str | None = None
-    if value.startswith("["):
-        match = re.fullmatch(r"\[[^\]]+\](?::(\d+))?", value)
-        if match is None:
-            raise ValueError(f"local Node {option} value is invalid: {value}")
-        port_text = match.group(1)
-    elif ":" in value:
-        host, port_text = value.rsplit(":", 1)
-        if not host or not port_text.isdecimal():
-            raise ValueError(f"local Node {option} value is invalid: {value}")
-    elif value.isdecimal():
-        port_text = value
-    if port_text is not None:
-        port = int(port_text)
-        if port != 0 and not 1024 <= port <= 65535:
-            raise ValueError(f"local Node {option} value is invalid: {value}")
-
-
-def validate_node_config_file(path: Path) -> None:
-    """Reject Node configuration options whose startup closure is unbounded."""
-    try:
-        config = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
-        raise ValueError(
-            f"local Node configuration file is invalid: {path}"
-        ) from error
+    config = json.loads(config_path.read_text(encoding="utf-8"))
     if not isinstance(config, dict):
-        raise ValueError(f"local Node configuration file is invalid: {path}")
-    node_options = config.get("nodeOptions", {})
-    if not isinstance(node_options, dict):
-        raise ValueError(f"local Node configuration file is invalid: {path}")
-    if node_options:
-        raise ValueError(
-            "local Node configuration options cannot establish closure"
-        )
+        raise ValueError("local MCP config must contain an object")
+    servers = config.get("mcpServers")
+    if not isinstance(servers, dict) or not servers:
+        raise ValueError("local MCP config must contain a non-empty mcpServers object")
 
-
-def bracketed_hostname_is_ipv6(netloc: str, hostname: str) -> bool:
-    """Require bracketed URL authorities to contain an IPv6 literal."""
-    if "[" not in netloc and "]" not in netloc:
-        return True
-    try:
-        ipaddress.IPv6Address(hostname)
-    except (ipaddress.AddressValueError, ValueError):
-        return False
-    return True
-
-
-def malformed_whatwg_ipv4_hostname(hostname: str) -> bool:
-    """Detect numeric-final-label hosts that fail WHATWG IPv4 parsing."""
-    normalized = hostname.rstrip(".")
-    final_label = normalized.rsplit(".", 1)[-1].lower()
-    ipv4_candidate = final_label.isdecimal() or (
-        final_label.startswith("0x")
-        and len(final_label) > 2
-        and all(character in "0123456789abcdef" for character in final_label[2:])
-    )
-    if not ipv4_candidate:
-        return False
-    try:
-        socket.inet_aton(normalized)
-    except OSError:
-        return True
-    return False
-
-
-def python_launch_operand(
-    command: str,
-    arguments: list[str],
-) -> tuple[str, str | None] | None:
-    """Return Python's interpreter launch mode and its first operand."""
-    if not is_python_command(command):
-        return None
-    exit_only_options = {
-        "--help",
-        "--help-all",
-        "--help-env",
-        "--help-xoptions",
-        "--version",
-    }
-    simple_options = set("bBdEhiIOPqsSuvVx?")
-    safe_path = False
-    index = 0
-    while index < len(arguments):
-        argument = arguments[index]
-        if argument == "--":
-            if index + 1 >= len(arguments):
-                return None
-            operand = arguments[index + 1]
-            return ("stdin", None) if operand == "-" else ("script", operand)
-        if argument == "-":
-            return ("stdin", None)
-        if argument in exit_only_options:
-            raise ValueError(
-                f"local Python exit-only option cannot serve an MCP server: {argument}"
-            )
-        if argument == "--check-hash-based-pycs":
-            if index + 1 >= len(arguments):
-                raise ValueError(
-                    "local Python --check-hash-based-pycs requires an operand"
-                )
-            policy = arguments[index + 1]
-            if policy not in {"always", "default", "never"}:
-                raise ValueError(
-                    "local Python --check-hash-based-pycs policy must be "
-                    "always, default, or never"
-                )
-            index += 2
-            continue
-        if argument.startswith("--check-hash-based-pycs="):
-            raise ValueError(
-                "local Python --check-hash-based-pycs requires a separate operand"
-            )
-        if argument.startswith("--"):
-            raise ValueError(f"unsupported local Python startup option: {argument}")
-        if argument.startswith("-"):
-            options = argument[1:]
-            option_index = 0
-            consumed_following_value = False
-            while option_index < len(options):
-                option = options[option_index]
-                attached_value = options[option_index + 1 :]
-                if option in {"?", "V", "h"}:
-                    raise ValueError(
-                        f"local Python exit-only option cannot serve an MCP server: {argument}"
-                    )
-                if option in {"c", "m"}:
-                    operand = (
-                        attached_value
-                        if attached_value
-                        else (
-                            arguments[index + 1]
-                            if index + 1 < len(arguments)
-                            else None
-                        )
-                    )
-                    if operand is None:
-                        raise ValueError(
-                            f"local Python -{option} launch requires an operand"
-                        )
-                    if option == "c":
-                        validate_python_inline_program(operand)
-                    if option == "m" and safe_path:
-                        raise ValueError(
-                            "local Python safe-path option cannot launch a "
-                            "bundled module"
-                        )
-                    return ("command" if option == "c" else "module", operand)
-                if option in {"W", "X"}:
-                    consumed_following_value = not attached_value
-                    if consumed_following_value and index + 1 >= len(arguments):
-                        raise ValueError(
-                            f"local Python -{option} option requires an operand"
-                        )
-                    if option == "X":
-                        validate_python_xoption(
-                            attached_value
-                            if attached_value
-                            else arguments[index + 1]
-                        )
-                    break
-                if option not in simple_options:
-                    raise ValueError(
-                        f"unsupported local Python startup option: {argument}"
-                    )
-                if option in {"I", "P"}:
-                    safe_path = True
-                option_index += 1
-            index += 2 if consumed_following_value else 1
-            continue
-        return ("script", argument)
-    return None
-
-
-def node_launch_operand(
-    command: str,
-    arguments: list[str],
-) -> tuple[str, str | None] | None:
-    """Return Node's launch mode and its first program operand."""
-    if not is_node_command(command):
-        return None
-    exit_only_options = {
-        "--completion-bash",
-        "--help",
-        "--v8-options",
-        "--version",
-        "-h",
-        "-v",
-    }
-    replacement_modes = {
-        "--build-snapshot",
-        "--build-snapshot-config",
-        "--experimental-sea-config",
-        "--prof-process",
-        "--test",
-    }
-    flag_options = {
-        "--abort-on-uncaught-exception",
-        "--disable-sigusr1",
-        "--disallow-code-generation-from-strings",
-        "--enable-source-maps",
-        "--expose-gc",
-        "--force-fips",
-        "--frozen-intrinsics",
-        "--insecure-http-parser",
-        "--jitless",
-        "--no-addons",
-        "--no-deprecation",
-        "--no-extra-info-on-fatal-exception",
-        "--no-force-async-hooks-checks",
-        "--no-global-search-paths",
-        "--no-warnings",
-        "--openssl-legacy-provider",
-        "--openssl-shared-config",
-        "--pending-deprecation",
-        "--permission",
-        "--preserve-symlinks",
-        "--preserve-symlinks-main",
-        "--report-compact",
-        "--report-exclude-env",
-        "--report-exclude-network",
-        "--report-on-fatalerror",
-        "--report-on-signal",
-        "--report-uncaught-exception",
-        "--throw-deprecation",
-        "--trace-deprecation",
-        "--trace-sync-io",
-        "--trace-tls",
-        "--trace-uncaught",
-        "--trace-warnings",
-        "--use-bundled-ca",
-        "--use-env-proxy",
-        "--use-openssl-ca",
-        "--use-system-ca",
-        "--watch",
-        "--watch-preserve-output",
-        "--zero-fill-buffers",
-        "-i",
-        "--interactive",
-    }
-    optional_value_options = {
-        "--inspect",
-    }
-    options_with_values = {
-        "-C",
-        "--build-snapshot-config",
-        "--conditions",
-        "--debug-port",
-        "--env-file",
-        "--env-file-if-exists",
-        "--experimental-config-file",
-        "--experimental-loader",
-        "--experimental-sea-config",
-        "--icu-data-dir",
-        "--import",
-        "--inspect-port",
-        "--loader",
-        "--openssl-config",
-        "-r",
-        "--require",
-        "--snapshot-blob",
-        "--test-global-setup",
-        "--watch-path",
-    }
-    input_types = {"commonjs", "module"}
-    debug_value_options = {"--debug-port", "--inspect-port"}
-    input_type = None
-    index = 0
-    while index < len(arguments):
-        argument = arguments[index]
-        if argument == "--":
-            if index + 1 >= len(arguments):
-                return None
-            operand = arguments[index + 1]
-            if input_type is not None and operand != "-":
-                raise ValueError(
-                    "local Node --input-type can only launch string input"
-                )
-            return ("stdin", None) if operand == "-" else ("script", operand)
-        if argument == "-":
-            return ("stdin", None)
-        if argument in exit_only_options:
-            raise ValueError(
-                f"local Node exit-only option cannot serve an MCP server: {argument}"
-            )
-        if argument.split("=", 1)[0] in replacement_modes:
-            raise ValueError(
-                f"local Node replacement mode cannot serve an MCP server: {argument}"
-            )
-        if argument in {"--inspect-brk", "--inspect-wait"} or argument.startswith(
-            ("--inspect-brk=", "--inspect-wait=")
-        ):
-            raise ValueError(
-                f"local Node debugger-wait option cannot serve an MCP server: {argument}"
-            )
-        if argument in {"-c", "--check"}:
-            raise ValueError(
-                "local Node syntax-check mode cannot serve an MCP server"
-            )
-        if argument.startswith("--run="):
-            script_name = argument.removeprefix("--run=")
-            if not script_name:
-                raise ValueError("local Node --run option requires an operand")
-            return ("package-script", script_name)
-        if argument == "--input-type":
-            if index + 1 >= len(arguments):
-                raise ValueError("local Node --input-type option requires an operand")
-            input_type = arguments[index + 1]
-            if input_type not in input_types:
-                raise ValueError(
-                    f"local Node --input-type value is invalid: {input_type}"
-                )
-            index += 2
-            continue
-        if argument.startswith("--input-type="):
-            input_type = argument.removeprefix("--input-type=")
-            if input_type not in input_types:
-                raise ValueError(
-                    f"local Node --input-type value is invalid: {input_type}"
-                )
-            index += 1
-            continue
-        if argument in debug_value_options:
-            if index + 1 >= len(arguments):
-                raise ValueError(f"local Node {argument} option requires an operand")
-            validate_node_debug_address(argument, arguments[index + 1])
-            index += 2
-            continue
-        if any(argument.startswith(f"{option}=") for option in debug_value_options):
-            option, value = argument.split("=", 1)
-            validate_node_debug_address(option, value)
-            index += 1
-            continue
-        if argument.startswith("--inspect="):
-            validate_node_debug_address("--inspect", argument.split("=", 1)[1])
-            index += 1
-            continue
-        if argument in {"-e", "--eval", "-p", "--print"}:
-            if index + 1 >= len(arguments):
-                raise ValueError(f"local Node {argument} option requires an operand")
-            program = arguments[index + 1]
-            validate_node_inline_program(program)
-            return ("command", program)
-        if (
-            (argument.startswith(("-e", "-p")) and len(argument) > 2)
-            or argument.startswith(("--eval=", "--print="))
-        ):
-            program = (
-                argument[2:]
-                if argument.startswith(("-e", "-p"))
-                else argument.split("=", 1)[1]
-            )
-            validate_node_inline_program(program)
-            return ("command", program)
-        if argument in options_with_values:
-            if index + 1 >= len(arguments):
-                raise ValueError(f"local Node {argument} option requires an operand")
-            index += 2
-            continue
-        if any(
-            argument.startswith(f"{option}=") for option in options_with_values
-        ):
-            index += 1
-            continue
-        if argument in flag_options or argument in optional_value_options:
-            index += 1
-            continue
-        if any(
-            argument.startswith(f"{option}=") for option in optional_value_options
-        ):
-            index += 1
-            continue
-        if argument.startswith("-r") and len(argument) > 2:
-            index += 1
-            continue
-        if argument.startswith("-"):
-            raise ValueError(f"unsupported local Node startup option: {argument}")
-        if input_type is not None:
-            raise ValueError("local Node --input-type can only launch string input")
-        return ("script", argument)
-    return None
-
-
-def node_runtime_dependency_operands(
-    command: str,
-    arguments: list[str],
-) -> list[tuple[str, str, bool]]:
-    """Return Node dependency operands, resolution mode, and requiredness."""
-    if not is_node_command(command):
-        return []
-    module_dependency_options = {
-        "--experimental-loader",
-        "--import",
-        "--loader",
-        "--require",
-        "-r",
-    }
-    required_file_options = {
-        "--build-snapshot-config",
-        "--env-file",
-        "--experimental-config-file",
-        "--experimental-sea-config",
-        "--icu-data-dir",
-        "--openssl-config",
-        "--snapshot-blob",
-        "--test-global-setup",
-        "--watch-path",
-    }
-    optional_file_options = {"--env-file-if-exists"}
-    env_file_options = {"--env-file", "--env-file-if-exists"}
-    regular_file_options = {
-        "--openssl-config",
-        "--snapshot-blob",
-        "--test-global-setup",
-    }
-    dependency_options = (
-        module_dependency_options | required_file_options | optional_file_options
-    )
-    non_dependency_options_with_values = {
-        "-C",
-        "--conditions",
-        "--debug-port",
-        "--input-type",
-        "--inspect-port",
-    }
-    operands: list[tuple[str, str, bool]] = []
-    index = 0
-    while index < len(arguments):
-        argument = arguments[index]
-        if argument in {"--", "-", "-e", "--eval", "-p", "--print"}:
-            break
-        if (
-            (argument.startswith(("-e", "-p")) and len(argument) > 2)
-            or argument.startswith(("--eval=", "--print="))
-        ):
-            break
-        if argument in dependency_options:
-            if index + 1 >= len(arguments):
-                raise ValueError(f"local Node {argument} option requires an operand")
-            operands.append(
-                (
-                    arguments[index + 1],
-                    (
-                        "commonjs"
-                        if argument in {"--require", "-r"}
-                        else "module"
-                        if argument in module_dependency_options
-                        else "node-config"
-                        if argument == "--experimental-config-file"
-                        else "regular-file"
-                        if argument in regular_file_options
-                        else "env-file"
-                        if argument in env_file_options
-                        else "file"
-                    ),
-                    argument not in optional_file_options,
-                )
-            )
-            index += 2
-            continue
-        matched_attached = False
-        for option in dependency_options - {"-r"}:
-            prefix = f"{option}="
-            if argument.startswith(prefix):
-                operand = argument[len(prefix) :]
-                if not operand:
-                    raise ValueError(
-                        f"local Node {option} option requires an operand"
-                    )
-                operands.append(
-                    (
-                        operand,
-                        (
-                            "commonjs"
-                            if option == "--require"
-                            else "module"
-                            if option in module_dependency_options
-                            else "node-config"
-                            if option == "--experimental-config-file"
-                            else "regular-file"
-                            if option in regular_file_options
-                            else "env-file"
-                            if option in env_file_options
-                            else "file"
-                        ),
-                        option not in optional_file_options,
-                    )
-                )
-                matched_attached = True
-                break
-        if matched_attached:
-            index += 1
-            continue
-        if argument in non_dependency_options_with_values:
-            if index + 1 >= len(arguments):
-                raise ValueError(f"local Node {argument} option requires an operand")
-            index += 2
-            continue
-        if any(
-            argument.startswith(f"{option}=")
-            for option in non_dependency_options_with_values
-        ):
-            index += 1
-            continue
-        if argument.startswith("-r") and len(argument) > 2:
-            operand = argument[2:].removeprefix("=")
-            if not operand:
-                raise ValueError("local Node -r option requires an operand")
-            operands.append((operand, "commonjs", True))
-            index += 1
-            continue
-        if not argument.startswith("-"):
-            break
-        index += 1
-    return operands
-
-
-def node_package_script(
-    root: Path,
-    cwd: Path,
-    script_name: str,
-) -> tuple[Path, list[str]]:
-    """Return the nearest package manifest and tokens for a Node package script."""
+    selected.add(declaration_path)
     resolved_root = root.resolve()
-    directory = cwd
-    while directory.is_relative_to(resolved_root):
-        package_path = directory / "package.json"
-        if package_path.is_file():
-            try:
-                package = json.loads(package_path.read_text(encoding="utf-8"))
-            except (OSError, json.JSONDecodeError) as error:
-                raise ValueError(
-                    f"local Node package manifest is invalid: {package_path.relative_to(resolved_root)}"
-                ) from error
-            if not isinstance(package, dict):
-                raise ValueError("local Node package manifest must contain an object")
-            scripts = package.get("scripts")
-            if not isinstance(scripts, dict):
-                raise ValueError("local Node package manifest must contain scripts")
-            script = scripts.get(script_name)
-            if not isinstance(script, str) or not script.strip():
-                raise ValueError(
-                    f"local Node package script does not exist: {script_name}"
-                )
-            if any(character in script for character in "\r\n;&|<>`") or "$(" in script:
-                raise ValueError(
-                    f"local Node package script contains unsupported shell control: {script_name}"
-                )
-            try:
-                tokens = shlex.split(script)
-            except ValueError as error:
-                raise ValueError(
-                    f"local Node package script is invalid: {script_name}"
-                ) from error
-            if not tokens:
-                raise ValueError(
-                    f"local Node package script is empty: {script_name}"
-                )
-            return package_path, tokens
-        if directory == resolved_root:
-            break
-        directory = directory.parent
-    raise ValueError(
-        f"local Node --run package manifest does not exist from: {cwd.relative_to(resolved_root)}"
-    )
-
-
-def add_parent_package_initializers(
-    root: Path,
-    cwd: Path,
-    selected: set[Path],
-    dependency: Path,
-) -> None:
-    resolved_root = root.resolve()
-    for parent in dependency.parents:
-        if parent == cwd or not parent.is_relative_to(cwd):
-            break
-        initializer = parent / "__init__.py"
-        if initializer.is_file():
-            selected.add(initializer.relative_to(resolved_root))
-
-
-def resolve_commonjs_entrypoint(
-    source: Path,
-    resolved_root: Path,
-    seen: set[Path] | None = None,
-) -> Path | None:
-    """Resolve a contained CommonJS file or directory entrypoint."""
-    source = source.resolve()
-    if not source.is_relative_to(resolved_root):
-        raise ValueError("local Node CommonJS preload escapes plugin root")
-    if source.is_file():
-        return source
-    if not source.exists():
-        for suffix in (".js", ".json", ".node"):
-            candidate = Path(f"{source}{suffix}")
-            if candidate.is_file():
-                return candidate
-        return None
-    if not source.is_dir():
-        return None
-    visited = set() if seen is None else seen
-    if source in visited:
-        return None
-    visited.add(source)
-    package_path = source / "package.json"
-    if package_path.is_file():
-        try:
-            package = json.loads(package_path.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as error:
+    for server_name, server in servers.items():
+        if not isinstance(server_name, str) or not isinstance(server, dict):
+            raise ValueError("local MCP server config must contain a named object")
+        unsupported_fields = set(server) - SUPPORTED_MCP_SERVER_FIELDS
+        if unsupported_fields:
             raise ValueError(
-                "local Node CommonJS preload package manifest is invalid"
-            ) from error
-        if not isinstance(package, dict):
-            raise ValueError(
-                "local Node CommonJS preload package manifest must contain an object"
+                "unsupported local MCP server fields: "
+                + ", ".join(sorted(unsupported_fields))
             )
-        main = package.get("main")
-        if isinstance(main, str) and main.strip():
-            entrypoint = resolve_commonjs_entrypoint(
-                source / main,
-                resolved_root,
-                visited,
-            )
-            if entrypoint is not None:
-                return entrypoint
-    for filename in ("index.js", "index.json", "index.node"):
-        candidate = source / filename
-        if candidate.is_file():
-            return candidate
-    return None
-
-
-def validate_node_env_file(source: Path) -> None:
-    """Reject NODE_OPTIONS that can add undeclared startup dependencies."""
-    try:
-        lines = source.read_text(encoding="utf-8").splitlines()
-    except (OSError, UnicodeError) as error:
-        raise ValueError("local Node env file is invalid") from error
-    for line in lines:
-        match = re.match(r"^\s*(?:export\s+)?NODE_OPTIONS\s*=(.*)$", line)
-        if match is None:
-            continue
-        value = match.group(1).strip()
-        if (
-            len(value) >= 2
-            and value[0] in {"'", '"'}
-            and value[-1] == value[0]
+        if server.get("command") != "python3":
+            raise ValueError("local MCP server command must be python3")
+        if server.get("cwd") != ".":
+            raise ValueError("local MCP server cwd must be '.'")
+        timeout = server.get("tool_timeout_sec")
+        if timeout is not None and (
+            isinstance(timeout, bool)
+            or not isinstance(timeout, (int, float))
+            or timeout <= 0
         ):
-            value = value[1:-1].strip()
-        if value:
-            raise ValueError(
-                "local Node env file NODE_OPTIONS cannot establish closure"
-            )
+            raise ValueError("local MCP server tool_timeout_sec must be positive")
+
+        arguments = server.get("args")
+        if not isinstance(arguments, list) or len(arguments) != 1:
+            raise ValueError("local MCP server args must contain one Python script")
+        script = arguments[0]
+        if not isinstance(script, str):
+            raise ValueError("local MCP server script must be a string")
+        script_path = safe_relative_path(script)
+        if script_path.suffix != ".py":
+            raise ValueError("local MCP server must launch a .py script")
+
+        script_source = root / script_path
+        resolved_script = script_source.resolve()
+        if not resolved_script.is_relative_to(resolved_root):
+            raise ValueError(f"local MCP server script escapes the plugin root: {script}")
+        if not script_source.is_file():
+            raise ValueError(f"local MCP server script is not a regular file: {script}")
+        selected.add(script_path)
 
 
-def add_python_module_dependencies(
-    root: Path,
-    cwd: Path,
-    selected: set[Path],
-    command: str,
-    arguments: list[str],
-) -> None:
-    """Include bundled modules launched through a Python ``-m`` operand."""
-    launch = python_launch_operand(command, arguments)
-    if launch is None or launch[0] != "module" or launch[1] is None:
-        return
-    resolved_root = root.resolve()
-    module = launch[1]
-    parts = module.split(".")
-    if not parts or not all(part.isidentifier() for part in parts):
-        raise ValueError(f"local Python module name is invalid: {module}")
-    module_path = cwd.joinpath(*parts)
-    module_file = module_path.with_suffix(".py").resolve()
-    package_directory = module_path.resolve()
-    if (
-        not module_file.is_relative_to(resolved_root)
-        or not package_directory.is_relative_to(resolved_root)
-    ):
-        raise ValueError(f"local Python module escapes plugin root: {module}")
-    if module_file.is_file():
-        selected.add(module_file.relative_to(resolved_root))
-        add_parent_package_initializers(root, cwd, selected, module_file)
-    elif package_directory.is_dir():
-        package_entrypoint = package_directory / "__main__.py"
-        if not package_entrypoint.is_file():
-            raise ValueError(
-                f"local Python package launch requires __main__.py: {module}"
-            )
-        selected.update(
-            path.relative_to(resolved_root)
-            for path in package_directory.rglob("*")
-            if path.is_file()
-        )
-        add_parent_package_initializers(root, cwd, selected, package_directory)
-    else:
-        raise ValueError(f"local Python module cannot be resolved: {module}")
-
-
-def add_launch_dependencies(
-    root: Path,
-    cwd: Path,
-    selected: set[Path],
-    command: str,
-    arguments: list[str],
-) -> None:
-    """Include file dependencies referenced by one local launch command."""
-    resolved_root = root.resolve()
-    python_launch = python_launch_operand(command, arguments)
-    node_launch = node_launch_operand(command, arguments)
-    required_launch_script = None
-    for launch in (python_launch, node_launch):
-        if launch is not None and launch[0] == "script":
-            required_launch_script = launch[1]
-            break
-    node_dependencies = node_runtime_dependency_operands(command, arguments)
-    commonjs_preloads = {
-        operand
-        for operand, resolution_mode, _ in node_dependencies
-        if resolution_mode == "commonjs"
-    }
-    esm_preloads = {
-        operand
-        for operand, resolution_mode, _ in node_dependencies
-        if resolution_mode == "module"
-    }
-    node_env_files = {
-        operand
-        for operand, resolution_mode, _ in node_dependencies
-        if resolution_mode == "env-file"
-    }
-    node_config_files = {
-        operand
-        for operand, resolution_mode, _ in node_dependencies
-        if resolution_mode == "node-config"
-    }
-    node_regular_files = {
-        operand
-        for operand, resolution_mode, _ in node_dependencies
-        if resolution_mode == "regular-file"
-    }
-    module_dependencies = {
-        operand
-        for operand, resolution_mode, _ in node_dependencies
-        if resolution_mode in {"commonjs", "module"}
-    }
-    required_node_dependencies = {
-        operand for operand, _, required in node_dependencies if required
-    }
-    optional_node_dependencies = {
-        operand for operand, _, required in node_dependencies if not required
-    }
-    dependency_arguments = list(arguments)
-    dependency_arguments.extend(operand for operand, _, _ in node_dependencies)
-    for argument in dependency_arguments:
-        is_explicit_path = (
-            argument.startswith(("./", "../"))
-            and (
-                argument not in optional_node_dependencies
-                or argument in required_node_dependencies
-            )
-        ) or argument == required_launch_script
-        if is_absolute_path(argument):
-            raise ValueError(
-                f"absolute local MCP dependency is not portable: {argument}"
-            )
-        if argument in module_dependencies and is_node_builtin_module(argument):
-            continue
-        if argument in module_dependencies and not argument.startswith(
-            ("./", "../")
-        ):
-            raise ValueError(
-                f"local Node preload module cannot be resolved: {argument}"
-            )
-        source = (cwd / argument).resolve()
-        if not source.is_relative_to(resolved_root):
-            raise ValueError(f"local MCP dependency escapes plugin root: {argument}")
-        if not source.exists() and argument in commonjs_preloads:
-            source = next(
-                (
-                    candidate
-                    for suffix in (".js", ".json", ".node")
-                    if (candidate := Path(f"{source}{suffix}")).is_file()
-                ),
-                source,
-            )
-        if source.is_file():
-            if argument in node_env_files:
-                validate_node_env_file(source)
-            if argument in node_config_files:
-                validate_node_config_file(source)
-            selected.add(source.relative_to(resolved_root))
-        elif source.is_dir():
-            if argument in node_env_files:
-                raise ValueError(
-                    f"local Node env-file dependency must be a regular file: {argument}"
-                )
-            if argument in node_config_files:
-                raise ValueError(
-                    "local Node configuration dependency must be a regular file: "
-                    f"{argument}"
-                )
-            if argument in node_regular_files:
-                raise ValueError(
-                    "local Node file dependency must be a regular file: "
-                    f"{argument}"
-                )
-            if argument in esm_preloads:
-                raise ValueError(
-                    f"local Node ESM preload cannot be a directory: {argument}"
-                )
-            if argument in commonjs_preloads:
-                commonjs_entrypoint = resolve_commonjs_entrypoint(
-                    source,
-                    resolved_root,
-                )
-                if commonjs_entrypoint is None:
-                    raise ValueError(
-                        "local Node CommonJS preload directory has no "
-                        f"entrypoint: {argument}"
-                    )
-                selected.add(commonjs_entrypoint.relative_to(resolved_root))
-            if (
-                python_launch is not None
-                and python_launch[0] == "script"
-                and argument == required_launch_script
-                and not (source / "__main__.py").is_file()
-            ):
-                raise ValueError(
-                    f"local Python directory launch requires __main__.py: {argument}"
-                )
-            selected.update(
-                path.relative_to(resolved_root)
-                for path in source.rglob("*")
-                if path.is_file()
-            )
-        elif is_explicit_path:
-            raise ValueError(f"local MCP dependency does not exist: {argument}")
-        elif argument in required_node_dependencies:
-            if argument in module_dependencies:
-                raise ValueError(
-                    f"local Node preload module cannot be resolved: {argument}"
-                )
-            raise ValueError(
-                f"local Node runtime dependency cannot be resolved: {argument}"
-            )
-    add_python_module_dependencies(root, cwd, selected, command, arguments)
-
-
-def add_local_mcp_dependencies(
-    root: Path,
-    selected: set[Path],
-    declaration: str | dict[str, object],
-    executable_commands: set[Path] | None = None,
-) -> None:
-    """Include local command arguments referenced by a declared MCP config."""
-    if isinstance(declaration, str):
-        config_path = safe_relative_path(declaration)
-        config = json.loads((root / config_path).read_text(encoding="utf-8"))
-        if not isinstance(config, dict):
-            raise ValueError("local MCP config must contain an object")
-        servers = config.get("mcpServers", {})
-    else:
-        servers = declaration
-    resolved_root = root.resolve()
-    if not isinstance(servers, dict):
-        raise ValueError("mcpServers config must contain an object")
-    for server in servers.values():
-        if not isinstance(server, dict):
-            raise ValueError("each local MCP server config must contain an object")
-        if "url" in server:
-            url = server["url"]
-            if not isinstance(url, str) or not url.strip():
-                raise ValueError("remote MCP server url must be a non-empty string")
-            if any(
-                character.isspace()
-                or ord(character) < 32
-                or ord(character) == 127
-                for character in url
-            ):
-                raise ValueError(f"remote MCP server url is invalid: {url}")
-            try:
-                parsed_url = urlparse(url)
-                port = parsed_url.port
-                hostname = parsed_url.hostname
-                normalized_hostname = (
-                    hostname.encode("idna").decode("ascii") if hostname else ""
-                )
-            except (UnicodeError, ValueError) as error:
-                raise ValueError(f"remote MCP server url is invalid: {url}") from error
-            if (
-                parsed_url.scheme not in {"http", "https"}
-                or not parsed_url.netloc
-                or not hostname
-                or not hostname.isascii()
-                or not bracketed_hostname_is_ipv6(parsed_url.netloc, hostname)
-                or any(character in "%<>^|\\" for character in hostname)
-                or any(
-                    character in "%<>^|\\"
-                    or character.isspace()
-                    or ord(character) < 32
-                    or ord(character) == 127
-                    for character in normalized_hostname
-                )
-                or malformed_whatwg_ipv4_hostname(normalized_hostname)
-                or any(
-                    character.isspace()
-                    or ord(character) < 32
-                    or ord(character) == 127
-                    for character in parsed_url.netloc
-                )
-                or "\\" in parsed_url.netloc
-                or parsed_url.username is not None
-                or parsed_url.password is not None
-                or (port is not None and not 1 <= port <= 65535)
-            ):
-                raise ValueError(f"remote MCP server url is invalid: {url}")
-            if any(field in server for field in ("command", "args", "cwd")):
-                raise ValueError(
-                    "remote MCP server config cannot contain local command fields"
-                )
-            continue
-        cwd_value = server.get("cwd", ".")
-        if not isinstance(cwd_value, str):
-            raise ValueError("local MCP server cwd must be a string")
-        cwd_relative = safe_relative_path(cwd_value)
-        cwd = (root / cwd_relative).resolve()
-        if not cwd.is_relative_to(resolved_root):
-            raise ValueError(f"local MCP server cwd escapes plugin root: {cwd_value}")
-        if not cwd.is_dir():
-            raise ValueError(f"local MCP server cwd does not exist: {cwd_value}")
-        command = server.get("command")
-        if not isinstance(command, str) or not command.strip():
-            raise ValueError("local MCP server command must be a non-empty string")
-        if is_absolute_path(command):
-            raise ValueError(f"absolute local MCP command is not portable: {command}")
-        command_is_explicit_path = command.startswith(("./", "../")) or any(
-            separator in command for separator in ("/", "\\")
-        )
-        if command_is_explicit_path:
-            command_source = (cwd / command).resolve()
-            if not command_source.is_relative_to(resolved_root):
-                raise ValueError(f"local MCP command escapes plugin root: {command}")
-            if command_source.is_file():
-                if os.name != "nt" and not command_source.stat().st_mode & 0o111:
-                    raise ValueError(
-                        f"local MCP command is not executable: {command}"
-                    )
-                relative_command = command_source.relative_to(resolved_root)
-                selected.add(relative_command)
-                if executable_commands is not None:
-                    executable_commands.add(relative_command)
-            else:
-                raise ValueError(f"local MCP command does not exist: {command}")
-        elif not is_python_command(command) and not is_node_command(command):
-            raise ValueError(
-                f"unresolved bare local MCP command is not portable: {command}"
-            )
-        environment = server.get("env", {})
-        if not isinstance(environment, dict) or not all(
-            isinstance(key, str) and isinstance(value, str)
-            for key, value in environment.items()
-        ):
-            raise ValueError("local MCP server env must contain string values")
-        if is_node_command(command) and any(
-            key.upper() == "NODE_OPTIONS" and value.strip()
-            for key, value in environment.items()
-        ):
-            raise ValueError(
-                "local Node MCP env NODE_OPTIONS cannot establish closure"
-            )
-        arguments = server.get("args", [])
-        if not isinstance(arguments, list):
-            raise ValueError("local MCP server args must be an array")
-        if not all(isinstance(argument, str) for argument in arguments):
-            raise ValueError("local MCP server args must contain only strings")
-        python_launch = python_launch_operand(command, arguments)
-        node_launch = node_launch_operand(command, arguments)
-        if is_python_command(command) and not python_ignores_environment(
-            command,
-            arguments,
-        ):
-            validate_python_environment(environment)
-            safe_path = next(
-                (
-                    value
-                    for key, value in environment.items()
-                    if key.upper() == "PYTHONSAFEPATH"
-                ),
-                "",
-            )
-            if (
-                safe_path
-                and python_launch is not None
-                and python_launch[0] == "module"
-            ):
-                raise ValueError(
-                    "local Python safe-path environment cannot launch a "
-                    "bundled module"
-                )
-        if is_python_command(command) and (
-            python_launch is None or python_launch[0] == "stdin"
-        ):
-            raise ValueError(
-                "local Python MCP launch requires a script, module, or command"
-            )
-        if is_node_command(command) and (
-            node_launch is None or node_launch[0] == "stdin"
-        ):
-            raise ValueError(
-                "local Node MCP launch requires a script or command"
-            )
-        add_launch_dependencies(root, cwd, selected, command, arguments)
-        if node_launch is not None and node_launch[0] == "package-script":
-            script_name = node_launch[1]
-            if script_name is None:
-                raise ValueError("local Node --run option requires an operand")
-            package_path, script_tokens = node_package_script(
-                root,
-                cwd,
-                script_name,
-            )
-            selected.add(package_path.relative_to(resolved_root))
-            script_cwd = package_path.parent
-            script_command = script_tokens[0]
-            script_arguments = script_tokens[1:]
-            script_python_launch = python_launch_operand(
-                script_command,
-                script_arguments,
-            )
-            script_node_launch = node_launch_operand(
-                script_command,
-                script_arguments,
-            )
-            if (
-                script_node_launch is not None
-                and script_node_launch[0] == "package-script"
-            ):
-                raise ValueError(
-                    "nested local Node package-script launches are unsupported"
-                )
-            if is_python_command(script_command) and (
-                script_python_launch is None or script_python_launch[0] == "stdin"
-            ):
-                raise ValueError(
-                    "local Node package script must launch a serving command"
-                )
-            if is_node_command(script_command) and (
-                script_node_launch is None or script_node_launch[0] == "stdin"
-            ):
-                raise ValueError(
-                    "local Node package script must launch a serving command"
-                )
-            if not is_python_command(script_command) and not is_node_command(
-                script_command
-            ):
-                script_command_source = (script_cwd / script_command).resolve()
-                script_command_is_explicit = script_command.startswith(
-                    ("./", "../")
-                ) or any(separator in script_command for separator in ("/", "\\"))
-                if (
-                    not script_command_is_explicit
-                    or not script_command_source.is_relative_to(resolved_root)
-                    or not script_command_source.is_file()
-                ):
-                    raise ValueError(
-                        "local Node package script must launch a contained executable, Python, or Node command"
-                    )
-                relative_script_command = script_command_source.relative_to(
-                    resolved_root
-                )
-                if (
-                    os.name != "nt"
-                    and not script_command_source.stat().st_mode & 0o111
-                ):
-                    raise ValueError(
-                        "local Node package script command is not executable: "
-                        f"{script_command}"
-                    )
-                selected.add(relative_script_command)
-                if executable_commands is not None:
-                    executable_commands.add(relative_script_command)
-            add_launch_dependencies(
-                root,
-                script_cwd,
-                selected,
-                script_command,
-                script_arguments,
-            )
-
-
-def select_paths(
-    root: Path,
-    executable_commands: set[Path] | None = None,
-) -> set[Path]:
+def select_paths(root: Path) -> set[Path]:
     manifest_path = root / ".codex-plugin" / "plugin.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict):
+        raise ValueError("plugin manifest must contain an object")
     selected = {Path(".codex-plugin/plugin.json")}
     selected.update(path for path in map(Path, OPTIONAL_ROOT_FILES) if (root / path).is_file())
 
@@ -1481,20 +186,14 @@ def select_paths(
         value = manifest.get(field)
         if isinstance(value, str):
             add_declared_path(root, selected, value)
-            if field == "mcpServers":
-                add_local_mcp_dependencies(
-                    root,
-                    selected,
-                    value,
-                    executable_commands,
-                )
-        elif field == "mcpServers" and isinstance(value, dict):
-            add_local_mcp_dependencies(
-                root,
-                selected,
-                value,
-                executable_commands,
-            )
+
+    mcp_declaration = manifest.get("mcpServers")
+    if manifest.get("name") == "conversation-visuals" and mcp_declaration is None:
+        raise ValueError("conversation-visuals must declare its local MCP config")
+    if mcp_declaration is not None:
+        if not isinstance(mcp_declaration, str):
+            raise ValueError("mcpServers must declare a local config file")
+        add_local_python_mcp_dependencies(root, selected, mcp_declaration)
 
     interface = manifest.get("interface", {})
     if isinstance(interface, dict):
@@ -1525,7 +224,9 @@ def payload_sha256(root: Path, relative_paths: list[Path]) -> str:
 def read_plugin_name(root: Path) -> str:
     manifest_path = root / ".codex-plugin" / "plugin.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    plugin_name = manifest["name"]
+    if not isinstance(manifest, dict):
+        raise ValueError("plugin manifest must contain an object")
+    plugin_name = manifest.get("name")
     if not isinstance(plugin_name, str) or not PLUGIN_NAME.fullmatch(plugin_name):
         raise ValueError("plugin name must be lower-case hyphen-case")
     if len(plugin_name) > MAX_PLUGIN_NAME_LENGTH:
@@ -1562,7 +263,6 @@ def inventory_tree(
     label: str,
     phase: str,
     forbidden_parts: set[str] | None = None,
-    executable_commands: set[Path] | None = None,
 ) -> tuple[set[Path], set[Path], list[str]]:
     if forbidden_parts is None:
         forbidden_parts = forbidden_distribution_parts(read_plugin_name(root))
@@ -1584,9 +284,7 @@ def inventory_tree(
             continue
         if path.is_file():
             files.add(relative)
-            if path.stat().st_mode & 0o111 and (
-                executable_commands is None or relative not in executable_commands
-            ):
+            if path.stat().st_mode & 0o111:
                 errors.append(f"{label} contains executable file: {relative}")
         elif path.is_dir():
             directories.add(relative)
@@ -1606,14 +304,14 @@ def validate_source_boundary(
     root: Path,
     selected: list[Path],
     forbidden_parts: set[str] | None = None,
-    executable_commands: set[Path] | None = None,
 ) -> list[str]:
+    if forbidden_parts is None:
+        forbidden_parts = forbidden_distribution_parts(read_plugin_name(root))
     actual_files, actual_directories, errors = inventory_tree(
         root,
         "plugin package boundary",
         "BOUNDARY",
         forbidden_parts,
-        executable_commands,
     )
     expected_files = set(selected)
     expected_directory_set = expected_directories(expected_files)
@@ -1633,17 +331,18 @@ def validate_distribution_tree(
     selected: list[Path],
     plugin_name: str,
     forbidden_parts: set[str],
-    executable_commands: set[Path] | None = None,
 ) -> list[str]:
     errors, skill_count, _ = validate(destination, "source")
-    if skill_count < 1:
-        errors.append("runtime closure must contain at least one skill")
-    expected_skill_count = 13 if plugin_name == "project-delivery" else None
-    if expected_skill_count is not None and skill_count != expected_skill_count:
+    expected_skill_count = EXPECTED_SKILL_COUNTS.get(plugin_name)
+    if expected_skill_count is None:
+        if skill_count < 1:
+            errors.append("runtime closure must contain at least one skill")
+    elif skill_count != expected_skill_count:
         errors.append(
             f"runtime closure must contain {expected_skill_count} skills, "
             f"found {skill_count}"
         )
+
     shared_runtime_paths = (
         PROJECT_DELIVERY_SHARED_RUNTIME_PATHS
         if plugin_name == "project-delivery"
@@ -1658,7 +357,6 @@ def validate_distribution_tree(
         "runtime closure",
         "RUNTIME",
         forbidden_parts,
-        executable_commands,
     )
     errors.extend(inventory_errors)
     expected_files = set(selected)
@@ -1676,22 +374,14 @@ def validate_distribution_tree(
 
 def build_runtime_closure(root: Path, destination: Path) -> tuple[list[str], list[Path], str]:
     errors: list[str] = []
-    executable_commands: set[Path] = set()
     try:
         plugin_name = read_plugin_name(root)
-        selected = sorted(select_paths(root, executable_commands))
+        selected = sorted(select_paths(root))
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
         return [str(error)], [], ""
 
     forbidden_parts = forbidden_distribution_parts(plugin_name)
-    errors.extend(
-        validate_source_boundary(
-            root,
-            selected,
-            forbidden_parts,
-            executable_commands,
-        )
-    )
+    errors.extend(validate_source_boundary(root, selected, forbidden_parts))
     if errors:
         return errors, selected, ""
     copy_selected(root, destination, selected)
@@ -1701,7 +391,6 @@ def build_runtime_closure(root: Path, destination: Path) -> tuple[list[str], lis
             selected,
             plugin_name,
             forbidden_parts,
-            executable_commands,
         )
     )
     digest = payload_sha256(destination, selected) if not errors else ""
@@ -1753,9 +442,8 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
     if errors:
         return errors
 
-    executable_commands: set[Path] = set()
     try:
-        selected = sorted(select_paths(output, executable_commands))
+        selected = sorted(select_paths(output))
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
         return [f"refusing to replace output with invalid package boundary: {error}"]
 
@@ -1763,7 +451,6 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
         output,
         selected,
         forbidden_distribution_parts(plugin_name),
-        executable_commands,
     )
     structural_errors, _, _ = validate(output, "source")
     errors.extend(f"refusing to replace unclean output: {error}" for error in boundary_errors)
@@ -1782,7 +469,6 @@ def materialize_runtime_closure(
         OSError,
         UnicodeError,
         json.JSONDecodeError,
-        KeyError,
         TypeError,
         ValueError,
     ) as error:
@@ -1868,7 +554,6 @@ def validate_runtime_closure(root: Path) -> tuple[list[str], int, str]:
         OSError,
         UnicodeError,
         json.JSONDecodeError,
-        KeyError,
         TypeError,
         ValueError,
     ) as error:
@@ -1898,10 +583,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     action = "materialized" if args.output else "validated"
     output = f" output={Path(args.output).expanduser().resolve()}" if args.output else ""
-    manifest = json.loads(
-        (root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
-    )
-    plugin_name = manifest["name"]
+    plugin_name = read_plugin_name(root)
     _, skill_count, _ = validate(root, "source")
     shared_runtime_count = (
         len(PROJECT_DELIVERY_SHARED_RUNTIME_PATHS)
