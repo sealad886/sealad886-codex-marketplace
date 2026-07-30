@@ -287,6 +287,14 @@ def validate_entry(
         errors.append(
             f"{label} source.source must be one of {sorted(ALLOWED_SOURCE_TYPES)!r}"
         )
+    if (
+        name == PROJECT_DELIVERY_PLUGIN_NAME
+        and source_type != PINNED_SOURCE_TYPE
+    ):
+        errors.append(
+            f"{label} {PROJECT_DELIVERY_PLUGIN_NAME} source.source must be "
+            f"{PINNED_SOURCE_TYPE!r}"
+        )
 
     source_ref: object = None
     source_commit: str | None = None

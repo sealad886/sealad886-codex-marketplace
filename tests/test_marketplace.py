@@ -194,6 +194,25 @@ class MarketplaceTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("must be an immutable version tag", result.stdout)
 
+    def test_project_delivery_requires_pinned_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repository"
+            marketplace = create_repository_fixture(root)
+            marketplace["plugins"][0]["source"] = {
+                "source": "local",
+                "path": "./plugins/project-delivery",
+            }
+            write_marketplace(root, marketplace)
+
+            result = run_checker(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "project-delivery source.source must be 'git-subdir'",
+                result.stdout,
+            )
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_nonexistent_immutable_looking_ref_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repository"
