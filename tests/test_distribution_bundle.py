@@ -231,6 +231,34 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("absolute local MCP command is not portable", result.stdout)
 
+    def test_unresolved_bare_local_mcp_command_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp").rmdir()
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "definitely-missing-server",
+                                "args": [],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "unresolved bare local MCP command is not portable",
+                result.stdout,
+            )
+
     def test_relative_local_mcp_command_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -360,6 +388,36 @@ class DistributionBundleTests(unittest.TestCase):
 
     def test_remote_mcp_url_with_authority_whitespace_is_rejected(self) -> None:
         for url in ("https://exa mple.com/mcp", "https://example.\tcom/mcp"):
+            with (
+                self.subTest(url=url),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                source = Path(temporary) / "conversation-visuals"
+                shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+                (source / ".mcp.json").write_text(
+                    json.dumps(
+                        {
+                            "mcpServers": {
+                                "conversation-visuals": {
+                                    "type": "http",
+                                    "url": url,
+                                }
+                            }
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                result = run_checker(root=source)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("remote MCP server url is invalid", result.stdout)
+
+    def test_remote_mcp_url_with_encoded_hostname_is_rejected(self) -> None:
+        for url in (
+            "https://exa%20mple.com/mcp",
+            "https://%31%32%37.0.0.1/mcp",
+        ):
             with (
                 self.subTest(url=url),
                 tempfile.TemporaryDirectory() as temporary,
@@ -676,6 +734,43 @@ class DistributionBundleTests(unittest.TestCase):
             )
             self.assertNotEqual(missing.returncode, 0)
             self.assertIn("local MCP dependency does not exist", missing.stdout)
+
+    def test_node_package_script_cannot_redirect_the_mcp_transport(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            package_path = source / "package.json"
+            package_path.write_text(
+                json.dumps(
+                    {
+                        "scripts": {
+                            "mcp": "python3 ./mcp/server.py > mcp.log",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--run=mcp"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "local Node package script contains unsupported shell control",
+                result.stdout,
+            )
 
     def test_interpreter_launch_cannot_consume_mcp_transport_as_source(self) -> None:
         invalid_launches = (

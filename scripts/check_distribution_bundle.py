@@ -371,6 +371,10 @@ def node_package_script(
                 raise ValueError(
                     f"local Node package script does not exist: {script_name}"
                 )
+            if any(character in script for character in "\r\n;&|<>`") or "$(" in script:
+                raise ValueError(
+                    f"local Node package script contains unsupported shell control: {script_name}"
+                )
             try:
                 tokens = shlex.split(script)
             except ValueError as error:
@@ -549,6 +553,7 @@ def add_local_mcp_dependencies(
                 parsed_url.scheme not in {"http", "https"}
                 or not parsed_url.netloc
                 or not parsed_url.hostname
+                or "%" in parsed_url.hostname
                 or any(
                     character.isspace()
                     or ord(character) < 32
@@ -592,6 +597,10 @@ def add_local_mcp_dependencies(
                 executable_commands.add(relative_command)
         elif command_is_explicit_path:
             raise ValueError(f"local MCP command does not exist: {command}")
+        elif not is_python_command(command) and not is_node_command(command):
+            raise ValueError(
+                f"unresolved bare local MCP command is not portable: {command}"
+            )
         arguments = server.get("args", [])
         if not isinstance(arguments, list):
             raise ValueError("local MCP server args must be an array")
