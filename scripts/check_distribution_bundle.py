@@ -53,6 +53,82 @@ UNIVERSAL_FORBIDDEN_DISTRIBUTION_PARTS = {
 PROJECT_DELIVERY_FORBIDDEN_DISTRIBUTION_PARTS = {"references", "scripts"}
 PLUGIN_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 MAX_PLUGIN_NAME_LENGTH = 64
+NODE_BUILTIN_MODULES = frozenset(
+    {
+        "_http_agent",
+        "_http_client",
+        "_http_common",
+        "_http_incoming",
+        "_http_outgoing",
+        "_http_server",
+        "_stream_duplex",
+        "_stream_passthrough",
+        "_stream_readable",
+        "_stream_transform",
+        "_stream_wrap",
+        "_stream_writable",
+        "_tls_common",
+        "_tls_wrap",
+        "assert",
+        "assert/strict",
+        "async_hooks",
+        "buffer",
+        "child_process",
+        "cluster",
+        "console",
+        "constants",
+        "crypto",
+        "dgram",
+        "diagnostics_channel",
+        "dns",
+        "dns/promises",
+        "domain",
+        "events",
+        "fs",
+        "fs/promises",
+        "http",
+        "http2",
+        "https",
+        "inspector",
+        "inspector/promises",
+        "module",
+        "net",
+        "node:sea",
+        "node:sqlite",
+        "node:test",
+        "node:test/reporters",
+        "os",
+        "path",
+        "path/posix",
+        "path/win32",
+        "perf_hooks",
+        "process",
+        "punycode",
+        "querystring",
+        "readline",
+        "readline/promises",
+        "repl",
+        "stream",
+        "stream/consumers",
+        "stream/promises",
+        "stream/web",
+        "string_decoder",
+        "sys",
+        "timers",
+        "timers/promises",
+        "tls",
+        "trace_events",
+        "tty",
+        "url",
+        "util",
+        "util/types",
+        "v8",
+        "vm",
+        "wasi",
+        "worker_threads",
+        "zlib",
+    }
+)
 
 
 def forbidden_distribution_parts(plugin_name: str) -> set[str]:
@@ -121,6 +197,13 @@ def is_python_command(command: str) -> bool:
 def is_node_command(command: str) -> bool:
     command_name = Path(command.replace("\\", "/")).name
     return command_name in {"node", "node.exe"}
+
+
+def is_node_builtin_module(module: str) -> bool:
+    return module in NODE_BUILTIN_MODULES or (
+        module.startswith("node:")
+        and module.removeprefix("node:") in NODE_BUILTIN_MODULES
+    )
 
 
 def python_launch_operand(
@@ -261,8 +344,8 @@ def node_launch_operand(
 def node_runtime_dependency_operands(
     command: str,
     arguments: list[str],
-) -> list[tuple[str, bool, bool]]:
-    """Return Node file operands, CommonJS mode, and whether each is required."""
+) -> list[tuple[str, str, bool]]:
+    """Return Node dependency operands, resolution mode, and requiredness."""
     if not is_node_command(command):
         return []
     module_dependency_options = {
@@ -287,7 +370,7 @@ def node_runtime_dependency_operands(
     dependency_options = (
         module_dependency_options | required_file_options | optional_file_options
     )
-    operands: list[tuple[str, bool, bool]] = []
+    operands: list[tuple[str, str, bool]] = []
     index = 0
     while index < len(arguments):
         argument = arguments[index]
@@ -304,7 +387,13 @@ def node_runtime_dependency_operands(
             operands.append(
                 (
                     arguments[index + 1],
-                    argument in {"--require", "-r"},
+                    (
+                        "commonjs"
+                        if argument in {"--require", "-r"}
+                        else "module"
+                        if argument in module_dependency_options
+                        else "file"
+                    ),
                     argument not in optional_file_options,
                 )
             )
@@ -322,7 +411,13 @@ def node_runtime_dependency_operands(
                 operands.append(
                     (
                         operand,
-                        option == "--require",
+                        (
+                            "commonjs"
+                            if option == "--require"
+                            else "module"
+                            if option in module_dependency_options
+                            else "file"
+                        ),
                         option not in optional_file_options,
                     )
                 )
@@ -335,7 +430,7 @@ def node_runtime_dependency_operands(
             operand = argument[2:].removeprefix("=")
             if not operand:
                 raise ValueError("local Node -r option requires an operand")
-            operands.append((operand, True, True))
+            operands.append((operand, "commonjs", True))
             index += 1
             continue
         if not argument.startswith("-"):
@@ -464,8 +559,13 @@ def add_launch_dependencies(
     node_dependencies = node_runtime_dependency_operands(command, arguments)
     commonjs_preloads = {
         operand
-        for operand, uses_commonjs_resolution, _ in node_dependencies
-        if uses_commonjs_resolution
+        for operand, resolution_mode, _ in node_dependencies
+        if resolution_mode == "commonjs"
+    }
+    module_dependencies = {
+        operand
+        for operand, resolution_mode, _ in node_dependencies
+        if resolution_mode in {"commonjs", "module"}
     }
     required_node_dependencies = {
         operand for operand, _, required in node_dependencies if required
@@ -487,6 +587,8 @@ def add_launch_dependencies(
             raise ValueError(
                 f"absolute local MCP dependency is not portable: {argument}"
             )
+        if argument in module_dependencies and is_node_builtin_module(argument):
+            continue
         source = (cwd / argument).resolve()
         if not source.is_relative_to(resolved_root):
             raise ValueError(f"local MCP dependency escapes plugin root: {argument}")
@@ -509,6 +611,14 @@ def add_launch_dependencies(
             )
         elif is_explicit_path:
             raise ValueError(f"local MCP dependency does not exist: {argument}")
+        elif argument in required_node_dependencies:
+            if argument in module_dependencies:
+                raise ValueError(
+                    f"local Node preload module cannot be resolved: {argument}"
+                )
+            raise ValueError(
+                f"local Node runtime dependency cannot be resolved: {argument}"
+            )
     add_python_module_dependencies(root, cwd, selected, command, arguments)
 
 
@@ -642,6 +752,13 @@ def add_local_mcp_dependencies(
                 script_command,
                 script_arguments,
             )
+            if (
+                script_node_launch is not None
+                and script_node_launch[0] == "package-script"
+            ):
+                raise ValueError(
+                    "nested local Node package-script launches are unsupported"
+                )
             if is_python_command(script_command) and (
                 script_python_launch is None or script_python_launch[0] == "stdin"
             ):

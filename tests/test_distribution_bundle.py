@@ -772,6 +772,43 @@ class DistributionBundleTests(unittest.TestCase):
                 result.stdout,
             )
 
+    def test_nested_node_package_script_launch_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "package.json").write_text(
+                json.dumps(
+                    {
+                        "scripts": {
+                            "mcp": "node --run=serve",
+                            "serve": "node ./missing.js",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--run=mcp"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "nested local Node package-script launches are unsupported",
+                result.stdout,
+            )
+
     def test_interpreter_launch_cannot_consume_mcp_transport_as_source(self) -> None:
         invalid_launches = (
             ("python3", []),
@@ -861,6 +898,42 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_bare_node_preload_must_be_a_known_builtin_module(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            server = source / "mcp" / "server.js"
+            server.write_text("console.log('ready');\n", encoding="utf-8")
+            config_path = source / ".mcp.json"
+            config = {
+                "mcpServers": {
+                    "conversation-visuals": {
+                        "command": "node",
+                        "args": ["--require", "fs", "./mcp/server.js"],
+                    }
+                }
+            }
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+
+            builtin = run_checker(root=source)
+            config["mcpServers"]["conversation-visuals"]["args"][1] = (
+                "definitely-missing-preload"
+            )
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            unresolved = run_checker(root=source)
+
+            self.assertEqual(
+                builtin.returncode,
+                0,
+                builtin.stdout + builtin.stderr,
+            )
+            self.assertNotEqual(unresolved.returncode, 0)
+            self.assertIn(
+                "local Node preload module cannot be resolved",
+                unresolved.stdout,
+            )
+
     def test_attached_node_env_file_is_included_and_required(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -891,6 +964,11 @@ class DistributionBundleTests(unittest.TestCase):
             mcp_config_path = source / ".mcp.json"
             mcp_config = json.loads(mcp_config_path.read_text(encoding="utf-8"))
             mcp_config["mcpServers"]["conversation-visuals"]["args"][0] = (
+                "--env-file=config.env"
+            )
+            mcp_config_path.write_text(json.dumps(mcp_config), encoding="utf-8")
+            bare_missing = run_checker(root=source)
+            mcp_config["mcpServers"]["conversation-visuals"]["args"][0] = (
                 "--env-file-if-exists=./config.env"
             )
             mcp_config_path.write_text(json.dumps(mcp_config), encoding="utf-8")
@@ -903,6 +981,11 @@ class DistributionBundleTests(unittest.TestCase):
             )
             self.assertNotEqual(missing.returncode, 0)
             self.assertIn("local MCP dependency does not exist", missing.stdout)
+            self.assertNotEqual(bare_missing.returncode, 0)
+            self.assertIn(
+                "local Node runtime dependency cannot be resolved",
+                bare_missing.stdout,
+            )
             self.assertEqual(
                 optional_missing.returncode,
                 0,
