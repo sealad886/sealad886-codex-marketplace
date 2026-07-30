@@ -240,11 +240,18 @@ def python_launch_operand(
                 raise ValueError(
                     "local Python --check-hash-based-pycs requires an operand"
                 )
+            policy = arguments[index + 1]
+            if policy not in {"always", "default", "never"}:
+                raise ValueError(
+                    "local Python --check-hash-based-pycs policy must be "
+                    "always, default, or never"
+                )
             index += 2
             continue
         if argument.startswith("--check-hash-based-pycs="):
-            index += 1
-            continue
+            raise ValueError(
+                "local Python --check-hash-based-pycs requires a separate operand"
+            )
         if argument.startswith("--"):
             index += 1
             continue
@@ -546,7 +553,7 @@ def add_python_module_dependencies(
     module = launch[1]
     parts = module.split(".")
     if not parts or not all(part.isidentifier() for part in parts):
-        return
+        raise ValueError(f"local Python module name is invalid: {module}")
     module_path = cwd.joinpath(*parts)
     module_file = module_path.with_suffix(".py").resolve()
     package_directory = module_path.resolve()
@@ -565,6 +572,8 @@ def add_python_module_dependencies(
             if path.is_file()
         )
         add_parent_package_initializers(root, cwd, selected, package_directory)
+    else:
+        raise ValueError(f"local Python module cannot be resolved: {module}")
 
 
 def add_launch_dependencies(

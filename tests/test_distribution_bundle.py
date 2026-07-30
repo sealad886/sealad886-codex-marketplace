@@ -554,6 +554,49 @@ class DistributionBundleTests(unittest.TestCase):
                         result.stdout,
                     )
 
+    def test_python_hash_pyc_policy_must_match_runtime_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for arguments, expected_success in (
+                (["--check-hash-based-pycs", "always", "./mcp/server.py"], True),
+                (["--check-hash-based-pycs", "default", "./mcp/server.py"], True),
+                (["--check-hash-based-pycs", "never", "./mcp/server.py"], True),
+                (["--check-hash-based-pycs", "bogus", "./mcp/server.py"], False),
+                (["--check-hash-based-pycs=default", "./mcp/server.py"], False),
+            ):
+                with self.subTest(arguments=arguments):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "python3",
+                                        "args": arguments,
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    if expected_success:
+                        self.assertEqual(
+                            result.returncode,
+                            0,
+                            result.stdout + result.stderr,
+                        )
+                    else:
+                        self.assertNotEqual(result.returncode, 0)
+                        self.assertIn(
+                            "local Python --check-hash-based-pycs",
+                            result.stdout,
+                        )
+
     def test_node_exit_only_options_cannot_serve_an_mcp(self) -> None:
         exit_only_options = (
             "-h",
@@ -614,6 +657,39 @@ class DistributionBundleTests(unittest.TestCase):
             result = run_checker(root=source)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_unresolved_python_module_launch_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for module, expected_error in (
+                ("definitely_missing_module", "cannot be resolved"),
+                ("not-a-module", "name is invalid"),
+            ):
+                with self.subTest(module=module):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "python3",
+                                        "args": ["-m", module],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        f"local Python module {expected_error}",
+                        result.stdout,
+                    )
 
     def test_python_application_arguments_do_not_select_modules(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
