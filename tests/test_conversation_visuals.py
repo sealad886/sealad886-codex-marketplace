@@ -204,6 +204,8 @@ class ConversationVisualsTests(unittest.TestCase):
             "http://2130706433/item",
             "http://0x7f000001/item",
             "http://0177.0.0.1/item",
+            "http://256.1.1.1/item",
+            "http://1.2.3.4.5/item",
             "http://%31%32%37.0.0.1/item",
             "http://%2531%2532%2537.0.0.1/item",
             "http://127%2e0%2e0%2e1/item",

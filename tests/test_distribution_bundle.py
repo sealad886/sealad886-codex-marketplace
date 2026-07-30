@@ -687,6 +687,9 @@ class DistributionBundleTests(unittest.TestCase):
             "tracemalloc",
             "tracemalloc=0",
             "tracemalloc=1",
+            "importtime",
+            "importtime=1",
+            "importtime=2",
             "custom_runtime_option=enabled",
         )
         invalid_values = (
@@ -699,6 +702,7 @@ class DistributionBundleTests(unittest.TestCase):
             "int_max_str_digits=bogus",
             "thread_inherit_context=bogus",
             "tracemalloc=bogus",
+            "importtime=3",
         )
 
         with tempfile.TemporaryDirectory() as temporary:
@@ -1181,6 +1185,42 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_node_input_type_supports_inline_eval_launches(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp").rmdir()
+            config_path = source / ".mcp.json"
+
+            for arguments in (
+                ["--input-type=module", "--eval", "console.log('ready')"],
+                ["--input-type", "module", "--eval", "console.log('ready')"],
+                ["--input-type=commonjs", "-e", "console.log('ready')"],
+            ):
+                with self.subTest(arguments=arguments):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": arguments,
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertEqual(
+                        result.returncode,
+                        0,
+                        result.stdout + result.stderr,
+                    )
+
     def test_node_startup_options_must_be_explicitly_supported(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -1455,6 +1495,64 @@ class DistributionBundleTests(unittest.TestCase):
             result = run_checker(root=source)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_commonjs_preload_directory_requires_an_entrypoint(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            server = source / "mcp" / "server.js"
+            preload = source / "mcp" / "bootstrap"
+            server.write_text("console.log('ready');\n", encoding="utf-8")
+            preload.mkdir()
+            (preload / "notes.txt").write_text("not executable\n", encoding="utf-8")
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--require", "./bootstrap", "server.js"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            unresolved = run_checker(root=source)
+            (preload / "index.js").write_text(
+                "globalThis.ready = true;\n",
+                encoding="utf-8",
+            )
+            resolved = run_checker(root=source)
+            (preload / "index.js").unlink()
+            (preload / "package.json").write_text(
+                json.dumps({"main": "entry"}),
+                encoding="utf-8",
+            )
+            (preload / "entry.js").write_text(
+                "globalThis.ready = true;\n",
+                encoding="utf-8",
+            )
+            package_resolved = run_checker(root=source)
+
+            self.assertNotEqual(unresolved.returncode, 0)
+            self.assertIn(
+                "local Node CommonJS preload directory has no entrypoint",
+                unresolved.stdout,
+            )
+            self.assertEqual(
+                resolved.returncode,
+                0,
+                resolved.stdout + resolved.stderr,
+            )
+            self.assertEqual(
+                package_resolved.returncode,
+                0,
+                package_resolved.stdout + package_resolved.stderr,
+            )
 
     def test_bare_node_preload_must_be_a_known_builtin_module(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

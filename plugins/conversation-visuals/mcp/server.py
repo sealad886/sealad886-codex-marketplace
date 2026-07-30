@@ -95,7 +95,13 @@ def public_http_url(value: Any) -> bool:
     try:
         address = ipaddress.ip_address(socket.inet_aton(normalized_hostname))
     except OSError:
-        return True
+        final_label = normalized_hostname.rsplit(".", 1)[-1].lower()
+        ipv4_number = final_label.isdecimal() or (
+            final_label.startswith("0x")
+            and len(final_label) > 2
+            and all(character in "0123456789abcdef" for character in final_label[2:])
+        )
+        return not ipv4_number
     return address.is_global and not address.is_multicast
 
 

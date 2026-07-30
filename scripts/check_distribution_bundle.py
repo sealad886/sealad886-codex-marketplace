@@ -230,6 +230,8 @@ def validate_python_xoption(value: str) -> None:
         )
     elif name == "tracemalloc":
         valid = not separator or (operand.isdecimal() and int(operand) >= 0)
+    elif name == "importtime":
+        valid = not separator or operand in {"1", "2"}
     else:
         # Python intentionally exposes unknown -X names through sys._xoptions,
         # so only interpreter-reserved values with fatal constraints are gated.
@@ -434,6 +436,8 @@ def node_launch_operand(
         "--test-global-setup",
         "--watch-path",
     }
+    input_types = {"commonjs", "module"}
+    input_type = None
     index = 0
     while index < len(arguments):
         argument = arguments[index]
@@ -441,6 +445,10 @@ def node_launch_operand(
             if index + 1 >= len(arguments):
                 return None
             operand = arguments[index + 1]
+            if input_type is not None and operand != "-":
+                raise ValueError(
+                    "local Node --input-type can only launch string input"
+                )
             return ("stdin", None) if operand == "-" else ("script", operand)
         if argument == "-":
             return ("stdin", None)
@@ -467,6 +475,24 @@ def node_launch_operand(
             if not script_name:
                 raise ValueError("local Node --run option requires an operand")
             return ("package-script", script_name)
+        if argument == "--input-type":
+            if index + 1 >= len(arguments):
+                raise ValueError("local Node --input-type option requires an operand")
+            input_type = arguments[index + 1]
+            if input_type not in input_types:
+                raise ValueError(
+                    f"local Node --input-type value is invalid: {input_type}"
+                )
+            index += 2
+            continue
+        if argument.startswith("--input-type="):
+            input_type = argument.removeprefix("--input-type=")
+            if input_type not in input_types:
+                raise ValueError(
+                    f"local Node --input-type value is invalid: {input_type}"
+                )
+            index += 1
+            continue
         if argument in {"-e", "--eval", "-p", "--print"}:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
@@ -499,6 +525,8 @@ def node_launch_operand(
             continue
         if argument.startswith("-"):
             raise ValueError(f"unsupported local Node startup option: {argument}")
+        if input_type is not None:
+            raise ValueError("local Node --input-type can only launch string input")
         return ("script", argument)
     return None
 
@@ -666,6 +694,57 @@ def add_parent_package_initializers(
             selected.add(initializer.relative_to(resolved_root))
 
 
+def resolve_commonjs_entrypoint(
+    source: Path,
+    resolved_root: Path,
+    seen: set[Path] | None = None,
+) -> Path | None:
+    """Resolve a contained CommonJS file or directory entrypoint."""
+    source = source.resolve()
+    if not source.is_relative_to(resolved_root):
+        raise ValueError("local Node CommonJS preload escapes plugin root")
+    if source.is_file():
+        return source
+    if not source.exists():
+        for suffix in (".js", ".json", ".node"):
+            candidate = Path(f"{source}{suffix}")
+            if candidate.is_file():
+                return candidate
+        return None
+    if not source.is_dir():
+        return None
+    visited = set() if seen is None else seen
+    if source in visited:
+        return None
+    visited.add(source)
+    package_path = source / "package.json"
+    if package_path.is_file():
+        try:
+            package = json.loads(package_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as error:
+            raise ValueError(
+                "local Node CommonJS preload package manifest is invalid"
+            ) from error
+        if not isinstance(package, dict):
+            raise ValueError(
+                "local Node CommonJS preload package manifest must contain an object"
+            )
+        main = package.get("main")
+        if isinstance(main, str) and main.strip():
+            entrypoint = resolve_commonjs_entrypoint(
+                source / main,
+                resolved_root,
+                visited,
+            )
+            if entrypoint is not None:
+                return entrypoint
+    for filename in ("index.js", "index.json", "index.node"):
+        candidate = source / filename
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 def add_python_module_dependencies(
     root: Path,
     cwd: Path,
@@ -779,6 +858,17 @@ def add_launch_dependencies(
         if source.is_file():
             selected.add(source.relative_to(resolved_root))
         elif source.is_dir():
+            if argument in commonjs_preloads:
+                commonjs_entrypoint = resolve_commonjs_entrypoint(
+                    source,
+                    resolved_root,
+                )
+                if commonjs_entrypoint is None:
+                    raise ValueError(
+                        "local Node CommonJS preload directory has no "
+                        f"entrypoint: {argument}"
+                    )
+                selected.add(commonjs_entrypoint.relative_to(resolved_root))
             if (
                 python_launch is not None
                 and python_launch[0] == "script"
