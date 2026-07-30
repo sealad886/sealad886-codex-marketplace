@@ -488,6 +488,87 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("local MCP dependency does not exist", result.stdout)
 
+    def test_missing_python_command_or_module_operand_returns_an_error(self) -> None:
+        for launch_option in ("-c", "-m"):
+            with (
+                self.subTest(launch_option=launch_option),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                source = Path(temporary) / "conversation-visuals"
+                shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+                (source / "mcp" / "server.py").unlink()
+                (source / "mcp").rmdir()
+                (source / ".mcp.json").write_text(
+                    json.dumps(
+                        {
+                            "mcpServers": {
+                                "conversation-visuals": {
+                                    "command": "python3",
+                                    "args": [launch_option],
+                                }
+                            }
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                result = run_checker(root=source)
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    f"local Python {launch_option} launch requires an operand",
+                    result.stdout,
+                )
+
+    def test_missing_node_script_operand_returns_a_validation_error(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp").rmdir()
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["server.js"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("local MCP dependency does not exist", result.stdout)
+
+    def test_node_eval_launch_does_not_require_a_script(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp").rmdir()
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--eval", "console.log('ready')"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_extensionless_python_script_operand_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

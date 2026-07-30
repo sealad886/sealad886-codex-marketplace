@@ -527,6 +527,10 @@ def self_test() -> None:
     print("PASS conversation-visuals MCP self-test")
 
 
+def reject_json_constant(value: str) -> None:
+    raise ValueError(f"non-standard JSON constant: {value}")
+
+
 def main() -> int:
     if sys.argv[1:] == ["--self-test"]:
         self_test()
@@ -534,17 +538,19 @@ def main() -> int:
     for line in sys.stdin:
         request: Any = None
         try:
-            request = json.loads(line)
-            response = handle(request)
-        except (UnicodeError, json.JSONDecodeError, RecursionError) as error:
+            request = json.loads(line, parse_constant=reject_json_constant)
+        except (UnicodeError, json.JSONDecodeError, RecursionError, ValueError) as error:
             response = {
                 "jsonrpc": "2.0",
                 "id": None,
                 "error": {"code": -32700, "message": f"Parse error: {error}"},
             }
-        except Exception:
-            request_id = request.get("id") if isinstance(request, dict) else None
-            response = error_response(request_id, -32603, "Internal error")
+        else:
+            try:
+                response = handle(request)
+            except Exception:
+                request_id = request.get("id") if isinstance(request, dict) else None
+                response = error_response(request_id, -32603, "Internal error")
         if response is not None:
             print(json.dumps(response, separators=(",", ":")), flush=True)
     return 0

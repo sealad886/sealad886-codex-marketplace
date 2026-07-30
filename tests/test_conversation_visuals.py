@@ -347,15 +347,42 @@ class ConversationVisualsTests(unittest.TestCase):
             {"plan_visual", "normalize_visual"},
         )
 
+    def test_non_standard_json_constants_return_parse_errors(self) -> None:
+        invalid_requests = (
+            '{"jsonrpc":"2.0","id":1,"method":"ping","params":{"x":NaN}}',
+            '{"jsonrpc":"2.0","id":2,"method":"ping","params":{"x":Infinity}}',
+            '{"jsonrpc":"2.0","id":3,"method":"ping","params":{"x":-Infinity}}',
+        )
+        ping = '{"jsonrpc":"2.0","id":4,"method":"ping"}'
+        result = subprocess.run(
+            [sys.executable, str(SERVER_PATH)],
+            input="\n".join((*invalid_requests, ping, "")),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        responses = [json.loads(line) for line in result.stdout.splitlines()]
+        self.assertEqual(
+            [response["error"]["code"] for response in responses[:3]],
+            [-32700, -32700, -32700],
+        )
+        self.assertEqual(
+            responses[3],
+            {"jsonrpc": "2.0", "id": 4, "result": {}},
+        )
+
     def test_decoder_recursion_does_not_terminate_process(self) -> None:
         original_loads = json.loads
         ping = json.dumps({"jsonrpc": "2.0", "id": 3, "method": "ping"})
         output = io.StringIO()
 
-        def load_line(line: str) -> object:
+        def load_line(line: str, **kwargs: object) -> object:
             if line == "too-deep\n":
                 raise RecursionError("maximum nesting exceeded")
-            return original_loads(line)
+            return original_loads(line, **kwargs)
 
         with (
             mock.patch.object(SERVER.json, "loads", side_effect=load_line),

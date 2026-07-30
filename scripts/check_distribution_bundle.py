@@ -117,6 +117,11 @@ def is_python_command(command: str) -> bool:
     ) is not None
 
 
+def is_node_command(command: str) -> bool:
+    command_name = Path(command.replace("\\", "/")).name
+    return command_name in {"node", "node.exe"}
+
+
 def python_launch_operand(
     command: str,
     arguments: list[str],
@@ -137,6 +142,10 @@ def python_launch_operand(
         if argument == "-":
             return ("stdin", None)
         if argument == "--check-hash-based-pycs":
+            if index + 1 >= len(arguments):
+                raise ValueError(
+                    "local Python --check-hash-based-pycs requires an operand"
+                )
             index += 2
             continue
         if argument.startswith("--check-hash-based-pycs="):
@@ -162,9 +171,17 @@ def python_launch_operand(
                             else None
                         )
                     )
+                    if operand is None:
+                        raise ValueError(
+                            f"local Python -{option} launch requires an operand"
+                        )
                     return ("command" if option == "c" else "module", operand)
                 if option in {"W", "X"}:
                     consumed_following_value = not attached_value
+                    if consumed_following_value and index + 1 >= len(arguments):
+                        raise ValueError(
+                            f"local Python -{option} option requires an operand"
+                        )
                     break
                 if option not in simple_options:
                     break
@@ -179,6 +196,47 @@ def python_script_operand(command: str, arguments: list[str]) -> str | None:
     """Return the Python file or directory operand that must exist locally."""
     launch = python_launch_operand(command, arguments)
     return launch[1] if launch is not None and launch[0] == "script" else None
+
+
+def node_script_operand(command: str, arguments: list[str]) -> str | None:
+    """Return the Node script operand that must exist locally."""
+    if not is_node_command(command):
+        return None
+    options_with_values = {
+        "-C",
+        "--conditions",
+        "--experimental-loader",
+        "--import",
+        "--loader",
+        "-r",
+        "--require",
+    }
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument == "--":
+            return arguments[index + 1] if index + 1 < len(arguments) else None
+        if argument == "-":
+            return None
+        if argument in {"-e", "--eval", "-p", "--print"}:
+            if index + 1 >= len(arguments):
+                raise ValueError(f"local Node {argument} option requires an operand")
+            return None
+        if (
+            (argument.startswith(("-e", "-p")) and len(argument) > 2)
+            or argument.startswith(("--eval=", "--print="))
+        ):
+            return None
+        if argument in options_with_values:
+            if index + 1 >= len(arguments):
+                raise ValueError(f"local Node {argument} option requires an operand")
+            index += 2
+            continue
+        if argument.startswith("-"):
+            index += 1
+            continue
+        return argument
+    return None
 
 
 def add_parent_package_initializers(
@@ -304,11 +362,14 @@ def add_local_mcp_dependencies(
             raise ValueError("local MCP server args must be an array")
         if not all(isinstance(argument, str) for argument in arguments):
             raise ValueError("local MCP server args must contain only strings")
-        required_python_script = python_script_operand(command, arguments)
+        required_launch_script = python_script_operand(
+            command,
+            arguments,
+        ) or node_script_operand(command, arguments)
         for argument in arguments:
             is_explicit_path = argument.startswith(
                 ("./", "../")
-            ) or argument == required_python_script
+            ) or argument == required_launch_script
             if is_absolute_path(argument):
                 raise ValueError(
                     f"absolute local MCP dependency is not portable: {argument}"
