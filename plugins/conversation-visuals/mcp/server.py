@@ -351,7 +351,11 @@ TOOLS = [
                     "type": "string",
                     "enum": ["sourced", "generated", "mixed"],
                 },
-                "title": {"type": "string"},
+                "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200,
+                },
                 "summary": {"type": "string"},
                 "alt_text": {"type": "string"},
                 "media_url": {"type": "string"},

@@ -238,8 +238,11 @@ def node_launch_operand(
     return None
 
 
-def node_preload_operands(command: str, arguments: list[str]) -> list[str]:
-    """Return localizable Node preload module operands before the entry point."""
+def node_preload_operands(
+    command: str,
+    arguments: list[str],
+) -> list[tuple[str, bool]]:
+    """Return Node preload operands and whether CommonJS resolution applies."""
     if not is_node_command(command):
         return []
     dependency_options = {
@@ -249,7 +252,7 @@ def node_preload_operands(command: str, arguments: list[str]) -> list[str]:
         "--require",
         "-r",
     }
-    operands: list[str] = []
+    operands: list[tuple[str, bool]] = []
     index = 0
     while index < len(arguments):
         argument = arguments[index]
@@ -263,7 +266,9 @@ def node_preload_operands(command: str, arguments: list[str]) -> list[str]:
         if argument in dependency_options:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
-            operands.append(arguments[index + 1])
+            operands.append(
+                (arguments[index + 1], argument in {"--require", "-r"})
+            )
             index += 2
             continue
         matched_attached = False
@@ -275,7 +280,7 @@ def node_preload_operands(command: str, arguments: list[str]) -> list[str]:
                     raise ValueError(
                         f"local Node {option} option requires an operand"
                     )
-                operands.append(operand)
+                operands.append((operand, option == "--require"))
                 matched_attached = True
                 break
         if matched_attached:
@@ -285,7 +290,7 @@ def node_preload_operands(command: str, arguments: list[str]) -> list[str]:
             operand = argument[2:].removeprefix("=")
             if not operand:
                 raise ValueError("local Node -r option requires an operand")
-            operands.append(operand)
+            operands.append((operand, True))
             index += 1
             continue
         if not argument.startswith("-"):
@@ -453,8 +458,14 @@ def add_local_mcp_dependencies(
             if launch is not None and launch[0] == "script":
                 required_launch_script = launch[1]
                 break
+        node_preloads = node_preload_operands(command, arguments)
+        commonjs_preloads = {
+            operand
+            for operand, uses_commonjs_resolution in node_preloads
+            if uses_commonjs_resolution
+        }
         dependency_arguments = list(arguments)
-        dependency_arguments.extend(node_preload_operands(command, arguments))
+        dependency_arguments.extend(operand for operand, _ in node_preloads)
         for argument in dependency_arguments:
             is_explicit_path = argument.startswith(
                 ("./", "../")
@@ -467,6 +478,15 @@ def add_local_mcp_dependencies(
             if not source.is_relative_to(resolved_root):
                 raise ValueError(
                     f"local MCP dependency escapes plugin root: {argument}"
+                )
+            if not source.exists() and argument in commonjs_preloads:
+                source = next(
+                    (
+                        candidate
+                        for suffix in (".js", ".json", ".node")
+                        if (candidate := Path(f"{source}{suffix}")).is_file()
+                    ),
+                    source,
                 )
             if source.is_file():
                 selected.add(source.relative_to(resolved_root))

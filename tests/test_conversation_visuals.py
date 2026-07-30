@@ -312,6 +312,10 @@ class ConversationVisualsTests(unittest.TestCase):
                 {"required": ["artifact_ref"]},
             ],
         )
+        self.assertEqual(
+            normalize_tool["inputSchema"]["properties"]["title"],
+            {"type": "string", "minLength": 1, "maxLength": 200},
+        )
 
     def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:
         requests = "\n".join(
