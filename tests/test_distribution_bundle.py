@@ -1847,6 +1847,85 @@ class DistributionBundleTests(unittest.TestCase):
                 bounded_environment.stdout + bounded_environment.stderr,
             )
 
+    def test_python_declaration_env_validates_startup_values(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for value in ("random", "0", "4294967295"):
+                with self.subTest(valid_hash_seed=value):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "python3",
+                                        "args": ["-u", "./mcp/server.py"],
+                                        "env": {"PYTHONHASHSEED": value},
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertEqual(
+                        result.returncode,
+                        0,
+                        result.stdout + result.stderr,
+                    )
+
+            for key, value, message in (
+                (
+                    "PYTHONHASHSEED",
+                    "bogus",
+                    "local Python env PYTHONHASHSEED value is invalid",
+                ),
+                (
+                    "PYTHONHASHSEED",
+                    "4294967296",
+                    "local Python env PYTHONHASHSEED value is invalid",
+                ),
+                (
+                    "PYTHONHASHSEED",
+                    "9" * 5000,
+                    "local Python env PYTHONHASHSEED value is invalid",
+                ),
+                (
+                    "PYTHONUTF8",
+                    "bogus",
+                    "local Python env PYTHONUTF8 value is invalid",
+                ),
+                (
+                    "PYTHONPATH",
+                    "./definitely-missing",
+                    "local Python MCP env cannot establish startup closure",
+                ),
+            ):
+                with self.subTest(key=key, value=value):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "python3",
+                                        "args": ["-u", "./mcp/server.py"],
+                                        "env": {key: value},
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(message, result.stdout)
+
     def test_node_declaration_env_cannot_hide_startup_dependencies(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

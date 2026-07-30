@@ -258,6 +258,83 @@ def validate_python_inline_program(program: str) -> None:
         )
 
 
+def ascii_decimal_in_range(value: str, minimum: int, maximum: int) -> bool:
+    """Parse a bounded ASCII decimal without hitting Python's digit limit."""
+    if re.fullmatch(r"[0-9]+", value) is None:
+        return False
+    significant = value.lstrip("0") or "0"
+    maximum_text = str(maximum)
+    if len(significant) > len(maximum_text):
+        return False
+    number = int(significant)
+    return minimum <= number <= maximum
+
+
+def validate_python_environment(environment: dict[str, str]) -> None:
+    """Validate Python environment values that affect interpreter startup."""
+    normalized: dict[str, str] = {}
+    for key, value in environment.items():
+        normalized_key = key.upper()
+        if normalized_key in normalized:
+            raise ValueError("local MCP server env keys must be portable")
+        normalized[normalized_key] = value
+    hash_seed = normalized.get("PYTHONHASHSEED", "")
+    if hash_seed and not (
+        hash_seed == "random"
+        or ascii_decimal_in_range(hash_seed, 0, 4_294_967_295)
+    ):
+        raise ValueError("local Python env PYTHONHASHSEED value is invalid")
+
+    boolean_values = {
+        "PYTHONUTF8",
+        "PYTHON_CONTEXT_AWARE_WARNINGS",
+        "PYTHON_THREAD_INHERIT_CONTEXT",
+    }
+    for key in boolean_values:
+        value = normalized.get(key, "")
+        if value and value not in {"0", "1"}:
+            raise ValueError(f"local Python env {key} value is invalid")
+
+    digit_limit = normalized.get("PYTHONINTMAXSTRDIGITS", "")
+    if digit_limit and not (
+        ascii_decimal_in_range(digit_limit, 0, 0)
+        or ascii_decimal_in_range(digit_limit, 640, 2_147_483_647)
+    ):
+        raise ValueError(
+            "local Python env PYTHONINTMAXSTRDIGITS value is invalid"
+        )
+
+    cpu_count = normalized.get("PYTHON_CPU_COUNT", "")
+    if cpu_count and not (
+        cpu_count == "default"
+        or ascii_decimal_in_range(cpu_count, 1, 2_147_483_647)
+    ):
+        raise ValueError("local Python env PYTHON_CPU_COUNT value is invalid")
+
+    frozen_modules = normalized.get("PYTHON_FROZEN_MODULES", "")
+    if frozen_modules and frozen_modules not in {"on", "off"}:
+        raise ValueError(
+            "local Python env PYTHON_FROZEN_MODULES value is invalid"
+        )
+
+    unbounded_startup = {
+        "PYTHONBREAKPOINT",
+        "PYTHONHOME",
+        "PYTHONIOENCODING",
+        "PYTHONMALLOC",
+        "PYTHONPATH",
+        "PYTHONPLATLIBDIR",
+        "PYTHONSTARTUP",
+        "PYTHONTRACEMALLOC",
+        "PYTHONUSERBASE",
+        "PYTHONWARNINGS",
+    }
+    if any(normalized.get(key, "") for key in unbounded_startup):
+        raise ValueError(
+            "local Python MCP env cannot establish startup closure"
+        )
+
+
 def validate_node_debug_address(option: str, value: str) -> None:
     """Validate Node's optional debug host and constrained port."""
     if not value:
@@ -1213,6 +1290,8 @@ def add_local_mcp_dependencies(
             raise ValueError(
                 "local Node MCP env NODE_OPTIONS cannot establish closure"
             )
+        if is_python_command(command):
+            validate_python_environment(environment)
         arguments = server.get("args", [])
         if not isinstance(arguments, list):
             raise ValueError("local MCP server args must be an array")
