@@ -8,6 +8,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import sys
 import tempfile
@@ -227,6 +228,15 @@ def node_launch_operand(
             return ("stdin", None) if operand == "-" else ("script", operand)
         if argument == "-":
             return ("stdin", None)
+        if argument in {"-c", "--check"}:
+            raise ValueError(
+                "local Node syntax-check mode cannot serve an MCP server"
+            )
+        if argument.startswith("--run="):
+            script_name = argument.removeprefix("--run=")
+            if not script_name:
+                raise ValueError("local Node --run option requires an operand")
+            return ("package-script", script_name)
         if argument in {"-e", "--eval", "-p", "--print"}:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
@@ -334,6 +344,52 @@ def node_runtime_dependency_operands(
     return operands
 
 
+def node_package_script(
+    root: Path,
+    cwd: Path,
+    script_name: str,
+) -> tuple[Path, list[str]]:
+    """Return the nearest package manifest and tokens for a Node package script."""
+    resolved_root = root.resolve()
+    directory = cwd
+    while directory.is_relative_to(resolved_root):
+        package_path = directory / "package.json"
+        if package_path.is_file():
+            try:
+                package = json.loads(package_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                raise ValueError(
+                    f"local Node package manifest is invalid: {package_path.relative_to(resolved_root)}"
+                ) from error
+            if not isinstance(package, dict):
+                raise ValueError("local Node package manifest must contain an object")
+            scripts = package.get("scripts")
+            if not isinstance(scripts, dict):
+                raise ValueError("local Node package manifest must contain scripts")
+            script = scripts.get(script_name)
+            if not isinstance(script, str) or not script.strip():
+                raise ValueError(
+                    f"local Node package script does not exist: {script_name}"
+                )
+            try:
+                tokens = shlex.split(script)
+            except ValueError as error:
+                raise ValueError(
+                    f"local Node package script is invalid: {script_name}"
+                ) from error
+            if not tokens:
+                raise ValueError(
+                    f"local Node package script is empty: {script_name}"
+                )
+            return package_path, tokens
+        if directory == resolved_root:
+            break
+        directory = directory.parent
+    raise ValueError(
+        f"local Node --run package manifest does not exist from: {cwd.relative_to(resolved_root)}"
+    )
+
+
 def add_parent_package_initializers(
     root: Path,
     cwd: Path,
@@ -383,6 +439,73 @@ def add_python_module_dependencies(
             if path.is_file()
         )
         add_parent_package_initializers(root, cwd, selected, package_directory)
+
+
+def add_launch_dependencies(
+    root: Path,
+    cwd: Path,
+    selected: set[Path],
+    command: str,
+    arguments: list[str],
+) -> None:
+    """Include file dependencies referenced by one local launch command."""
+    resolved_root = root.resolve()
+    python_launch = python_launch_operand(command, arguments)
+    node_launch = node_launch_operand(command, arguments)
+    required_launch_script = None
+    for launch in (python_launch, node_launch):
+        if launch is not None and launch[0] == "script":
+            required_launch_script = launch[1]
+            break
+    node_dependencies = node_runtime_dependency_operands(command, arguments)
+    commonjs_preloads = {
+        operand
+        for operand, uses_commonjs_resolution, _ in node_dependencies
+        if uses_commonjs_resolution
+    }
+    required_node_dependencies = {
+        operand for operand, _, required in node_dependencies if required
+    }
+    optional_node_dependencies = {
+        operand for operand, _, required in node_dependencies if not required
+    }
+    dependency_arguments = list(arguments)
+    dependency_arguments.extend(operand for operand, _, _ in node_dependencies)
+    for argument in dependency_arguments:
+        is_explicit_path = (
+            argument.startswith(("./", "../"))
+            and (
+                argument not in optional_node_dependencies
+                or argument in required_node_dependencies
+            )
+        ) or argument == required_launch_script
+        if is_absolute_path(argument):
+            raise ValueError(
+                f"absolute local MCP dependency is not portable: {argument}"
+            )
+        source = (cwd / argument).resolve()
+        if not source.is_relative_to(resolved_root):
+            raise ValueError(f"local MCP dependency escapes plugin root: {argument}")
+        if not source.exists() and argument in commonjs_preloads:
+            source = next(
+                (
+                    candidate
+                    for suffix in (".js", ".json", ".node")
+                    if (candidate := Path(f"{source}{suffix}")).is_file()
+                ),
+                source,
+            )
+        if source.is_file():
+            selected.add(source.relative_to(resolved_root))
+        elif source.is_dir():
+            selected.update(
+                path.relative_to(resolved_root)
+                for path in source.rglob("*")
+                if path.is_file()
+            )
+        elif is_explicit_path:
+            raise ValueError(f"local MCP dependency does not exist: {argument}")
+    add_python_module_dependencies(root, cwd, selected, command, arguments)
 
 
 def add_local_mcp_dependencies(
@@ -488,64 +611,68 @@ def add_local_mcp_dependencies(
             raise ValueError(
                 "local Node MCP launch requires a script or command"
             )
-        required_launch_script = None
-        for launch in (python_launch, node_launch):
-            if launch is not None and launch[0] == "script":
-                required_launch_script = launch[1]
-                break
-        node_dependencies = node_runtime_dependency_operands(command, arguments)
-        commonjs_preloads = {
-            operand
-            for operand, uses_commonjs_resolution, _ in node_dependencies
-            if uses_commonjs_resolution
-        }
-        required_node_dependencies = {
-            operand for operand, _, required in node_dependencies if required
-        }
-        optional_node_dependencies = {
-            operand for operand, _, required in node_dependencies if not required
-        }
-        dependency_arguments = list(arguments)
-        dependency_arguments.extend(operand for operand, _, _ in node_dependencies)
-        for argument in dependency_arguments:
-            is_explicit_path = (
-                argument.startswith(("./", "../"))
-                and (
-                    argument not in optional_node_dependencies
-                    or argument in required_node_dependencies
-                )
-            ) or argument == required_launch_script
-            if is_absolute_path(argument):
+        add_launch_dependencies(root, cwd, selected, command, arguments)
+        if node_launch is not None and node_launch[0] == "package-script":
+            script_name = node_launch[1]
+            if script_name is None:
+                raise ValueError("local Node --run option requires an operand")
+            package_path, script_tokens = node_package_script(
+                root,
+                cwd,
+                script_name,
+            )
+            selected.add(package_path.relative_to(resolved_root))
+            script_cwd = package_path.parent
+            script_command = script_tokens[0]
+            script_arguments = script_tokens[1:]
+            script_python_launch = python_launch_operand(
+                script_command,
+                script_arguments,
+            )
+            script_node_launch = node_launch_operand(
+                script_command,
+                script_arguments,
+            )
+            if is_python_command(script_command) and (
+                script_python_launch is None or script_python_launch[0] == "stdin"
+            ):
                 raise ValueError(
-                    f"absolute local MCP dependency is not portable: {argument}"
+                    "local Node package script must launch a serving command"
                 )
-            source = (cwd / argument).resolve()
-            if not source.is_relative_to(resolved_root):
+            if is_node_command(script_command) and (
+                script_node_launch is None or script_node_launch[0] == "stdin"
+            ):
                 raise ValueError(
-                    f"local MCP dependency escapes plugin root: {argument}"
+                    "local Node package script must launch a serving command"
                 )
-            if not source.exists() and argument in commonjs_preloads:
-                source = next(
-                    (
-                        candidate
-                        for suffix in (".js", ".json", ".node")
-                        if (candidate := Path(f"{source}{suffix}")).is_file()
-                    ),
-                    source,
+            if not is_python_command(script_command) and not is_node_command(
+                script_command
+            ):
+                script_command_source = (script_cwd / script_command).resolve()
+                script_command_is_explicit = script_command.startswith(
+                    ("./", "../")
+                ) or any(separator in script_command for separator in ("/", "\\"))
+                if (
+                    not script_command_is_explicit
+                    or not script_command_source.is_relative_to(resolved_root)
+                    or not script_command_source.is_file()
+                ):
+                    raise ValueError(
+                        "local Node package script must launch a contained executable, Python, or Node command"
+                    )
+                relative_script_command = script_command_source.relative_to(
+                    resolved_root
                 )
-            if source.is_file():
-                selected.add(source.relative_to(resolved_root))
-            elif source.is_dir():
-                selected.update(
-                    path.relative_to(resolved_root)
-                    for path in source.rglob("*")
-                    if path.is_file()
-                )
-            elif is_explicit_path:
-                raise ValueError(
-                    f"local MCP dependency does not exist: {argument}"
-                )
-        add_python_module_dependencies(root, cwd, selected, command, arguments)
+                selected.add(relative_script_command)
+                if executable_commands is not None:
+                    executable_commands.add(relative_script_command)
+            add_launch_dependencies(
+                root,
+                script_cwd,
+                selected,
+                script_command,
+                script_arguments,
+            )
 
 
 def select_paths(

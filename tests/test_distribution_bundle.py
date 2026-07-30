@@ -598,6 +598,85 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_node_syntax_check_cannot_serve_as_an_mcp_launch(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            server = source / "mcp" / "server.js"
+            server.write_text("console.log('checked');\n", encoding="utf-8")
+            for check_option in ("-c", "--check"):
+                with self.subTest(check_option=check_option):
+                    (source / ".mcp.json").write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": [
+                                            check_option,
+                                            "./mcp/server.js",
+                                        ],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "local Node syntax-check mode cannot serve an MCP server",
+                        result.stdout,
+                    )
+
+    def test_node_package_script_launch_includes_bundled_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            server = source / "mcp" / "server.js"
+            package = source / "mcp" / "package.json"
+            server.write_text("console.log('ready');\n", encoding="utf-8")
+            package.write_text(
+                json.dumps(
+                    {
+                        "scripts": {
+                            "mcp": "node ./server.js",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--run=mcp"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            included = run_checker(root=source)
+            server.unlink()
+            missing = run_checker(root=source)
+
+            self.assertEqual(
+                included.returncode,
+                0,
+                included.stdout + included.stderr,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("local MCP dependency does not exist", missing.stdout)
+
     def test_interpreter_launch_cannot_consume_mcp_transport_as_source(self) -> None:
         invalid_launches = (
             ("python3", []),
