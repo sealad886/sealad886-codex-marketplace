@@ -735,6 +735,44 @@ class DistributionBundleTests(unittest.TestCase):
                 optional_missing.stdout + optional_missing.stderr,
             )
 
+    def test_attached_node_snapshot_blob_is_included_and_required(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            server = source / "mcp" / "server.js"
+            snapshot = source / "mcp" / "server.blob"
+            server.write_text("console.log('ready');\n", encoding="utf-8")
+            snapshot.write_bytes(b"node snapshot placeholder")
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": [
+                                    "--snapshot-blob=./mcp/server.blob",
+                                    "./mcp/server.js",
+                                ],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            included = run_checker(root=source)
+            snapshot.unlink()
+            missing = run_checker(root=source)
+
+            self.assertEqual(
+                included.returncode,
+                0,
+                included.stdout + included.stderr,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("local MCP dependency does not exist", missing.stdout)
+
     def test_extensionless_python_script_operand_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

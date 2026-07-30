@@ -320,6 +320,21 @@ class ConversationVisualsTests(unittest.TestCase):
             normalize_tool["inputSchema"]["properties"]["alt_text"],
             {"type": "string", "minLength": 1, "maxLength": 2000},
         )
+        self.assertEqual(
+            normalize_tool["inputSchema"]["properties"]["media_url"],
+            {"type": "string", "minLength": 1, "maxLength": 4096},
+        )
+        self.assertEqual(
+            {
+                key: value
+                for key, value in normalize_tool["inputSchema"]["properties"][
+                    "artifact_ref"
+                ].items()
+                if key != "description"
+            },
+            {"type": "string", "minLength": 1, "maxLength": 4096},
+        )
+        self.assertEqual(len(normalize_tool["inputSchema"]["allOf"]), 2)
 
     def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:
         requests = "\n".join(

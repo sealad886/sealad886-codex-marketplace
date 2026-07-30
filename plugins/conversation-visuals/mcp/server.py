@@ -342,6 +342,34 @@ TOOLS = [
                 {"required": ["media_url"]},
                 {"required": ["artifact_ref"]},
             ],
+            "allOf": [
+                {
+                    "if": {
+                        "properties": {
+                            "provenance": {"enum": ["sourced", "mixed"]}
+                        },
+                        "required": ["provenance"],
+                    },
+                    "then": {
+                        "required": ["sources"],
+                        "properties": {"sources": {"minItems": 1}},
+                    },
+                },
+                {
+                    "if": {
+                        "properties": {
+                            "provenance": {"enum": ["generated", "mixed"]}
+                        },
+                        "required": ["provenance"],
+                    },
+                    "then": {
+                        "required": ["generation_disclosure"],
+                        "properties": {
+                            "generation_disclosure": {"minLength": 1}
+                        },
+                    },
+                },
+            ],
             "properties": {
                 "kind": {
                     "type": "string",
@@ -362,9 +390,15 @@ TOOLS = [
                     "minLength": 1,
                     "maxLength": 2000,
                 },
-                "media_url": {"type": "string"},
+                "media_url": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096,
+                },
                 "artifact_ref": {
                     "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096,
                     "description": "Opaque host-issued local artifact, attachment, or resource reference. The server records but never dereferences it.",
                 },
                 "sources": {

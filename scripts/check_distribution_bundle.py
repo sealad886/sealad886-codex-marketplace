@@ -200,14 +200,22 @@ def node_launch_operand(
         return None
     options_with_values = {
         "-C",
+        "--build-snapshot-config",
         "--conditions",
         "--env-file",
         "--env-file-if-exists",
+        "--experimental-config-file",
         "--experimental-loader",
+        "--experimental-sea-config",
+        "--icu-data-dir",
         "--import",
         "--loader",
+        "--openssl-config",
         "-r",
         "--require",
+        "--snapshot-blob",
+        "--test-global-setup",
+        "--watch-path",
     }
     index = 0
     while index < len(arguments):
@@ -254,7 +262,17 @@ def node_runtime_dependency_operands(
         "--require",
         "-r",
     }
-    required_file_options = {"--env-file"}
+    required_file_options = {
+        "--build-snapshot-config",
+        "--env-file",
+        "--experimental-config-file",
+        "--experimental-sea-config",
+        "--icu-data-dir",
+        "--openssl-config",
+        "--snapshot-blob",
+        "--test-global-setup",
+        "--watch-path",
+    }
     optional_file_options = {"--env-file-if-exists"}
     dependency_options = (
         module_dependency_options | required_file_options | optional_file_options
