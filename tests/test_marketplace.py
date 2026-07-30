@@ -12,6 +12,9 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).parents[1]
 CHECKER = REPOSITORY_ROOT / "scripts" / "check_marketplace.py"
 MARKETPLACE_PATH = Path(".agents/plugins/marketplace.json")
+sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
+
+from check_marketplace import version_from_tag  # noqa: E402
 
 
 def run_checker(root: Path) -> subprocess.CompletedProcess[str]:
@@ -64,6 +67,17 @@ def create_repository_fixture(root: Path) -> dict[str, object]:
         while source_path.parts and source_path.parts[0] == ".":
             source_path = Path(*source_path.parts[1:])
         shutil.copytree(REPOSITORY_ROOT / source_path, root / source_path)
+        pinned_version = version_from_tag(entry["source"]["ref"])
+        if pinned_version is not None:
+            manifest_path = source_path / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(
+                (root / manifest_path).read_text(encoding="utf-8")
+            )
+            manifest["version"] = pinned_version
+            (root / manifest_path).write_text(
+                json.dumps(manifest),
+                encoding="utf-8",
+            )
     write_marketplace(root, marketplace)
     run_git(root, "init", "-q")
     commit_fixture(root, "fixture: add catalog plugins")
