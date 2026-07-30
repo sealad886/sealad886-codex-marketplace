@@ -465,6 +465,7 @@ class DistributionBundleTests(unittest.TestCase):
             "https://1.2.3.4.5/mcp",
             "https://[v1.foo]/mcp",
             "https://exa\u0660mple.com/mcp",
+            "https://exa\\mple.com/mcp",
         ):
             with (
                 self.subTest(url=url),
@@ -1947,6 +1948,11 @@ class DistributionBundleTests(unittest.TestCase):
                     "local Python env PYTHONUTF8 value is invalid",
                 ),
                 (
+                    "PYTHONPROFILEIMPORTTIME",
+                    "3",
+                    "local Python env PYTHONPROFILEIMPORTTIME value is invalid",
+                ),
+                (
                     "PYTHONPATH",
                     "./definitely-missing",
                     "local Python MCP env cannot establish startup closure",
@@ -2043,6 +2049,49 @@ class DistributionBundleTests(unittest.TestCase):
                 "local Node env-file dependency must be a regular file",
                 result.stdout,
             )
+
+    def test_node_file_only_operands_must_be_regular_files(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp" / "server.js").write_text(
+                "console.log('ready');\n",
+                encoding="utf-8",
+            )
+            config_path = source / ".mcp.json"
+
+            for option in (
+                "--openssl-config",
+                "--snapshot-blob",
+                "--test-global-setup",
+            ):
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": [
+                                            option,
+                                            "./mcp",
+                                            "./mcp/server.js",
+                                        ],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "local Node file dependency must be a regular file",
+                        result.stdout,
+                    )
 
     def test_bare_node_preload_must_be_a_known_builtin_module(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

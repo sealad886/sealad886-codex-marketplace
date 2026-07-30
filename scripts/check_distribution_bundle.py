@@ -317,6 +317,12 @@ def validate_python_environment(environment: dict[str, str]) -> None:
             "local Python env PYTHON_FROZEN_MODULES value is invalid"
         )
 
+    import_time = normalized.get("PYTHONPROFILEIMPORTTIME", "")
+    if import_time and import_time not in {"1", "2"}:
+        raise ValueError(
+            "local Python env PYTHONPROFILEIMPORTTIME value is invalid"
+        )
+
     unbounded_startup = {
         "PYTHONBREAKPOINT",
         "PYTHONHOME",
@@ -781,6 +787,11 @@ def node_runtime_dependency_operands(
     }
     optional_file_options = {"--env-file-if-exists"}
     env_file_options = {"--env-file", "--env-file-if-exists"}
+    regular_file_options = {
+        "--openssl-config",
+        "--snapshot-blob",
+        "--test-global-setup",
+    }
     dependency_options = (
         module_dependency_options | required_file_options | optional_file_options
     )
@@ -815,6 +826,8 @@ def node_runtime_dependency_operands(
                         if argument in module_dependency_options
                         else "node-config"
                         if argument == "--experimental-config-file"
+                        else "regular-file"
+                        if argument in regular_file_options
                         else "env-file"
                         if argument in env_file_options
                         else "file"
@@ -843,6 +856,8 @@ def node_runtime_dependency_operands(
                             if option in module_dependency_options
                             else "node-config"
                             if option == "--experimental-config-file"
+                            else "regular-file"
+                            if option in regular_file_options
                             else "env-file"
                             if option in env_file_options
                             else "file"
@@ -1098,6 +1113,11 @@ def add_launch_dependencies(
         for operand, resolution_mode, _ in node_dependencies
         if resolution_mode == "node-config"
     }
+    node_regular_files = {
+        operand
+        for operand, resolution_mode, _ in node_dependencies
+        if resolution_mode == "regular-file"
+    }
     module_dependencies = {
         operand
         for operand, resolution_mode, _ in node_dependencies
@@ -1157,6 +1177,11 @@ def add_launch_dependencies(
             if argument in node_config_files:
                 raise ValueError(
                     "local Node configuration dependency must be a regular file: "
+                    f"{argument}"
+                )
+            if argument in node_regular_files:
+                raise ValueError(
+                    "local Node file dependency must be a regular file: "
                     f"{argument}"
                 )
             if argument in esm_preloads:
@@ -1248,9 +1273,9 @@ def add_local_mcp_dependencies(
                 or not hostname
                 or not hostname.isascii()
                 or not bracketed_hostname_is_ipv6(parsed_url.netloc, hostname)
-                or any(character in "%<>^|" for character in hostname)
+                or any(character in "%<>^|\\" for character in hostname)
                 or any(
-                    character in "%<>^|"
+                    character in "%<>^|\\"
                     or character.isspace()
                     or ord(character) < 32
                     or ord(character) == 127
@@ -1263,6 +1288,7 @@ def add_local_mcp_dependencies(
                     or ord(character) == 127
                     for character in parsed_url.netloc
                 )
+                or "\\" in parsed_url.netloc
                 or parsed_url.username is not None
                 or parsed_url.password is not None
                 or (port is not None and not 1 <= port <= 65535)
