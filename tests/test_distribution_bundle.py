@@ -604,6 +604,36 @@ class DistributionBundleTests(unittest.TestCase):
                             result.stdout,
                         )
 
+    def test_python_startup_options_must_be_explicitly_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for option in ("--definitely-invalid", "-J"):
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "python3",
+                                        "args": [option, "./mcp/server.py"],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "unsupported local Python startup option",
+                        result.stdout,
+                    )
+
     def test_node_exit_only_options_cannot_serve_an_mcp(self) -> None:
         exit_only_options = (
             "-h",
@@ -924,6 +954,42 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("local MCP dependency does not exist", result.stdout)
 
+    def test_python_directory_launch_requires_main_module(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["./mcp"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            missing_entrypoint = run_checker(root=source)
+            (source / "mcp" / "__main__.py").write_text(
+                "print('ready')\n",
+                encoding="utf-8",
+            )
+            included_entrypoint = run_checker(root=source)
+
+            self.assertNotEqual(missing_entrypoint.returncode, 0)
+            self.assertIn(
+                "local Python directory launch requires __main__.py",
+                missing_entrypoint.stdout,
+            )
+            self.assertEqual(
+                included_entrypoint.returncode,
+                0,
+                included_entrypoint.stdout + included_entrypoint.stderr,
+            )
+
     def test_missing_python_command_or_module_operand_returns_an_error(self) -> None:
         for launch_option in ("-c", "-m"):
             with (
@@ -1004,6 +1070,39 @@ class DistributionBundleTests(unittest.TestCase):
             result = run_checker(root=source)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_node_startup_options_must_be_explicitly_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+            config = {
+                "mcpServers": {
+                    "conversation-visuals": {
+                        "command": "node",
+                        "args": ["--no-warnings", "./mcp/server.py"],
+                    }
+                }
+            }
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+
+            supported = run_checker(root=source)
+            config["mcpServers"]["conversation-visuals"]["args"][0] = (
+                "--definitely-invalid"
+            )
+            config_path.write_text(json.dumps(config), encoding="utf-8")
+            unsupported = run_checker(root=source)
+
+            self.assertEqual(
+                supported.returncode,
+                0,
+                supported.stdout + supported.stderr,
+            )
+            self.assertNotEqual(unsupported.returncode, 0)
+            self.assertIn(
+                "unsupported local Node startup option",
+                unsupported.stdout,
+            )
 
     def test_node_syntax_check_cannot_serve_as_an_mcp_launch(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

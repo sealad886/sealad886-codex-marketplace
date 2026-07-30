@@ -253,8 +253,7 @@ def python_launch_operand(
                 "local Python --check-hash-based-pycs requires a separate operand"
             )
         if argument.startswith("--"):
-            index += 1
-            continue
+            raise ValueError(f"unsupported local Python startup option: {argument}")
         if argument.startswith("-"):
             options = argument[1:]
             option_index = 0
@@ -289,7 +288,9 @@ def python_launch_operand(
                         )
                     break
                 if option not in simple_options:
-                    break
+                    raise ValueError(
+                        f"unsupported local Python startup option: {argument}"
+                    )
                 option_index += 1
             index += 2 if consumed_following_value else 1
             continue
@@ -318,6 +319,55 @@ def node_launch_operand(
         "--experimental-sea-config",
         "--prof-process",
         "--test",
+    }
+    flag_options = {
+        "--abort-on-uncaught-exception",
+        "--disable-sigusr1",
+        "--disallow-code-generation-from-strings",
+        "--enable-source-maps",
+        "--expose-gc",
+        "--force-fips",
+        "--frozen-intrinsics",
+        "--insecure-http-parser",
+        "--jitless",
+        "--no-addons",
+        "--no-deprecation",
+        "--no-extra-info-on-fatal-exception",
+        "--no-force-async-hooks-checks",
+        "--no-global-search-paths",
+        "--no-warnings",
+        "--openssl-legacy-provider",
+        "--openssl-shared-config",
+        "--pending-deprecation",
+        "--permission",
+        "--preserve-symlinks",
+        "--preserve-symlinks-main",
+        "--report-compact",
+        "--report-exclude-env",
+        "--report-exclude-network",
+        "--report-on-fatalerror",
+        "--report-on-signal",
+        "--report-uncaught-exception",
+        "--throw-deprecation",
+        "--trace-deprecation",
+        "--trace-sync-io",
+        "--trace-tls",
+        "--trace-uncaught",
+        "--trace-warnings",
+        "--use-bundled-ca",
+        "--use-env-proxy",
+        "--use-openssl-ca",
+        "--use-system-ca",
+        "--watch",
+        "--watch-preserve-output",
+        "--zero-fill-buffers",
+        "-i",
+        "--interactive",
+    }
+    optional_value_options = {
+        "--debug-port",
+        "--inspect",
+        "--inspect-port",
     }
     options_with_values = {
         "-C",
@@ -385,9 +435,24 @@ def node_launch_operand(
                 raise ValueError(f"local Node {argument} option requires an operand")
             index += 2
             continue
-        if argument.startswith("-"):
+        if any(
+            argument.startswith(f"{option}=") for option in options_with_values
+        ):
             index += 1
             continue
+        if argument in flag_options or argument in optional_value_options:
+            index += 1
+            continue
+        if any(
+            argument.startswith(f"{option}=") for option in optional_value_options
+        ):
+            index += 1
+            continue
+        if argument.startswith("-r") and len(argument) > 2:
+            index += 1
+            continue
+        if argument.startswith("-"):
+            raise ValueError(f"unsupported local Node startup option: {argument}")
         return ("script", argument)
     return None
 
@@ -668,6 +733,15 @@ def add_launch_dependencies(
         if source.is_file():
             selected.add(source.relative_to(resolved_root))
         elif source.is_dir():
+            if (
+                python_launch is not None
+                and python_launch[0] == "script"
+                and argument == required_launch_script
+                and not (source / "__main__.py").is_file()
+            ):
+                raise ValueError(
+                    f"local Python directory launch requires __main__.py: {argument}"
+                )
             selected.update(
                 path.relative_to(resolved_root)
                 for path in source.rglob("*")
