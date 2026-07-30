@@ -569,6 +569,34 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_attached_node_preload_dependency_is_included(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            server = source / "mcp" / "server.js"
+            preload = source / "mcp" / "bootstrap.js"
+            server.write_text("console.log('ready');\n", encoding="utf-8")
+            preload.write_text("globalThis.ready = true;\n", encoding="utf-8")
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--require=./bootstrap.js", "server.js"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
     def test_extensionless_python_script_operand_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

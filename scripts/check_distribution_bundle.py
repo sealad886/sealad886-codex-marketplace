@@ -239,6 +239,62 @@ def node_script_operand(command: str, arguments: list[str]) -> str | None:
     return None
 
 
+def node_preload_operands(command: str, arguments: list[str]) -> list[str]:
+    """Return localizable Node preload module operands before the entry point."""
+    if not is_node_command(command):
+        return []
+    dependency_options = {
+        "--experimental-loader",
+        "--import",
+        "--loader",
+        "--require",
+        "-r",
+    }
+    operands: list[str] = []
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument in {"--", "-", "-e", "--eval", "-p", "--print"}:
+            break
+        if (
+            (argument.startswith(("-e", "-p")) and len(argument) > 2)
+            or argument.startswith(("--eval=", "--print="))
+        ):
+            break
+        if argument in dependency_options:
+            if index + 1 >= len(arguments):
+                raise ValueError(f"local Node {argument} option requires an operand")
+            operands.append(arguments[index + 1])
+            index += 2
+            continue
+        matched_attached = False
+        for option in dependency_options - {"-r"}:
+            prefix = f"{option}="
+            if argument.startswith(prefix):
+                operand = argument[len(prefix) :]
+                if not operand:
+                    raise ValueError(
+                        f"local Node {option} option requires an operand"
+                    )
+                operands.append(operand)
+                matched_attached = True
+                break
+        if matched_attached:
+            index += 1
+            continue
+        if argument.startswith("-r") and len(argument) > 2:
+            operand = argument[2:].removeprefix("=")
+            if not operand:
+                raise ValueError("local Node -r option requires an operand")
+            operands.append(operand)
+            index += 1
+            continue
+        if not argument.startswith("-"):
+            break
+        index += 1
+    return operands
+
+
 def add_parent_package_initializers(
     root: Path,
     cwd: Path,
@@ -366,7 +422,9 @@ def add_local_mcp_dependencies(
             command,
             arguments,
         ) or node_script_operand(command, arguments)
-        for argument in arguments:
+        dependency_arguments = list(arguments)
+        dependency_arguments.extend(node_preload_operands(command, arguments))
+        for argument in dependency_arguments:
             is_explicit_path = argument.startswith(
                 ("./", "../")
             ) or argument == required_launch_script
