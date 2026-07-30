@@ -210,6 +210,7 @@ class ConversationVisualsTests(unittest.TestCase):
             "http://127.0.0.1%3a80/item",
             "http://127.0.0.1%09/item",
             "http://127。0。0。1/item",
+            "https://exa％20mple.com/item",
             "http://localhost./item",
             "http://media.localhost/item",
             "http://169.254.169.254/latest/meta-data",
@@ -334,7 +335,20 @@ class ConversationVisualsTests(unittest.TestCase):
             },
             {"type": "string", "minLength": 1, "maxLength": 4096},
         )
-        self.assertEqual(len(normalize_tool["inputSchema"]["allOf"]), 2)
+        kind_constraints = {
+            constraint["if"]["properties"]["provenance"]["const"]: set(
+                constraint["then"]["properties"]["kind"]["enum"]
+            )
+            for constraint in normalize_tool["inputSchema"]["allOf"]
+            if "kind" in constraint["then"].get("properties", {})
+        }
+        self.assertEqual(
+            kind_constraints,
+            {
+                "sourced": SERVER.VISUAL_KINDS - {"generated-image"},
+                "generated": SERVER.VISUAL_KINDS - {"source-image"},
+            },
+        )
 
     def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:
         requests = "\n".join(

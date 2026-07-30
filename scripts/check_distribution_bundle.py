@@ -213,6 +213,13 @@ def python_launch_operand(
     """Return Python's interpreter launch mode and its first operand."""
     if not is_python_command(command):
         return None
+    exit_only_options = {
+        "--help",
+        "--help-all",
+        "--help-env",
+        "--help-xoptions",
+        "--version",
+    }
     simple_options = set("bBdEhiIOPqsSuvVx?")
     index = 0
     while index < len(arguments):
@@ -224,6 +231,10 @@ def python_launch_operand(
             return ("stdin", None) if operand == "-" else ("script", operand)
         if argument == "-":
             return ("stdin", None)
+        if argument in exit_only_options:
+            raise ValueError(
+                f"local Python exit-only option cannot serve an MCP server: {argument}"
+            )
         if argument == "--check-hash-based-pycs":
             if index + 1 >= len(arguments):
                 raise ValueError(
@@ -244,6 +255,10 @@ def python_launch_operand(
             while option_index < len(options):
                 option = options[option_index]
                 attached_value = options[option_index + 1 :]
+                if option in {"?", "V", "h"}:
+                    raise ValueError(
+                        f"local Python exit-only option cannot serve an MCP server: {argument}"
+                    )
                 if option in {"c", "m"}:
                     operand = (
                         attached_value
@@ -282,6 +297,14 @@ def node_launch_operand(
     """Return Node's launch mode and its first program operand."""
     if not is_node_command(command):
         return None
+    exit_only_options = {
+        "--completion-bash",
+        "--help",
+        "--v8-options",
+        "--version",
+        "-h",
+        "-v",
+    }
     options_with_values = {
         "-C",
         "--build-snapshot-config",
@@ -311,6 +334,10 @@ def node_launch_operand(
             return ("stdin", None) if operand == "-" else ("script", operand)
         if argument == "-":
             return ("stdin", None)
+        if argument in exit_only_options:
+            raise ValueError(
+                f"local Node exit-only option cannot serve an MCP server: {argument}"
+            )
         if argument in {"-c", "--check"}:
             raise ValueError(
                 "local Node syntax-check mode cannot serve an MCP server"

@@ -512,6 +512,87 @@ class DistributionBundleTests(unittest.TestCase):
                     expected,
                 )
 
+    def test_python_exit_only_options_cannot_serve_an_mcp(self) -> None:
+        exit_only_options = (
+            "-?",
+            "-V",
+            "-VV",
+            "-h",
+            "--help",
+            "--help-all",
+            "--help-env",
+            "--help-xoptions",
+            "--version",
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for option in exit_only_options:
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "python3",
+                                        "args": [option, "./mcp/server.py"],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "exit-only option cannot serve an MCP server",
+                        result.stdout,
+                    )
+
+    def test_node_exit_only_options_cannot_serve_an_mcp(self) -> None:
+        exit_only_options = (
+            "-h",
+            "-v",
+            "--completion-bash",
+            "--help",
+            "--v8-options",
+            "--version",
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for option in exit_only_options:
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": [option, "./mcp/server.py"],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "exit-only option cannot serve an MCP server",
+                        result.stdout,
+                    )
+
     def test_grouped_python_module_launch_dependency_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

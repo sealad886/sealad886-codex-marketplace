@@ -78,6 +78,14 @@ def public_http_url(value: Any) -> bool:
         )
     except UnicodeError:
         return False
+    if any(
+        character in "%:/\\@?#[]"
+        or character.isspace()
+        or ord(character) < 32
+        or ord(character) == 127
+        for character in normalized_hostname
+    ):
+        return False
     if (
         not normalized_hostname
         or normalized_hostname == "localhost"
@@ -367,6 +375,34 @@ TOOLS = [
                         "properties": {
                             "generation_disclosure": {"minLength": 1}
                         },
+                    },
+                },
+                {
+                    "if": {
+                        "properties": {"provenance": {"const": "sourced"}},
+                        "required": ["provenance"],
+                    },
+                    "then": {
+                        "properties": {
+                            "kind": {
+                                "enum": sorted(
+                                    VISUAL_KINDS - {"generated-image"}
+                                )
+                            }
+                        }
+                    },
+                },
+                {
+                    "if": {
+                        "properties": {"provenance": {"const": "generated"}},
+                        "required": ["provenance"],
+                    },
+                    "then": {
+                        "properties": {
+                            "kind": {
+                                "enum": sorted(VISUAL_KINDS - {"source-image"})
+                            }
+                        }
                     },
                 },
             ],
