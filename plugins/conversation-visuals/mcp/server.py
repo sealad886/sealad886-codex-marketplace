@@ -357,7 +357,11 @@ TOOLS = [
                     "maxLength": 200,
                 },
                 "summary": {"type": "string"},
-                "alt_text": {"type": "string"},
+                "alt_text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 2000,
+                },
                 "media_url": {"type": "string"},
                 "artifact_ref": {
                     "type": "string",

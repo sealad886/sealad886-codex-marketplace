@@ -316,6 +316,10 @@ class ConversationVisualsTests(unittest.TestCase):
             normalize_tool["inputSchema"]["properties"]["title"],
             {"type": "string", "minLength": 1, "maxLength": 200},
         )
+        self.assertEqual(
+            normalize_tool["inputSchema"]["properties"]["alt_text"],
+            {"type": "string", "minLength": 1, "maxLength": 2000},
+        )
 
     def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:
         requests = "\n".join(

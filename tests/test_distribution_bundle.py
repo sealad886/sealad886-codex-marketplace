@@ -687,6 +687,54 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_attached_node_env_file_is_included_and_required(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            server = source / "mcp" / "server.js"
+            environment = source / "mcp" / "config.env"
+            server.write_text("console.log('ready');\n", encoding="utf-8")
+            environment.write_text("VISUALS=enabled\n", encoding="utf-8")
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--env-file=./config.env", "server.js"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            included = run_checker(root=source)
+            environment.unlink()
+            missing = run_checker(root=source)
+            mcp_config_path = source / ".mcp.json"
+            mcp_config = json.loads(mcp_config_path.read_text(encoding="utf-8"))
+            mcp_config["mcpServers"]["conversation-visuals"]["args"][0] = (
+                "--env-file-if-exists=./config.env"
+            )
+            mcp_config_path.write_text(json.dumps(mcp_config), encoding="utf-8")
+            optional_missing = run_checker(root=source)
+
+            self.assertEqual(
+                included.returncode,
+                0,
+                included.stdout + included.stderr,
+            )
+            self.assertNotEqual(missing.returncode, 0)
+            self.assertIn("local MCP dependency does not exist", missing.stdout)
+            self.assertEqual(
+                optional_missing.returncode,
+                0,
+                optional_missing.stdout + optional_missing.stderr,
+            )
+
     def test_extensionless_python_script_operand_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

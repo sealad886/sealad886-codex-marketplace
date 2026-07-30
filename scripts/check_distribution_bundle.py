@@ -201,6 +201,8 @@ def node_launch_operand(
     options_with_values = {
         "-C",
         "--conditions",
+        "--env-file",
+        "--env-file-if-exists",
         "--experimental-loader",
         "--import",
         "--loader",
@@ -238,21 +240,26 @@ def node_launch_operand(
     return None
 
 
-def node_preload_operands(
+def node_runtime_dependency_operands(
     command: str,
     arguments: list[str],
-) -> list[tuple[str, bool]]:
-    """Return Node preload operands and whether CommonJS resolution applies."""
+) -> list[tuple[str, bool, bool]]:
+    """Return Node file operands, CommonJS mode, and whether each is required."""
     if not is_node_command(command):
         return []
-    dependency_options = {
+    module_dependency_options = {
         "--experimental-loader",
         "--import",
         "--loader",
         "--require",
         "-r",
     }
-    operands: list[tuple[str, bool]] = []
+    required_file_options = {"--env-file"}
+    optional_file_options = {"--env-file-if-exists"}
+    dependency_options = (
+        module_dependency_options | required_file_options | optional_file_options
+    )
+    operands: list[tuple[str, bool, bool]] = []
     index = 0
     while index < len(arguments):
         argument = arguments[index]
@@ -267,7 +274,11 @@ def node_preload_operands(
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
             operands.append(
-                (arguments[index + 1], argument in {"--require", "-r"})
+                (
+                    arguments[index + 1],
+                    argument in {"--require", "-r"},
+                    argument not in optional_file_options,
+                )
             )
             index += 2
             continue
@@ -280,7 +291,13 @@ def node_preload_operands(
                     raise ValueError(
                         f"local Node {option} option requires an operand"
                     )
-                operands.append((operand, option == "--require"))
+                operands.append(
+                    (
+                        operand,
+                        option == "--require",
+                        option not in optional_file_options,
+                    )
+                )
                 matched_attached = True
                 break
         if matched_attached:
@@ -290,7 +307,7 @@ def node_preload_operands(
             operand = argument[2:].removeprefix("=")
             if not operand:
                 raise ValueError("local Node -r option requires an operand")
-            operands.append((operand, True))
+            operands.append((operand, True, True))
             index += 1
             continue
         if not argument.startswith("-"):
@@ -458,17 +475,27 @@ def add_local_mcp_dependencies(
             if launch is not None and launch[0] == "script":
                 required_launch_script = launch[1]
                 break
-        node_preloads = node_preload_operands(command, arguments)
+        node_dependencies = node_runtime_dependency_operands(command, arguments)
         commonjs_preloads = {
             operand
-            for operand, uses_commonjs_resolution in node_preloads
+            for operand, uses_commonjs_resolution, _ in node_dependencies
             if uses_commonjs_resolution
         }
+        required_node_dependencies = {
+            operand for operand, _, required in node_dependencies if required
+        }
+        optional_node_dependencies = {
+            operand for operand, _, required in node_dependencies if not required
+        }
         dependency_arguments = list(arguments)
-        dependency_arguments.extend(operand for operand, _ in node_preloads)
+        dependency_arguments.extend(operand for operand, _, _ in node_dependencies)
         for argument in dependency_arguments:
-            is_explicit_path = argument.startswith(
-                ("./", "../")
+            is_explicit_path = (
+                argument.startswith(("./", "../"))
+                and (
+                    argument not in optional_node_dependencies
+                    or argument in required_node_dependencies
+                )
             ) or argument == required_launch_script
             if is_absolute_path(argument):
                 raise ValueError(
