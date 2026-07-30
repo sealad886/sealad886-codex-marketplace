@@ -21,6 +21,7 @@ from check_distribution_bundle import (  # noqa: E402
     add_python_module_dependencies,
     is_absolute_path,
     materialize_runtime_closure,
+    python_launch_operand,
 )
 
 
@@ -366,6 +367,43 @@ class DistributionBundleTests(unittest.TestCase):
                             "conversation-visuals": {
                                 "command": "python3",
                                 "args": ["-m", "mcp.server"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_grouped_python_options_identify_the_launch_operand(self) -> None:
+        launches = (
+            (["-Bm", "mcp.server"], ("module", "mcp.server")),
+            (["-Bmmcp.server"], ("module", "mcp.server")),
+            (["-Xdev", "-Wignore", "server"], ("script", "server")),
+            (["-B", "-X", "dev", "-m", "mcp.server"], ("module", "mcp.server")),
+        )
+
+        for arguments, expected in launches:
+            with self.subTest(arguments=arguments):
+                self.assertEqual(
+                    python_launch_operand("python3", arguments),
+                    expected,
+                )
+
+    def test_grouped_python_module_launch_dependency_is_included(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["-Bm", "mcp.server"],
                             }
                         }
                     }

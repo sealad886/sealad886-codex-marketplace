@@ -195,6 +195,8 @@ class ConversationVisualsTests(unittest.TestCase):
 
     def test_private_and_credentialed_urls_are_rejected(self) -> None:
         rejected = (
+            "http://[::1]/item",
+            "http://[fe80::1]/item",
             "http://127.0.0.1/item",
             "http://127.0.0.1./item",
             "http://127.1/item",
@@ -226,6 +228,11 @@ class ConversationVisualsTests(unittest.TestCase):
         for url in rejected:
             with self.subTest(url=url):
                 self.assertFalse(SERVER.public_http_url(url))
+
+    def test_public_ipv6_literal_is_allowed(self) -> None:
+        self.assertTrue(
+            SERVER.public_http_url("https://[2606:4700:4700::1111]/item")
+        )
 
     def test_mcp_stdio_initialize_and_tools_list(self) -> None:
         requests = "\n".join(

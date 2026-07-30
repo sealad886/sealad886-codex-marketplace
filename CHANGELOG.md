@@ -1,6 +1,8 @@
 # Changelog
 
-This file records user-visible marketplace and Project Delivery changes. Dates use ISO 8601 and plugin versions follow Semantic Versioning.
+This file records user-visible marketplace, Project Delivery, and Conversation
+Visuals changes. Dates use ISO 8601 and plugin versions follow Semantic
+Versioning.
 
 ## Unreleased
 

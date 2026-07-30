@@ -124,7 +124,7 @@ def python_launch_operand(
     """Return Python's interpreter launch mode and its first operand."""
     if not is_python_command(command):
         return None
-    options_with_values = {"-W", "-X", "--check-hash-based-pycs"}
+    simple_options = set("bBdEhiIOPqsSuvVx?")
     index = 0
     while index < len(arguments):
         argument = arguments[index]
@@ -136,14 +136,40 @@ def python_launch_operand(
             )
         if argument == "-":
             return ("stdin", None)
-        if argument in ("-c", "-m"):
-            operand = arguments[index + 1] if index + 1 < len(arguments) else None
-            return ("command" if argument == "-c" else "module", operand)
-        if argument in options_with_values:
+        if argument == "--check-hash-based-pycs":
             index += 2
             continue
-        if argument.startswith("-"):
+        if argument.startswith("--check-hash-based-pycs="):
             index += 1
+            continue
+        if argument.startswith("--"):
+            index += 1
+            continue
+        if argument.startswith("-"):
+            options = argument[1:]
+            option_index = 0
+            consumed_following_value = False
+            while option_index < len(options):
+                option = options[option_index]
+                attached_value = options[option_index + 1 :]
+                if option in {"c", "m"}:
+                    operand = (
+                        attached_value
+                        if attached_value
+                        else (
+                            arguments[index + 1]
+                            if index + 1 < len(arguments)
+                            else None
+                        )
+                    )
+                    return ("command" if option == "c" else "module", operand)
+                if option in {"W", "X"}:
+                    consumed_following_value = not attached_value
+                    break
+                if option not in simple_options:
+                    break
+                option_index += 1
+            index += 2 if consumed_following_value else 1
             continue
         return ("script", argument)
     return None

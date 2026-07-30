@@ -56,7 +56,15 @@ def public_http_url(value: Any) -> bool:
         decoded_hostname = unquote(hostname, errors="strict") if hostname else ""
     except UnicodeDecodeError:
         return False
-    if "%" in decoded_hostname or any(
+    if "%" in decoded_hostname:
+        return False
+    try:
+        address = ipaddress.ip_address(decoded_hostname)
+    except ValueError:
+        address = None
+    if address is not None:
+        return address.is_global and not address.is_multicast
+    if any(
         character in ":/\\@?#[]"
         or character.isspace()
         or ord(character) < 32
@@ -77,12 +85,9 @@ def public_http_url(value: Any) -> bool:
     ):
         return False
     try:
-        address = ipaddress.ip_address(normalized_hostname)
-    except ValueError:
-        try:
-            address = ipaddress.ip_address(socket.inet_aton(normalized_hostname))
-        except OSError:
-            return True
+        address = ipaddress.ip_address(socket.inet_aton(normalized_hostname))
+    except OSError:
+        return True
     return address.is_global and not address.is_multicast
 
 
