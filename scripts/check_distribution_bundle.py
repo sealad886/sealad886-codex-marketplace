@@ -637,7 +637,12 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         errors.append(f"refusing to replace output with unreadable identity: {error}")
     else:
-        if manifest.get("name") != plugin_name:
+        if not isinstance(manifest, dict):
+            errors.append(
+                "refusing to replace output with invalid identity: "
+                "plugin manifest must contain an object"
+            )
+        elif manifest.get("name") != plugin_name:
             errors.append(
                 f"refusing to replace output for plugin {manifest.get('name')!r}; "
                 f"expected {plugin_name!r}"

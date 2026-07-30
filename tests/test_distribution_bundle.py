@@ -719,6 +719,28 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("source checkout or Python environment", result.stdout)
 
+    def test_replace_non_object_manifest_is_refused_without_a_traceback(self) -> None:
+        for manifest in ([], None):
+            with (
+                self.subTest(manifest=manifest),
+                tempfile.TemporaryDirectory() as temporary,
+            ):
+                output = Path(temporary) / "project-delivery"
+                (output / ".codex-plugin").mkdir(parents=True)
+                (output / ".codex-plugin" / "plugin.json").write_text(
+                    json.dumps(manifest),
+                    encoding="utf-8",
+                )
+
+                result = run_checker("--output", str(output), "--replace")
+
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(
+                    "refusing to replace output with invalid identity",
+                    result.stdout,
+                )
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_replace_distribution_with_extra_file_is_refused_and_preserved(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / "project-delivery"
