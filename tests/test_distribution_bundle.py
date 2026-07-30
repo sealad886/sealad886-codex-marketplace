@@ -186,7 +186,25 @@ class DistributionBundleTests(unittest.TestCase):
                     "cwd": ".",
                     "tool_timeout_sec": 0,
                 },
-                "tool_timeout_sec must be positive",
+                "tool_timeout_sec must be a positive finite number",
+            ),
+            (
+                {
+                    "command": "python3",
+                    "args": ["./mcp/server.py"],
+                    "cwd": ".",
+                    "tool_timeout_sec": float("nan"),
+                },
+                "non-standard JSON constant: NaN",
+            ),
+            (
+                {
+                    "command": "python3",
+                    "args": ["./mcp/server.py"],
+                    "cwd": ".",
+                    "tool_timeout_sec": float("inf"),
+                },
+                "non-standard JSON constant: Infinity",
             ),
             (
                 {"url": "https://example.invalid/mcp"},

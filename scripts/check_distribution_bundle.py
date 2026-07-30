@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 import re
 import shutil
@@ -125,7 +126,13 @@ def add_local_python_mcp_dependencies(
     if not config_path.is_file():
         raise ValueError(f"declared path does not exist: {declaration}")
 
-    config = json.loads(config_path.read_text(encoding="utf-8"))
+    def reject_nonstandard_constant(value: str) -> None:
+        raise ValueError(f"local MCP config contains non-standard JSON constant: {value}")
+
+    config = json.loads(
+        config_path.read_text(encoding="utf-8"),
+        parse_constant=reject_nonstandard_constant,
+    )
     if not isinstance(config, dict):
         raise ValueError("local MCP config must contain an object")
     servers = config.get("mcpServers")
@@ -151,9 +158,12 @@ def add_local_python_mcp_dependencies(
         if timeout is not None and (
             isinstance(timeout, bool)
             or not isinstance(timeout, (int, float))
+            or not math.isfinite(timeout)
             or timeout <= 0
         ):
-            raise ValueError("local MCP server tool_timeout_sec must be positive")
+            raise ValueError(
+                "local MCP server tool_timeout_sec must be a positive finite number"
+            )
 
         arguments = server.get("args")
         if not isinstance(arguments, list) or len(arguments) != 1:
