@@ -1,0 +1,43 @@
+{
+  "name": "conversation-visuals",
+  "version": "0.1.0",
+  "description": "Enrich supported Codex and ChatGPT conversations with relevant, sourced or generated visuals while preserving attribution, accessibility, privacy, and user control.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/conversation-visuals",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "visuals",
+    "voice",
+    "images",
+    "diagrams",
+    "presentations",
+    "multimedia"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Conversation Visuals",
+    "shortDescription": "Add relevant sourced and generated visuals",
+    "longDescription": "Conversation Visuals enriches supported Codex and ChatGPT conversations with carefully selected sourced images, generated illustrations, diagrams, charts, slides, and short media. It stays quiet when a visual would not help, preserves source attribution and accessibility, and degrades honestly on voice or app surfaces that do not expose plugin tools.",
+    "developerName": "Andrew Cox",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/conversation-visuals",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Enrich this conversation with visuals when they materially help.",
+      "Find a sourced visual that helps explain this topic.",
+      "Turn this explanation into a concise visual story."
+    ],
+    "brandColor": "#5B43D6",
+    "composerIcon": "./assets/conversation-visuals-icon.svg",
+    "logo": "./assets/conversation-visuals-logo.svg"
+  }
+}
