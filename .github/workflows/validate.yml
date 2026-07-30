@@ -34,10 +34,16 @@ jobs:
           curl --fail --location --silent --show-error \
             "$PLUGIN_VALIDATOR_URL" --output "$validator_script"
           echo "$PLUGIN_VALIDATOR_SHA256  $validator_script" | shasum -a 256 -c -
-          while IFS= read -r plugin_dir; do
+          mkdir "$validator_root/pinned"
+          while IFS=$'\t' read -r source_type source_ref plugin_dir; do
+            if [[ "$source_type" == "git-subdir" ]]; then
+              git archive "$source_ref" -- "$plugin_dir" | \
+                tar -x -C "$validator_root/pinned"
+              plugin_dir="$validator_root/pinned/$plugin_dir"
+            fi
             "$validator_root/venv/bin/python" "$validator_script" "$plugin_dir"
           done < <(
-            python3 -c 'import json; data = json.load(open(".agents/plugins/marketplace.json")); [print(entry["source"]["path"]) for entry in data["plugins"]]'
+            python3 -c 'import json; data = json.load(open(".agents/plugins/marketplace.json")); [print(source["source"], source.get("ref", "-"), source["path"].removeprefix("./"), sep="\t") for source in (entry["source"] for entry in data["plugins"])]'
           )
 
       - name: Validate Project Delivery structure
