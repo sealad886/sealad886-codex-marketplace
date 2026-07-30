@@ -105,6 +105,33 @@ class ConversationVisualsTests(unittest.TestCase):
                 }
             )
 
+    def test_generation_disclosure_is_bounded_for_all_provenance(self) -> None:
+        invalid_visuals = (
+            {
+                "provenance": "generated",
+                "title": "Generated visual",
+                "alt_text": "A generated visual.",
+                "generation_disclosure": "x" * 2001,
+                "artifact_ref": "attachment:generated-visual",
+            },
+            {
+                "provenance": "sourced",
+                "title": "Sourced visual",
+                "alt_text": "A sourced visual.",
+                "generation_disclosure": "x" * 2001,
+                "sources": [
+                    {"title": "Origin", "url": "https://example.com/item"}
+                ],
+            },
+        )
+
+        for visual in invalid_visuals:
+            with self.subTest(provenance=visual["provenance"]), self.assertRaisesRegex(
+                ValueError,
+                "generation_disclosure must not exceed 2000 characters",
+            ):
+                SERVER.normalize_visual(visual)
+
     def test_normalized_result_rejects_unsupported_visual_kind(self) -> None:
         with self.assertRaisesRegex(ValueError, "unsupported kind"):
             SERVER.normalize_visual(
@@ -238,6 +265,18 @@ class ConversationVisualsTests(unittest.TestCase):
             {"plan_visual", "normalize_visual"},
         )
 
+    def test_self_test_remains_active_under_python_optimization(self) -> None:
+        result = subprocess.run(
+            [sys.executable, "-O", str(SERVER_PATH), "--self-test"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
+        )
+
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.stdout.strip(), "PASS conversation-visuals MCP self-test")
+
     def test_normalize_visual_schema_describes_required_source_fields(self) -> None:
         normalize_tool = next(
             tool for tool in SERVER.TOOLS if tool["name"] == "normalize_visual"
@@ -251,6 +290,12 @@ class ConversationVisualsTests(unittest.TestCase):
             {"title", "url", "publisher", "license", "retrieved_at"}.issubset(
                 source_items["properties"]
             )
+        )
+        self.assertEqual(
+            normalize_tool["inputSchema"]["properties"]["generation_disclosure"][
+                "maxLength"
+            ],
+            2000,
         )
 
     def test_mcp_malformed_requests_do_not_terminate_process(self) -> None:

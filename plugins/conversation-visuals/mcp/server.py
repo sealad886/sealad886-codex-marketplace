@@ -259,6 +259,8 @@ def normalize_visual(arguments: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(disclosure_value, str):
         raise ValueError("generation_disclosure must be a string")
     disclosure = disclosure_value.strip()
+    if len(disclosure) > 2000:
+        raise ValueError("generation_disclosure must not exceed 2000 characters")
     if provenance in {"generated", "mixed"} and not disclosure:
         raise ValueError("generated and mixed visuals require a generation disclosure")
     if provenance in {"generated", "mixed"} and not (media_url or artifact_ref):
@@ -370,7 +372,7 @@ TOOLS = [
                         },
                     },
                 },
-                "generation_disclosure": {"type": "string"},
+                "generation_disclosure": {"type": "string", "maxLength": 2000},
                 "warnings": {"type": "array", "items": {"type": "string"}},
             },
             "additionalProperties": False,
@@ -487,10 +489,20 @@ def handle(request: Any) -> dict[str, Any] | None:
 
 
 def self_test() -> None:
-    assert plan_visual({"utility": "low"})["disposition"] == "no-visual"
-    assert not plan_visual({"explicit": True, "requested_kind": "video"})[
-        "consent_required"
-    ]
+    def check(condition: bool, message: str) -> None:
+        if not condition:
+            raise RuntimeError(f"self-test failed: {message}")
+
+    check(
+        plan_visual({"utility": "low"})["disposition"] == "no-visual",
+        "low utility should suppress an inferred visual",
+    )
+    check(
+        not plan_visual({"explicit": True, "requested_kind": "video"})[
+            "consent_required"
+        ],
+        "explicit video requests should not require consent",
+    )
     sourced = normalize_visual(
         {
             "provenance": "sourced",
@@ -499,8 +511,14 @@ def self_test() -> None:
             "sources": [{"title": "Origin", "url": "https://example.com/item"}],
         }
     )
-    assert sourced["sources"][0]["license"] == "unknown"
-    assert not public_http_url("http://127.0.0.1/private")
+    check(
+        sourced["sources"][0]["license"] == "unknown",
+        "missing source licenses should normalize to unknown",
+    )
+    check(
+        not public_http_url("http://127.0.0.1/private"),
+        "loopback URLs should be rejected",
+    )
     print("PASS conversation-visuals MCP self-test")
 
 
