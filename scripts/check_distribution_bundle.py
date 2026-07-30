@@ -206,6 +206,38 @@ def is_node_builtin_module(module: str) -> bool:
     )
 
 
+def validate_python_xoption(value: str) -> None:
+    """Reject documented -X values that make Python fail before launch."""
+    name, separator, operand = value.partition("=")
+    optional_boolean_options = {
+        "context_aware_warnings",
+        "gil",
+        "thread_inherit_context",
+        "tlbc",
+        "utf8",
+    }
+    if name in optional_boolean_options:
+        valid = not separator or operand in {"0", "1"}
+    elif name == "frozen_modules":
+        valid = not separator or operand in {"on", "off"}
+    elif name == "cpu_count":
+        valid = bool(separator) and (
+            operand == "default" or (operand.isdecimal() and int(operand) > 0)
+        )
+    elif name == "int_max_str_digits":
+        valid = bool(separator) and operand.isdecimal() and (
+            int(operand) == 0 or int(operand) >= 640
+        )
+    elif name == "tracemalloc":
+        valid = not separator or (operand.isdecimal() and int(operand) >= 0)
+    else:
+        # Python intentionally exposes unknown -X names through sys._xoptions,
+        # so only interpreter-reserved values with fatal constraints are gated.
+        valid = True
+    if not valid:
+        raise ValueError(f"local Python -X option value is invalid: {value}")
+
+
 def python_launch_operand(
     command: str,
     arguments: list[str],
@@ -221,6 +253,7 @@ def python_launch_operand(
         "--version",
     }
     simple_options = set("bBdEhiIOPqsSuvVx?")
+    safe_path = False
     index = 0
     while index < len(arguments):
         argument = arguments[index]
@@ -279,6 +312,11 @@ def python_launch_operand(
                         raise ValueError(
                             f"local Python -{option} launch requires an operand"
                         )
+                    if option == "m" and safe_path:
+                        raise ValueError(
+                            "local Python safe-path option cannot launch a "
+                            "bundled module"
+                        )
                     return ("command" if option == "c" else "module", operand)
                 if option in {"W", "X"}:
                     consumed_following_value = not attached_value
@@ -286,11 +324,19 @@ def python_launch_operand(
                         raise ValueError(
                             f"local Python -{option} option requires an operand"
                         )
+                    if option == "X":
+                        validate_python_xoption(
+                            attached_value
+                            if attached_value
+                            else arguments[index + 1]
+                        )
                     break
                 if option not in simple_options:
                     raise ValueError(
                         f"unsupported local Python startup option: {argument}"
                     )
+                if option in {"I", "P"}:
+                    safe_path = True
                 option_index += 1
             index += 2 if consumed_following_value else 1
             continue
@@ -795,13 +841,24 @@ def add_local_mcp_dependencies(
             try:
                 parsed_url = urlparse(url)
                 port = parsed_url.port
-            except ValueError as error:
+                hostname = parsed_url.hostname
+                normalized_hostname = (
+                    hostname.encode("idna").decode("ascii") if hostname else ""
+                )
+            except (UnicodeError, ValueError) as error:
                 raise ValueError(f"remote MCP server url is invalid: {url}") from error
             if (
                 parsed_url.scheme not in {"http", "https"}
                 or not parsed_url.netloc
-                or not parsed_url.hostname
-                or "%" in parsed_url.hostname
+                or not hostname
+                or "%" in hostname
+                or any(
+                    character == "%"
+                    or character.isspace()
+                    or ord(character) < 32
+                    or ord(character) == 127
+                    for character in normalized_hostname
+                )
                 or any(
                     character.isspace()
                     or ord(character) < 32

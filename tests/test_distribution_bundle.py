@@ -456,6 +456,7 @@ class DistributionBundleTests(unittest.TestCase):
         for url in (
             "https://exa%20mple.com/mcp",
             "https://%31%32%37.0.0.1/mcp",
+            "https://exa％20mple.com/mcp",
         ):
             with (
                 self.subTest(url=url),
@@ -633,6 +634,115 @@ class DistributionBundleTests(unittest.TestCase):
                         "unsupported local Python startup option",
                         result.stdout,
                     )
+
+    def test_python_safe_path_options_cannot_launch_bundled_modules(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for arguments in (
+                ["-P", "-m", "mcp.server"],
+                ["-I", "-m", "mcp.server"],
+                ["-IPm", "mcp.server"],
+            ):
+                with self.subTest(arguments=arguments):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "python3",
+                                        "args": arguments,
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "safe-path option cannot launch a bundled module",
+                        result.stdout,
+                    )
+
+    def test_python_xoptions_must_match_runtime_contract(self) -> None:
+        valid_values = (
+            "utf8",
+            "utf8=0",
+            "utf8=1",
+            "cpu_count=1",
+            "cpu_count=default",
+            "context_aware_warnings=0",
+            "context_aware_warnings=1",
+            "frozen_modules=on",
+            "frozen_modules=off",
+            "int_max_str_digits=0",
+            "int_max_str_digits=640",
+            "thread_inherit_context=0",
+            "thread_inherit_context=1",
+            "tracemalloc",
+            "tracemalloc=0",
+            "tracemalloc=1",
+            "custom_runtime_option=enabled",
+        )
+        invalid_values = (
+            "utf8=bogus",
+            "cpu_count=0",
+            "cpu_count=bogus",
+            "context_aware_warnings=bogus",
+            "frozen_modules=bogus",
+            "int_max_str_digits=639",
+            "int_max_str_digits=bogus",
+            "thread_inherit_context=bogus",
+            "tracemalloc=bogus",
+        )
+
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for attached in (False, True):
+                for value in (*valid_values, *invalid_values):
+                    with self.subTest(attached=attached, value=value):
+                        option = f"-X{value}" if attached else "-X"
+                        arguments = (
+                            [option, "./mcp/server.py"]
+                            if attached
+                            else [option, value, "./mcp/server.py"]
+                        )
+                        config_path.write_text(
+                            json.dumps(
+                                {
+                                    "mcpServers": {
+                                        "conversation-visuals": {
+                                            "command": "python3",
+                                            "args": arguments,
+                                        }
+                                    }
+                                }
+                            ),
+                            encoding="utf-8",
+                        )
+
+                        result = run_checker(root=source)
+
+                        if value in valid_values:
+                            self.assertEqual(
+                                result.returncode,
+                                0,
+                                result.stdout + result.stderr,
+                            )
+                        else:
+                            self.assertNotEqual(result.returncode, 0)
+                            self.assertIn(
+                                "local Python -X option value is invalid",
+                                result.stdout,
+                            )
 
     def test_node_exit_only_options_cannot_serve_an_mcp(self) -> None:
         exit_only_options = (
