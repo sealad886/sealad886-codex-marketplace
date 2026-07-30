@@ -312,6 +312,13 @@ def node_launch_operand(
         "-h",
         "-v",
     }
+    replacement_modes = {
+        "--build-snapshot",
+        "--build-snapshot-config",
+        "--experimental-sea-config",
+        "--prof-process",
+        "--test",
+    }
     options_with_values = {
         "-C",
         "--build-snapshot-config",
@@ -344,6 +351,10 @@ def node_launch_operand(
         if argument in exit_only_options:
             raise ValueError(
                 f"local Node exit-only option cannot serve an MCP server: {argument}"
+            )
+        if argument.split("=", 1)[0] in replacement_modes:
+            raise ValueError(
+                f"local Node replacement mode cannot serve an MCP server: {argument}"
             )
         if argument in {"--inspect-brk", "--inspect-wait"} or argument.startswith(
             ("--inspect-brk=", "--inspect-wait=")
@@ -755,6 +766,10 @@ def add_local_mcp_dependencies(
             if not command_source.is_relative_to(resolved_root):
                 raise ValueError(f"local MCP command escapes plugin root: {command}")
             if command_source.is_file():
+                if os.name != "nt" and not command_source.stat().st_mode & 0o111:
+                    raise ValueError(
+                        f"local MCP command is not executable: {command}"
+                    )
                 relative_command = command_source.relative_to(resolved_root)
                 selected.add(relative_command)
                 if executable_commands is not None:
@@ -843,6 +858,14 @@ def add_local_mcp_dependencies(
                 relative_script_command = script_command_source.relative_to(
                     resolved_root
                 )
+                if (
+                    os.name != "nt"
+                    and not script_command_source.stat().st_mode & 0o111
+                ):
+                    raise ValueError(
+                        "local Node package script command is not executable: "
+                        f"{script_command}"
+                    )
                 selected.add(relative_script_command)
                 if executable_commands is not None:
                     executable_commands.add(relative_script_command)

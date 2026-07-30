@@ -317,8 +317,15 @@ class DistributionBundleTests(unittest.TestCase):
             )
 
             result = run_checker(root=source)
+            os.chmod(launcher, launcher.stat().st_mode & ~0o111)
+            nonexecutable = run_checker(root=source)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertNotEqual(nonexecutable.returncode, 0)
+            self.assertIn(
+                "local MCP command is not executable",
+                nonexecutable.stdout,
+            )
 
     def test_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -670,6 +677,83 @@ class DistributionBundleTests(unittest.TestCase):
                         "debugger-wait option cannot serve an MCP server",
                         result.stdout,
                     )
+
+    def test_node_replacement_modes_cannot_serve_an_mcp(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            config_path = source / ".mcp.json"
+
+            for option in (
+                "--build-snapshot",
+                "--build-snapshot-config=./snapshot.json",
+                "--experimental-sea-config=./sea.json",
+                "--prof-process",
+                "--test",
+            ):
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": [option, "./mcp/server.py"],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "replacement mode cannot serve an MCP server",
+                        result.stdout,
+                    )
+
+    def test_node_package_script_command_must_be_executable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            launcher = source / "mcp" / "server"
+            launcher.write_text("#!/bin/sh\n", encoding="utf-8")
+            (source / "mcp" / "package.json").write_text(
+                json.dumps({"scripts": {"mcp": "./server"}}),
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["--run=mcp"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            nonexecutable = run_checker(root=source)
+            os.chmod(launcher, launcher.stat().st_mode | 0o100)
+            executable = run_checker(root=source)
+
+            self.assertNotEqual(nonexecutable.returncode, 0)
+            self.assertIn(
+                "local Node package script command is not executable",
+                nonexecutable.stdout,
+            )
+            self.assertEqual(
+                executable.returncode,
+                0,
+                executable.stdout + executable.stderr,
+            )
 
     def test_grouped_python_module_launch_dependency_is_included(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
