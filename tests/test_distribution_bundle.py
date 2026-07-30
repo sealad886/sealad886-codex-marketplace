@@ -677,6 +677,53 @@ class DistributionBundleTests(unittest.TestCase):
                         result.stdout,
                     )
 
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["-m", "mcp.server"],
+                                "env": {"PYTHONSAFEPATH": "1"},
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            environment_safe_path = run_checker(root=source)
+
+            self.assertNotEqual(environment_safe_path.returncode, 0)
+            self.assertIn(
+                "safe-path environment cannot launch a bundled module",
+                environment_safe_path.stdout,
+            )
+
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["-E", "-m", "mcp.server"],
+                                "env": {
+                                    "PYTHONHASHSEED": "bogus",
+                                    "PYTHONSAFEPATH": "1",
+                                },
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            ignored_environment = run_checker(root=source)
+
+            self.assertEqual(
+                ignored_environment.returncode,
+                0,
+                ignored_environment.stdout + ignored_environment.stderr,
+            )
+
     def test_python_xoptions_must_match_runtime_contract(self) -> None:
         valid_values = (
             "utf8",

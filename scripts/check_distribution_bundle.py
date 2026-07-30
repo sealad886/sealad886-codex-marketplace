@@ -335,6 +335,38 @@ def validate_python_environment(environment: dict[str, str]) -> None:
         )
 
 
+def python_ignores_environment(command: str, arguments: list[str]) -> bool:
+    """Return whether interpreter options ignore all PYTHON* variables."""
+    if not is_python_command(command):
+        return False
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument in {"--", "-"} or not argument.startswith("-"):
+            return False
+        if argument == "--check-hash-based-pycs":
+            index += 2
+            continue
+        if argument.startswith("--"):
+            index += 1
+            continue
+        options = argument[1:]
+        option_index = 0
+        consumed_following_value = False
+        while option_index < len(options):
+            option = options[option_index]
+            if option in {"E", "I"}:
+                return True
+            if option in {"c", "m"}:
+                return False
+            if option in {"W", "X"}:
+                consumed_following_value = option_index + 1 == len(options)
+                break
+            option_index += 1
+        index += 2 if consumed_following_value else 1
+    return False
+
+
 def validate_node_debug_address(option: str, value: str) -> None:
     """Validate Node's optional debug host and constrained port."""
     if not value:
@@ -1290,8 +1322,6 @@ def add_local_mcp_dependencies(
             raise ValueError(
                 "local Node MCP env NODE_OPTIONS cannot establish closure"
             )
-        if is_python_command(command):
-            validate_python_environment(environment)
         arguments = server.get("args", [])
         if not isinstance(arguments, list):
             raise ValueError("local MCP server args must be an array")
@@ -1299,6 +1329,28 @@ def add_local_mcp_dependencies(
             raise ValueError("local MCP server args must contain only strings")
         python_launch = python_launch_operand(command, arguments)
         node_launch = node_launch_operand(command, arguments)
+        if is_python_command(command) and not python_ignores_environment(
+            command,
+            arguments,
+        ):
+            validate_python_environment(environment)
+            safe_path = next(
+                (
+                    value
+                    for key, value in environment.items()
+                    if key.upper() == "PYTHONSAFEPATH"
+                ),
+                "",
+            )
+            if (
+                safe_path
+                and python_launch is not None
+                and python_launch[0] == "module"
+            ):
+                raise ValueError(
+                    "local Python safe-path environment cannot launch a "
+                    "bundled module"
+                )
         if is_python_command(command) and (
             python_launch is None or python_launch[0] == "stdin"
         ):
