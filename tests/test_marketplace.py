@@ -12,6 +12,9 @@ from pathlib import Path
 REPOSITORY_ROOT = Path(__file__).parents[1]
 CHECKER = REPOSITORY_ROOT / "scripts" / "check_marketplace.py"
 MARKETPLACE_PATH = Path(".agents/plugins/marketplace.json")
+sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
+
+from check_marketplace import version_from_tag  # noqa: E402
 
 
 def run_checker(root: Path) -> subprocess.CompletedProcess[str]:
@@ -55,29 +58,31 @@ def commit_fixture(root: Path, message: str) -> None:
 
 def create_repository_fixture(root: Path) -> dict[str, object]:
     (root / MARKETPLACE_PATH.parent).mkdir(parents=True)
-    shutil.copytree(
-        REPOSITORY_ROOT / "plugins" / "project-delivery",
-        root / "plugins" / "project-delivery",
-    )
     shutil.copy2(REPOSITORY_ROOT / "LICENSE", root / "LICENSE")
     marketplace = json.loads(
         (REPOSITORY_ROOT / MARKETPLACE_PATH).read_text(encoding="utf-8")
     )
-    source_ref = marketplace["plugins"][0]["source"]["ref"]
-    manifest_path = (
-        root
-        / "plugins"
-        / "project-delivery"
-        / ".codex-plugin"
-        / "plugin.json"
-    )
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    manifest["version"] = source_ref.removeprefix("v")
-    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    for entry in marketplace["plugins"]:
+        source_path = Path(entry["source"]["path"])
+        while source_path.parts and source_path.parts[0] == ".":
+            source_path = Path(*source_path.parts[1:])
+        shutil.copytree(REPOSITORY_ROOT / source_path, root / source_path)
+        pinned_version = version_from_tag(entry["source"]["ref"])
+        if pinned_version is not None:
+            manifest_path = source_path / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(
+                (root / manifest_path).read_text(encoding="utf-8")
+            )
+            manifest["version"] = pinned_version
+            (root / manifest_path).write_text(
+                json.dumps(manifest),
+                encoding="utf-8",
+            )
     write_marketplace(root, marketplace)
     run_git(root, "init", "-q")
-    commit_fixture(root, "fixture: add Project Delivery")
-    run_git(root, "tag", source_ref)
+    commit_fixture(root, "fixture: add catalog plugins")
+    for entry in marketplace["plugins"]:
+        run_git(root, "tag", entry["source"]["ref"])
     return marketplace
 
 
@@ -196,7 +201,7 @@ class MarketplaceTests(unittest.TestCase):
             result = run_checker(root)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertIn("plugins=2", result.stdout)
+            self.assertIn("plugins=3", result.stdout)
 
     def test_duplicate_marketplace_plugin_name_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

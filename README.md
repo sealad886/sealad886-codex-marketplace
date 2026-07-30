@@ -6,22 +6,14 @@
 
 This repository is Andrew Cox's public marketplace for original Codex plugins. Each plugin is independently useful, versioned, documented, validated, and packaged beneath `plugins/<plugin-id>/`; the marketplace is the catalog and distribution boundary, not a shared runtime dependency.
 
-The repository and marketplace are both named `sealad886-codex-marketplace`. Individual plugin IDs remain stable, so installing Project Delivery uses the selector `project-delivery@sealad886-codex-marketplace` and its skills remain `project-delivery:<skill>`.
+The repository and marketplace are both named `sealad886-codex-marketplace`. Individual plugin IDs remain stable: Project Delivery uses `project-delivery@sealad886-codex-marketplace`, Conversation Visuals uses `conversation-visuals@sealad886-codex-marketplace`, and their skills retain the corresponding plugin prefix.
 
 ## Available plugins
 
 | Plugin | Stable version | Purpose | Install selector |
 |---|---:|---|---|
 | [Project Delivery](plugins/project-delivery/README.md) | `1.4.1` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
-
-## Pending catalog publication
-
-[Conversation Visuals](plugins/conversation-visuals/README.md) `0.1.0` is a
-self-contained plugin for adding relevant sourced and generated visuals to
-supported Codex and ChatGPT conversations. It will be added to the installable
-catalog only after the exact package is committed and the marketplace can pin
-an immutable tag containing it; the repository does not advertise an
-unresolvable or mutable release.
+| [Conversation Visuals](plugins/conversation-visuals/README.md) | `0.1.0` | Enrich supported Codex and ChatGPT conversations with relevant sourced and generated visuals | `conversation-visuals@sealad886-codex-marketplace` |
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 
@@ -32,6 +24,7 @@ Add the hosted marketplace, then install the plugin you want:
 ```bash
 codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
 codex plugin add project-delivery@sealad886-codex-marketplace
+codex plugin add conversation-visuals@sealad886-codex-marketplace
 ```
 
 Start a fresh Codex task after installation so the current plugin catalog and skill metadata are loaded.
@@ -47,11 +40,13 @@ sealad886-codex-marketplace/
 ├── tests/                             semantic contracts and regression tests
 └── plugins/
     ├── project-delivery/              canonical installable plugin
-    └── conversation-visuals/          visual conversation plugin candidate
+    └── conversation-visuals/          installable visual conversation plugin
         ├── .codex-plugin/plugin.json
+        ├── .mcp.json
         ├── README.md
         ├── LICENSE
         ├── assets/
+        ├── mcp/
         └── skills/
 ```
 
@@ -119,4 +114,4 @@ Release validation also includes the system Plugin Creator validator, exact pack
 - [Migration and decommission map](references/migration-and-decommission.md)
 - [Validation report](references/validation-report.md)
 
-This marketplace and its current Project Delivery plugin are maintained by Andrew Cox and licensed under the [MIT License](LICENSE). Copyright © 2026 Andrew Cox.
+This marketplace and its plugins are maintained by Andrew Cox and licensed under their included MIT licenses. Copyright © 2026 Andrew Cox.
