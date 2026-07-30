@@ -46,6 +46,11 @@ def public_http_url(value: Any) -> bool:
         return False
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
         return False
+    if any(character in parsed.netloc for character in "[]"):
+        try:
+            ipaddress.IPv6Address(hostname)
+        except (ipaddress.AddressValueError, ValueError):
+            return False
     if username or password:
         return False
     if port is not None and not 1 <= port <= 65535:

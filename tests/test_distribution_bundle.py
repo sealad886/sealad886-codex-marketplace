@@ -461,6 +461,9 @@ class DistributionBundleTests(unittest.TestCase):
             "https://exa|mple.com/mcp",
             "https://exa<mple.com/mcp",
             "https://exa>mple.com/mcp",
+            "https://256.1.1.1/mcp",
+            "https://1.2.3.4.5/mcp",
+            "https://[v1.foo]/mcp",
         ):
             with (
                 self.subTest(url=url),
@@ -1218,6 +1221,32 @@ class DistributionBundleTests(unittest.TestCase):
                 result.stdout,
             )
 
+    def test_python_command_launch_rejects_unbounded_imports(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["-c", "import definitely_missing_module"],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "local Python inline program dependencies cannot be established",
+                result.stdout,
+            )
+
     def test_node_debug_port_options_consume_separate_operands(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -1262,6 +1291,30 @@ class DistributionBundleTests(unittest.TestCase):
                         0,
                         result.stdout + result.stderr,
                     )
+
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": [
+                                    "--debug-port=99999",
+                                    "./mcp/server.js",
+                                ],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            invalid_port = run_checker(root=source)
+
+            self.assertNotEqual(invalid_port.returncode, 0)
+            self.assertIn(
+                "local Node --debug-port value is invalid",
+                invalid_port.stdout,
+            )
 
     def test_node_input_type_supports_inline_eval_launches(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -1722,6 +1775,77 @@ class DistributionBundleTests(unittest.TestCase):
                 bounded_environment.returncode,
                 0,
                 bounded_environment.stdout + bounded_environment.stderr,
+            )
+
+    def test_node_declaration_env_cannot_hide_startup_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp" / "server.js").write_text(
+                "console.log('ready');\n",
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": ["./mcp/server.js"],
+                                "env": {
+                                    "NODE_OPTIONS": (
+                                        "--require ./definitely-missing.js"
+                                    )
+                                },
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "local Node MCP env NODE_OPTIONS cannot establish closure",
+                result.stdout,
+            )
+
+    def test_node_env_file_operand_must_be_a_regular_file(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp" / "server.js").write_text(
+                "console.log('ready');\n",
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": [
+                                    "--env-file",
+                                    "./mcp",
+                                    "./mcp/server.js",
+                                ],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "local Node env-file dependency must be a regular file",
+                result.stdout,
             )
 
     def test_bare_node_preload_must_be_a_known_builtin_module(self) -> None:

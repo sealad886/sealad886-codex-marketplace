@@ -217,6 +217,7 @@ class ConversationVisualsTests(unittest.TestCase):
             "https://exa|mple.com/item",
             "https://exa<mple.com/item",
             "https://exa>mple.com/item",
+            "https://[v1.foo]/item",
             "http://localhost./item",
             "http://media.localhost/item",
             "http://169.254.169.254/latest/meta-data",

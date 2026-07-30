@@ -5,11 +5,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 import re
 import shlex
 import shutil
+import socket
 import sys
 import tempfile
 import time
@@ -248,6 +250,65 @@ def validate_node_inline_program(program: str) -> None:
         )
 
 
+def validate_python_inline_program(program: str) -> None:
+    """Reject inline programs whose import dependency closure is unbounded."""
+    if re.search(r"\b(?:from|import|importlib|__import__)\b", program):
+        raise ValueError(
+            "local Python inline program dependencies cannot be established"
+        )
+
+
+def validate_node_debug_address(option: str, value: str) -> None:
+    """Validate Node's optional debug host and constrained port."""
+    if not value:
+        raise ValueError(f"local Node {option} value is invalid: {value}")
+    port_text: str | None = None
+    if value.startswith("["):
+        match = re.fullmatch(r"\[[^\]]+\](?::(\d+))?", value)
+        if match is None:
+            raise ValueError(f"local Node {option} value is invalid: {value}")
+        port_text = match.group(1)
+    elif ":" in value:
+        host, port_text = value.rsplit(":", 1)
+        if not host or not port_text.isdecimal():
+            raise ValueError(f"local Node {option} value is invalid: {value}")
+    elif value.isdecimal():
+        port_text = value
+    if port_text is not None:
+        port = int(port_text)
+        if port != 0 and not 1024 <= port <= 65535:
+            raise ValueError(f"local Node {option} value is invalid: {value}")
+
+
+def bracketed_hostname_is_ipv6(netloc: str, hostname: str) -> bool:
+    """Require bracketed URL authorities to contain an IPv6 literal."""
+    if "[" not in netloc and "]" not in netloc:
+        return True
+    try:
+        ipaddress.IPv6Address(hostname)
+    except (ipaddress.AddressValueError, ValueError):
+        return False
+    return True
+
+
+def malformed_whatwg_ipv4_hostname(hostname: str) -> bool:
+    """Detect numeric-final-label hosts that fail WHATWG IPv4 parsing."""
+    normalized = hostname.rstrip(".")
+    final_label = normalized.rsplit(".", 1)[-1].lower()
+    ipv4_candidate = final_label.isdecimal() or (
+        final_label.startswith("0x")
+        and len(final_label) > 2
+        and all(character in "0123456789abcdef" for character in final_label[2:])
+    )
+    if not ipv4_candidate:
+        return False
+    try:
+        socket.inet_aton(normalized)
+    except OSError:
+        return True
+    return False
+
+
 def python_launch_operand(
     command: str,
     arguments: list[str],
@@ -322,6 +383,8 @@ def python_launch_operand(
                         raise ValueError(
                             f"local Python -{option} launch requires an operand"
                         )
+                    if option == "c":
+                        validate_python_inline_program(operand)
                     if option == "m" and safe_path:
                         raise ValueError(
                             "local Python safe-path option cannot launch a "
@@ -445,6 +508,7 @@ def node_launch_operand(
         "--watch-path",
     }
     input_types = {"commonjs", "module"}
+    debug_value_options = {"--debug-port", "--inspect-port"}
     input_type = None
     index = 0
     while index < len(arguments):
@@ -499,6 +563,17 @@ def node_launch_operand(
                 raise ValueError(
                     f"local Node --input-type value is invalid: {input_type}"
                 )
+            index += 1
+            continue
+        if argument in debug_value_options:
+            if index + 1 >= len(arguments):
+                raise ValueError(f"local Node {argument} option requires an operand")
+            validate_node_debug_address(argument, arguments[index + 1])
+            index += 2
+            continue
+        if any(argument.startswith(f"{option}=") for option in debug_value_options):
+            option, value = argument.split("=", 1)
+            validate_node_debug_address(option, value)
             index += 1
             continue
         if argument in {"-e", "--eval", "-p", "--print"}:
@@ -932,6 +1007,10 @@ def add_launch_dependencies(
                 validate_node_env_file(source)
             selected.add(source.relative_to(resolved_root))
         elif source.is_dir():
+            if argument in node_env_files:
+                raise ValueError(
+                    f"local Node env-file dependency must be a regular file: {argument}"
+                )
             if argument in esm_preloads:
                 raise ValueError(
                     f"local Node ESM preload cannot be a directory: {argument}"
@@ -1019,6 +1098,7 @@ def add_local_mcp_dependencies(
                 parsed_url.scheme not in {"http", "https"}
                 or not parsed_url.netloc
                 or not hostname
+                or not bracketed_hostname_is_ipv6(parsed_url.netloc, hostname)
                 or any(character in "%<>^|" for character in hostname)
                 or any(
                     character in "%<>^|"
@@ -1027,6 +1107,7 @@ def add_local_mcp_dependencies(
                     or ord(character) == 127
                     for character in normalized_hostname
                 )
+                or malformed_whatwg_ipv4_hostname(normalized_hostname)
                 or any(
                     character.isspace()
                     or ord(character) < 32
@@ -1078,6 +1159,19 @@ def add_local_mcp_dependencies(
         elif not is_python_command(command) and not is_node_command(command):
             raise ValueError(
                 f"unresolved bare local MCP command is not portable: {command}"
+            )
+        environment = server.get("env", {})
+        if not isinstance(environment, dict) or not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in environment.items()
+        ):
+            raise ValueError("local MCP server env must contain string values")
+        if is_node_command(command) and any(
+            key.upper() == "NODE_OPTIONS" and value.strip()
+            for key, value in environment.items()
+        ):
+            raise ValueError(
+                "local Node MCP env NODE_OPTIONS cannot establish closure"
             )
         arguments = server.get("args", [])
         if not isinstance(arguments, list):
