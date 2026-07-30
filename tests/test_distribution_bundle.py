@@ -464,6 +464,7 @@ class DistributionBundleTests(unittest.TestCase):
             "https://256.1.1.1/mcp",
             "https://1.2.3.4.5/mcp",
             "https://[v1.foo]/mcp",
+            "https://exa\u0660mple.com/mcp",
         ):
             with (
                 self.subTest(url=url),
@@ -1314,6 +1315,75 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertIn(
                 "local Node --debug-port value is invalid",
                 invalid_port.stdout,
+            )
+
+            config_path.write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": [
+                                    "--inspect=99999",
+                                    "./mcp/server.js",
+                                ],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            invalid_inspect_port = run_checker(root=source)
+
+            self.assertNotEqual(invalid_inspect_port.returncode, 0)
+            self.assertIn(
+                "local Node --inspect value is invalid",
+                invalid_inspect_port.stdout,
+            )
+
+    def test_node_configuration_cannot_hide_startup_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp" / "server.js").write_text(
+                "console.log('ready');\n",
+                encoding="utf-8",
+            )
+            (source / "node-config.json").write_text(
+                json.dumps(
+                    {
+                        "nodeOptions": {
+                            "require": "./definitely-missing.js",
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": [
+                                    "--experimental-config-file",
+                                    "./node-config.json",
+                                    "./mcp/server.js",
+                                ],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "local Node configuration options cannot establish closure",
+                result.stdout,
             )
 
     def test_node_input_type_supports_inline_eval_launches(self) -> None:

@@ -61,7 +61,10 @@ def public_http_url(value: Any) -> bool:
         decoded_hostname = unquote(hostname, errors="strict") if hostname else ""
     except UnicodeDecodeError:
         return False
-    if "%" in decoded_hostname:
+    # Python's standard-library IDNA codec does not implement the contextual
+    # validation used by WHATWG URL hosts. Require callers to provide the
+    # equivalent ASCII IDNA form so accepted URLs remain usable by Node hosts.
+    if "%" in decoded_hostname or not decoded_hostname.isascii():
         return False
     try:
         address = ipaddress.ip_address(decoded_hostname)

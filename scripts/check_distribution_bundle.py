@@ -280,6 +280,25 @@ def validate_node_debug_address(option: str, value: str) -> None:
             raise ValueError(f"local Node {option} value is invalid: {value}")
 
 
+def validate_node_config_file(path: Path) -> None:
+    """Reject Node configuration options whose startup closure is unbounded."""
+    try:
+        config = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        raise ValueError(
+            f"local Node configuration file is invalid: {path}"
+        ) from error
+    if not isinstance(config, dict):
+        raise ValueError(f"local Node configuration file is invalid: {path}")
+    node_options = config.get("nodeOptions", {})
+    if not isinstance(node_options, dict):
+        raise ValueError(f"local Node configuration file is invalid: {path}")
+    if node_options:
+        raise ValueError(
+            "local Node configuration options cannot establish closure"
+        )
+
+
 def bracketed_hostname_is_ipv6(netloc: str, hostname: str) -> bool:
     """Require bracketed URL authorities to contain an IPv6 literal."""
     if "[" not in netloc and "]" not in netloc:
@@ -576,6 +595,10 @@ def node_launch_operand(
             validate_node_debug_address(option, value)
             index += 1
             continue
+        if argument.startswith("--inspect="):
+            validate_node_debug_address("--inspect", argument.split("=", 1)[1])
+            index += 1
+            continue
         if argument in {"-e", "--eval", "-p", "--print"}:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
@@ -681,6 +704,8 @@ def node_runtime_dependency_operands(
                         if argument in {"--require", "-r"}
                         else "module"
                         if argument in module_dependency_options
+                        else "node-config"
+                        if argument == "--experimental-config-file"
                         else "env-file"
                         if argument in env_file_options
                         else "file"
@@ -707,6 +732,8 @@ def node_runtime_dependency_operands(
                             if option == "--require"
                             else "module"
                             if option in module_dependency_options
+                            else "node-config"
+                            if option == "--experimental-config-file"
                             else "env-file"
                             if option in env_file_options
                             else "file"
@@ -957,6 +984,11 @@ def add_launch_dependencies(
         for operand, resolution_mode, _ in node_dependencies
         if resolution_mode == "env-file"
     }
+    node_config_files = {
+        operand
+        for operand, resolution_mode, _ in node_dependencies
+        if resolution_mode == "node-config"
+    }
     module_dependencies = {
         operand
         for operand, resolution_mode, _ in node_dependencies
@@ -1005,11 +1037,18 @@ def add_launch_dependencies(
         if source.is_file():
             if argument in node_env_files:
                 validate_node_env_file(source)
+            if argument in node_config_files:
+                validate_node_config_file(source)
             selected.add(source.relative_to(resolved_root))
         elif source.is_dir():
             if argument in node_env_files:
                 raise ValueError(
                     f"local Node env-file dependency must be a regular file: {argument}"
+                )
+            if argument in node_config_files:
+                raise ValueError(
+                    "local Node configuration dependency must be a regular file: "
+                    f"{argument}"
                 )
             if argument in esm_preloads:
                 raise ValueError(
@@ -1098,6 +1137,7 @@ def add_local_mcp_dependencies(
                 parsed_url.scheme not in {"http", "https"}
                 or not parsed_url.netloc
                 or not hostname
+                or not hostname.isascii()
                 or not bracketed_hostname_is_ipv6(parsed_url.netloc, hostname)
                 or any(character in "%<>^|" for character in hostname)
                 or any(
