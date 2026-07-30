@@ -1185,6 +1185,80 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_node_eval_launch_rejects_unbounded_module_loading(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": [
+                                    "--eval",
+                                    "require('./mcp/definitely-missing.js')",
+                                ],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "local Node inline program dependencies cannot be established",
+                result.stdout,
+            )
+
+    def test_node_debug_port_options_consume_separate_operands(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp" / "server.js").write_text(
+                "console.log('ready');\n",
+                encoding="utf-8",
+            )
+            (source / "mcp" / "bootstrap.js").write_text(
+                "globalThis.ready = true;\n",
+                encoding="utf-8",
+            )
+            config_path = source / ".mcp.json"
+
+            for option in ("--debug-port", "--inspect-port"):
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": [
+                                            option,
+                                            "9333",
+                                            "--require",
+                                            "./mcp/bootstrap",
+                                            "./mcp/server.js",
+                                        ],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertEqual(
+                        result.returncode,
+                        0,
+                        result.stdout + result.stderr,
+                    )
+
     def test_node_input_type_supports_inline_eval_launches(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"

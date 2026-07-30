@@ -240,6 +240,14 @@ def validate_python_xoption(value: str) -> None:
         raise ValueError(f"local Python -X option value is invalid: {value}")
 
 
+def validate_node_inline_program(program: str) -> None:
+    """Reject inline programs whose module dependency closure is unbounded."""
+    if re.search(r"\brequire\b|\bimport\b(?!\s*\.)", program):
+        raise ValueError(
+            "local Node inline program dependencies cannot be established"
+        )
+
+
 def python_launch_operand(
     command: str,
     arguments: list[str],
@@ -413,14 +421,13 @@ def node_launch_operand(
         "--interactive",
     }
     optional_value_options = {
-        "--debug-port",
         "--inspect",
-        "--inspect-port",
     }
     options_with_values = {
         "-C",
         "--build-snapshot-config",
         "--conditions",
+        "--debug-port",
         "--env-file",
         "--env-file-if-exists",
         "--experimental-config-file",
@@ -428,6 +435,7 @@ def node_launch_operand(
         "--experimental-sea-config",
         "--icu-data-dir",
         "--import",
+        "--inspect-port",
         "--loader",
         "--openssl-config",
         "-r",
@@ -496,12 +504,20 @@ def node_launch_operand(
         if argument in {"-e", "--eval", "-p", "--print"}:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
-            return ("command", arguments[index + 1])
+            program = arguments[index + 1]
+            validate_node_inline_program(program)
+            return ("command", program)
         if (
             (argument.startswith(("-e", "-p")) and len(argument) > 2)
             or argument.startswith(("--eval=", "--print="))
         ):
-            return ("command", argument)
+            program = (
+                argument[2:]
+                if argument.startswith(("-e", "-p"))
+                else argument.split("=", 1)[1]
+            )
+            validate_node_inline_program(program)
+            return ("command", program)
         if argument in options_with_values:
             if index + 1 >= len(arguments):
                 raise ValueError(f"local Node {argument} option requires an operand")
@@ -560,6 +576,13 @@ def node_runtime_dependency_operands(
     dependency_options = (
         module_dependency_options | required_file_options | optional_file_options
     )
+    non_dependency_options_with_values = {
+        "-C",
+        "--conditions",
+        "--debug-port",
+        "--input-type",
+        "--inspect-port",
+    }
     operands: list[tuple[str, str, bool]] = []
     index = 0
     while index < len(arguments):
@@ -614,6 +637,17 @@ def node_runtime_dependency_operands(
                 matched_attached = True
                 break
         if matched_attached:
+            index += 1
+            continue
+        if argument in non_dependency_options_with_values:
+            if index + 1 >= len(arguments):
+                raise ValueError(f"local Node {argument} option requires an operand")
+            index += 2
+            continue
+        if any(
+            argument.startswith(f"{option}=")
+            for option in non_dependency_options_with_values
+        ):
             index += 1
             continue
         if argument.startswith("-r") and len(argument) > 2:

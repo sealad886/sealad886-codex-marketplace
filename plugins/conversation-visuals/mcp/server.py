@@ -65,7 +65,7 @@ def public_http_url(value: Any) -> bool:
     if address is not None:
         return address.is_global and not address.is_multicast
     if any(
-        character in ":/\\@?#[]"
+        character in "%:/\\@?#[]<>^|"
         or character.isspace()
         or ord(character) < 32
         or ord(character) == 127
@@ -79,7 +79,7 @@ def public_http_url(value: Any) -> bool:
     except UnicodeError:
         return False
     if any(
-        character in "%:/\\@?#[]"
+        character in "%:/\\@?#[]<>^|"
         or character.isspace()
         or ord(character) < 32
         or ord(character) == 127
