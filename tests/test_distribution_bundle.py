@@ -457,6 +457,10 @@ class DistributionBundleTests(unittest.TestCase):
             "https://exa%20mple.com/mcp",
             "https://%31%32%37.0.0.1/mcp",
             "https://exa％20mple.com/mcp",
+            "https://exa^mple.com/mcp",
+            "https://exa|mple.com/mcp",
+            "https://exa<mple.com/mcp",
+            "https://exa>mple.com/mcp",
         ):
             with (
                 self.subTest(url=url),
@@ -1626,6 +1630,98 @@ class DistributionBundleTests(unittest.TestCase):
                 package_resolved.returncode,
                 0,
                 package_resolved.stdout + package_resolved.stderr,
+            )
+
+    def test_esm_preload_directory_is_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp" / "server.js").write_text(
+                "console.log('ready');\n",
+                encoding="utf-8",
+            )
+            preload = source / "mcp" / "bootstrap"
+            preload.mkdir()
+            (preload / "index.js").write_text(
+                "globalThis.ready = true;\n",
+                encoding="utf-8",
+            )
+            config_path = source / ".mcp.json"
+
+            for option in ("--import", "--loader"):
+                with self.subTest(option=option):
+                    config_path.write_text(
+                        json.dumps(
+                            {
+                                "mcpServers": {
+                                    "conversation-visuals": {
+                                        "command": "node",
+                                        "args": [
+                                            option,
+                                            "./mcp/bootstrap",
+                                            "./mcp/server.js",
+                                        ],
+                                    }
+                                }
+                            }
+                        ),
+                        encoding="utf-8",
+                    )
+
+                    result = run_checker(root=source)
+
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "local Node ESM preload cannot be a directory",
+                        result.stdout,
+                    )
+
+    def test_node_env_file_cannot_hide_startup_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            (source / "mcp" / "server.py").unlink()
+            (source / "mcp" / "server.js").write_text(
+                "console.log('ready');\n",
+                encoding="utf-8",
+            )
+            environment = source / "mcp" / "config.env"
+            environment.write_text(
+                'NODE_OPTIONS="--require ./definitely-missing.js"\n',
+                encoding="utf-8",
+            )
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "node",
+                                "args": [
+                                    "--env-file",
+                                    "./mcp/config.env",
+                                    "./mcp/server.js",
+                                ],
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            hidden_dependency = run_checker(root=source)
+            environment.write_text("VISUALS=enabled\n", encoding="utf-8")
+            bounded_environment = run_checker(root=source)
+
+            self.assertNotEqual(hidden_dependency.returncode, 0)
+            self.assertIn(
+                "local Node env file NODE_OPTIONS cannot establish closure",
+                hidden_dependency.stdout,
+            )
+            self.assertEqual(
+                bounded_environment.returncode,
+                0,
+                bounded_environment.stdout + bounded_environment.stderr,
             )
 
     def test_bare_node_preload_must_be_a_known_builtin_module(self) -> None:

@@ -573,6 +573,7 @@ def node_runtime_dependency_operands(
         "--watch-path",
     }
     optional_file_options = {"--env-file-if-exists"}
+    env_file_options = {"--env-file", "--env-file-if-exists"}
     dependency_options = (
         module_dependency_options | required_file_options | optional_file_options
     )
@@ -605,6 +606,8 @@ def node_runtime_dependency_operands(
                         if argument in {"--require", "-r"}
                         else "module"
                         if argument in module_dependency_options
+                        else "env-file"
+                        if argument in env_file_options
                         else "file"
                     ),
                     argument not in optional_file_options,
@@ -629,6 +632,8 @@ def node_runtime_dependency_operands(
                             if option == "--require"
                             else "module"
                             if option in module_dependency_options
+                            else "env-file"
+                            if option in env_file_options
                             else "file"
                         ),
                         option not in optional_file_options,
@@ -779,6 +784,29 @@ def resolve_commonjs_entrypoint(
     return None
 
 
+def validate_node_env_file(source: Path) -> None:
+    """Reject NODE_OPTIONS that can add undeclared startup dependencies."""
+    try:
+        lines = source.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError) as error:
+        raise ValueError("local Node env file is invalid") from error
+    for line in lines:
+        match = re.match(r"^\s*(?:export\s+)?NODE_OPTIONS\s*=(.*)$", line)
+        if match is None:
+            continue
+        value = match.group(1).strip()
+        if (
+            len(value) >= 2
+            and value[0] in {"'", '"'}
+            and value[-1] == value[0]
+        ):
+            value = value[1:-1].strip()
+        if value:
+            raise ValueError(
+                "local Node env file NODE_OPTIONS cannot establish closure"
+            )
+
+
 def add_python_module_dependencies(
     root: Path,
     cwd: Path,
@@ -844,6 +872,16 @@ def add_launch_dependencies(
         for operand, resolution_mode, _ in node_dependencies
         if resolution_mode == "commonjs"
     }
+    esm_preloads = {
+        operand
+        for operand, resolution_mode, _ in node_dependencies
+        if resolution_mode == "module"
+    }
+    node_env_files = {
+        operand
+        for operand, resolution_mode, _ in node_dependencies
+        if resolution_mode == "env-file"
+    }
     module_dependencies = {
         operand
         for operand, resolution_mode, _ in node_dependencies
@@ -890,8 +928,14 @@ def add_launch_dependencies(
                 source,
             )
         if source.is_file():
+            if argument in node_env_files:
+                validate_node_env_file(source)
             selected.add(source.relative_to(resolved_root))
         elif source.is_dir():
+            if argument in esm_preloads:
+                raise ValueError(
+                    f"local Node ESM preload cannot be a directory: {argument}"
+                )
             if argument in commonjs_preloads:
                 commonjs_entrypoint = resolve_commonjs_entrypoint(
                     source,
@@ -975,9 +1019,9 @@ def add_local_mcp_dependencies(
                 parsed_url.scheme not in {"http", "https"}
                 or not parsed_url.netloc
                 or not hostname
-                or "%" in hostname
+                or any(character in "%<>^|" for character in hostname)
                 or any(
-                    character == "%"
+                    character in "%<>^|"
                     or character.isspace()
                     or ord(character) < 32
                     or ord(character) == 127
