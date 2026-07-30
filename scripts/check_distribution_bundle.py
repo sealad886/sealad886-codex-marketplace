@@ -13,7 +13,7 @@ import sys
 import tempfile
 import time
 import uuid
-from pathlib import Path, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from urllib.parse import urlparse
 
 from check_plugin import validate
@@ -41,18 +41,24 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/live-route-receipt-v3.schema.json",
     "skills/.shared/route-profiles-v1.json",
 )
-FORBIDDEN_DISTRIBUTION_PARTS = {
+UNIVERSAL_FORBIDDEN_DISTRIBUTION_PARTS = {
     ".git",
     ".github",
     ".venv",
     "__pycache__",
     "node_modules",
-    "references",
-    "scripts",
     "tests",
 }
+PROJECT_DELIVERY_FORBIDDEN_DISTRIBUTION_PARTS = {"references", "scripts"}
 PLUGIN_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 MAX_PLUGIN_NAME_LENGTH = 64
+
+
+def forbidden_distribution_parts(plugin_name: str) -> set[str]:
+    forbidden = set(UNIVERSAL_FORBIDDEN_DISTRIBUTION_PARTS)
+    if plugin_name == "project-delivery":
+        forbidden.update(PROJECT_DELIVERY_FORBIDDEN_DISTRIBUTION_PARTS)
+    return forbidden
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -76,7 +82,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def is_absolute_path(value: str) -> bool:
-    return Path(value).is_absolute() or PureWindowsPath(value).is_absolute()
+    return (
+        Path(value).is_absolute()
+        or PurePosixPath(value).is_absolute()
+        or PureWindowsPath(value).is_absolute()
+    )
 
 
 def safe_relative_path(value: str) -> Path:
@@ -107,16 +117,42 @@ def is_python_command(command: str) -> bool:
     ) is not None
 
 
-def python_script_operand(command: str, arguments: list[str]) -> str | None:
-    """Return the first Python script operand that must exist locally."""
+def python_launch_operand(
+    command: str,
+    arguments: list[str],
+) -> tuple[str, str | None] | None:
+    """Return Python's interpreter launch mode and its first operand."""
     if not is_python_command(command):
         return None
-    for argument in arguments:
-        if argument in ("-", "-c", "-m"):
-            return None
-        if argument.lower().endswith((".py", ".pyw")):
-            return argument
+    options_with_values = {"-W", "-X", "--check-hash-based-pycs"}
+    index = 0
+    while index < len(arguments):
+        argument = arguments[index]
+        if argument == "--":
+            return (
+                ("script", arguments[index + 1])
+                if index + 1 < len(arguments)
+                else None
+            )
+        if argument == "-":
+            return ("stdin", None)
+        if argument in ("-c", "-m"):
+            operand = arguments[index + 1] if index + 1 < len(arguments) else None
+            return ("command" if argument == "-c" else "module", operand)
+        if argument in options_with_values:
+            index += 2
+            continue
+        if argument.startswith("-"):
+            index += 1
+            continue
+        return ("script", argument)
     return None
+
+
+def python_script_operand(command: str, arguments: list[str]) -> str | None:
+    """Return the Python file or directory operand that must exist locally."""
+    launch = python_launch_operand(command, arguments)
+    return launch[1] if launch is not None and launch[0] == "script" else None
 
 
 def add_parent_package_initializers(
@@ -142,34 +178,32 @@ def add_python_module_dependencies(
     arguments: list[str],
 ) -> None:
     """Include bundled modules launched through a Python ``-m`` operand."""
-    if not is_python_command(command):
+    launch = python_launch_operand(command, arguments)
+    if launch is None or launch[0] != "module" or launch[1] is None:
         return
     resolved_root = root.resolve()
-    for index, argument in enumerate(arguments[:-1]):
-        if argument != "-m":
-            continue
-        module = arguments[index + 1]
-        parts = module.split(".")
-        if not parts or not all(part.isidentifier() for part in parts):
-            continue
-        module_path = cwd.joinpath(*parts)
-        module_file = module_path.with_suffix(".py").resolve()
-        package_directory = module_path.resolve()
-        if (
-            not module_file.is_relative_to(resolved_root)
-            or not package_directory.is_relative_to(resolved_root)
-        ):
-            raise ValueError(f"local Python module escapes plugin root: {module}")
-        if module_file.is_file():
-            selected.add(module_file.relative_to(resolved_root))
-            add_parent_package_initializers(root, cwd, selected, module_file)
-        elif package_directory.is_dir():
-            selected.update(
-                path.relative_to(resolved_root)
-                for path in package_directory.rglob("*")
-                if path.is_file()
-            )
-            add_parent_package_initializers(root, cwd, selected, package_directory)
+    module = launch[1]
+    parts = module.split(".")
+    if not parts or not all(part.isidentifier() for part in parts):
+        return
+    module_path = cwd.joinpath(*parts)
+    module_file = module_path.with_suffix(".py").resolve()
+    package_directory = module_path.resolve()
+    if (
+        not module_file.is_relative_to(resolved_root)
+        or not package_directory.is_relative_to(resolved_root)
+    ):
+        raise ValueError(f"local Python module escapes plugin root: {module}")
+    if module_file.is_file():
+        selected.add(module_file.relative_to(resolved_root))
+        add_parent_package_initializers(root, cwd, selected, module_file)
+    elif package_directory.is_dir():
+        selected.update(
+            path.relative_to(resolved_root)
+            for path in package_directory.rglob("*")
+            if path.is_file()
+        )
+        add_parent_package_initializers(root, cwd, selected, package_directory)
 
 
 def add_local_mcp_dependencies(
@@ -258,14 +292,18 @@ def add_local_mcp_dependencies(
                 raise ValueError(
                     f"local MCP dependency escapes plugin root: {argument}"
                 )
-            if not source.is_file():
-                if is_explicit_path:
-                    raise ValueError(
-                        f"local MCP dependency does not exist: {argument}"
-                    )
-                continue
-            dependency = source.relative_to(resolved_root)
-            selected.add(dependency)
+            if source.is_file():
+                selected.add(source.relative_to(resolved_root))
+            elif source.is_dir():
+                selected.update(
+                    path.relative_to(resolved_root)
+                    for path in source.rglob("*")
+                    if path.is_file()
+                )
+            elif is_explicit_path:
+                raise ValueError(
+                    f"local MCP dependency does not exist: {argument}"
+                )
         add_python_module_dependencies(root, cwd, selected, command, arguments)
 
 
@@ -349,7 +387,10 @@ def inventory_tree(
     root: Path,
     label: str,
     phase: str,
+    forbidden_parts: set[str] | None = None,
 ) -> tuple[set[Path], set[Path], list[str]]:
+    if forbidden_parts is None:
+        forbidden_parts = forbidden_distribution_parts(read_plugin_name(root))
     files: set[Path] = set()
     directories: set[Path] = set()
     errors: list[str] = []
@@ -375,7 +416,7 @@ def inventory_tree(
         else:
             errors.append(f"{label} contains unsupported file type: {relative}")
 
-        forbidden = FORBIDDEN_DISTRIBUTION_PARTS.intersection(relative.parts)
+        forbidden = forbidden_parts.intersection(relative.parts)
         if forbidden:
             errors.append(
                 f"{label} contains forbidden path: {relative} "
@@ -384,11 +425,16 @@ def inventory_tree(
     return files, directories, errors
 
 
-def validate_source_boundary(root: Path, selected: list[Path]) -> list[str]:
+def validate_source_boundary(
+    root: Path,
+    selected: list[Path],
+    forbidden_parts: set[str] | None = None,
+) -> list[str]:
     actual_files, actual_directories, errors = inventory_tree(
         root,
         "plugin package boundary",
         "BOUNDARY",
+        forbidden_parts,
     )
     expected_files = set(selected)
     expected_directory_set = expected_directories(expected_files)
@@ -406,12 +452,10 @@ def validate_source_boundary(root: Path, selected: list[Path]) -> list[str]:
 def validate_distribution_tree(
     destination: Path,
     selected: list[Path],
+    plugin_name: str,
+    forbidden_parts: set[str],
 ) -> list[str]:
     errors, skill_count, _ = validate(destination, "source")
-    manifest = json.loads(
-        (destination / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
-    )
-    plugin_name = manifest.get("name")
     if skill_count < 1:
         errors.append("runtime closure must contain at least one skill")
     expected_skill_count = 13 if plugin_name == "project-delivery" else None
@@ -433,6 +477,7 @@ def validate_distribution_tree(
         destination,
         "runtime closure",
         "RUNTIME",
+        forbidden_parts,
     )
     errors.extend(inventory_errors)
     expected_files = set(selected)
@@ -451,15 +496,24 @@ def validate_distribution_tree(
 def build_runtime_closure(root: Path, destination: Path) -> tuple[list[str], list[Path], str]:
     errors: list[str] = []
     try:
+        plugin_name = read_plugin_name(root)
         selected = sorted(select_paths(root))
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
         return [str(error)], [], ""
 
-    errors.extend(validate_source_boundary(root, selected))
+    forbidden_parts = forbidden_distribution_parts(plugin_name)
+    errors.extend(validate_source_boundary(root, selected, forbidden_parts))
     if errors:
         return errors, selected, ""
     copy_selected(root, destination, selected)
-    errors.extend(validate_distribution_tree(destination, selected))
+    errors.extend(
+        validate_distribution_tree(
+            destination,
+            selected,
+            plugin_name,
+            forbidden_parts,
+        )
+    )
     digest = payload_sha256(destination, selected) if not errors else ""
     return errors, selected, digest
 
@@ -509,7 +563,11 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
     except (OSError, UnicodeError, json.JSONDecodeError, ValueError) as error:
         return [f"refusing to replace output with invalid package boundary: {error}"]
 
-    boundary_errors = validate_source_boundary(output, selected)
+    boundary_errors = validate_source_boundary(
+        output,
+        selected,
+        forbidden_distribution_parts(plugin_name),
+    )
     structural_errors, _, _ = validate(output, "source")
     errors.extend(f"refusing to replace unclean output: {error}" for error in boundary_errors)
     errors.extend(f"refusing to replace invalid output: {error}" for error in structural_errors)

@@ -13,6 +13,7 @@ from unittest import mock
 REPOSITORY_ROOT = Path(__file__).parents[1]
 PLUGIN_ROOT = REPOSITORY_ROOT / "plugins" / "conversation-visuals"
 SERVER_PATH = PLUGIN_ROOT / "mcp" / "server.py"
+SUBPROCESS_TIMEOUT_SECONDS = 30
 
 sys.dont_write_bytecode = True
 SPEC = importlib.util.spec_from_file_location("conversation_visuals_server", SERVER_PATH)
@@ -222,6 +223,7 @@ class ConversationVisualsTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -278,6 +280,7 @@ class ConversationVisualsTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -339,6 +342,7 @@ class ConversationVisualsTests(unittest.TestCase):
             check=False,
             capture_output=True,
             text=True,
+            timeout=SUBPROCESS_TIMEOUT_SECONDS,
         )
 
         self.assertEqual(result.returncode, 0, result.stderr)

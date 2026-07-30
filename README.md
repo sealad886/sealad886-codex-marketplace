@@ -14,14 +14,14 @@ The repository and marketplace are both named `sealad886-codex-marketplace`. Ind
 |---|---:|---|---|
 | [Project Delivery](plugins/project-delivery/README.md) | `1.4.1` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
 
-## Release candidate
+## Pending catalog publication
 
 [Conversation Visuals](plugins/conversation-visuals/README.md) `0.1.0` is a
 self-contained plugin for adding relevant sourced and generated visuals to
-supported Codex and ChatGPT conversations. Its package and local MCP are under
-validation. It will be added to the installable catalog only after the exact
-package is committed and the marketplace can pin an immutable tag containing
-it; the repository does not advertise an unresolvable or mutable release.
+supported Codex and ChatGPT conversations. It will be added to the installable
+catalog only after the exact package is committed and the marketplace can pin
+an immutable tag containing it; the repository does not advertise an
+unresolvable or mutable release.
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 

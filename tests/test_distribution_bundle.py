@@ -8,7 +8,7 @@ import sys
 import tempfile
 import unittest
 from unittest import mock
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 
 REPOSITORY_ROOT = Path(__file__).parents[1]
@@ -17,7 +17,11 @@ CONVERSATION_VISUALS_ROOT = REPOSITORY_ROOT / "plugins" / "conversation-visuals"
 CHECKER = REPOSITORY_ROOT / "scripts" / "check_distribution_bundle.py"
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
-from check_distribution_bundle import materialize_runtime_closure  # noqa: E402
+from check_distribution_bundle import (  # noqa: E402
+    add_python_module_dependencies,
+    is_absolute_path,
+    materialize_runtime_closure,
+)
 
 
 FORBIDDEN_PARTS = {
@@ -30,6 +34,7 @@ FORBIDDEN_PARTS = {
     "scripts",
     "tests",
 }
+SUBPROCESS_TIMEOUT_SECONDS = 30
 
 
 def run_checker(*arguments: str, root: Path = PLUGIN_ROOT) -> subprocess.CompletedProcess[str]:
@@ -38,6 +43,7 @@ def run_checker(*arguments: str, root: Path = PLUGIN_ROOT) -> subprocess.Complet
         check=False,
         capture_output=True,
         text=True,
+        timeout=SUBPROCESS_TIMEOUT_SECONDS,
     )
 
 
@@ -193,6 +199,13 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("absolute local MCP dependency is not portable", result.stdout)
+
+    def test_posix_absolute_paths_are_recognized_independently_of_host(self) -> None:
+        with (
+            mock.patch.object(Path, "is_absolute", return_value=False),
+            mock.patch.object(PureWindowsPath, "is_absolute", return_value=False),
+        ):
+            self.assertTrue(is_absolute_path("/etc/passwd"))
 
     def test_absolute_local_mcp_command_returns_a_validation_error(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -364,6 +377,24 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
+    def test_python_application_arguments_do_not_select_modules(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            module = root / "application" / "package.py"
+            module.parent.mkdir()
+            module.write_text("", encoding="utf-8")
+            selected: set[Path] = set()
+
+            add_python_module_dependencies(
+                root,
+                root,
+                selected,
+                "python3",
+                ["runner", "-m", "application.package"],
+            )
+
+            self.assertEqual(selected, set())
+
     def test_nested_python_package_launch_includes_parent_initializer(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "conversation-visuals"
@@ -418,6 +449,73 @@ class DistributionBundleTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("local MCP dependency does not exist", result.stdout)
+
+    def test_extensionless_python_script_operand_is_included(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            server = source / "mcp" / "server"
+            (source / "mcp" / "server.py").rename(server)
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["server"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_directory_mcp_dependency_is_included(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            resources = source / "mcp" / "resources"
+            resources.mkdir()
+            (resources / "prompt.txt").write_text("visual prompt\n", encoding="utf-8")
+            (source / ".mcp.json").write_text(
+                json.dumps(
+                    {
+                        "mcpServers": {
+                            "conversation-visuals": {
+                                "command": "python3",
+                                "args": ["server.py", "resources"],
+                                "cwd": "./mcp",
+                            }
+                        }
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_scripts_component_is_allowed_outside_project_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conversation-visuals"
+            shutil.copytree(CONVERSATION_VISUALS_ROOT, source)
+            scripts = source / "scripts"
+            scripts.mkdir()
+            (scripts / "render.js").write_text("export {};\n", encoding="utf-8")
+            manifest_path = source / ".codex-plugin" / "plugin.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["scripts"] = "./scripts/"
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            result = run_checker(root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def test_unprefixed_local_mcp_dependency_resolves_from_server_cwd(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

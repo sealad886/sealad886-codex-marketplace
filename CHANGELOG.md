@@ -6,7 +6,7 @@ This file records user-visible marketplace and Project Delivery changes. Dates u
 
 ### Added
 
-- Conversation Visuals `0.1.0` release-candidate package with four skills for
+- Conversation Visuals `0.1.0` package with four skills for
   conservative conversational visual selection, sourced-media research,
   disclosed visual generation, and short visual storytelling.
 - A dependency-free local MCP server that plans visual treatments and validates
