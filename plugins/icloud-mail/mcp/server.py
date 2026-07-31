@@ -1755,7 +1755,7 @@ def send_email(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_draft(
-    arguments: dict[str, Any], *, socket_timeout: float | None = None
+    arguments: dict[str, Any], *, socket_timeout: float | None = 10.0
 ) -> dict[str, Any]:
     message = _prepare_outgoing(arguments)
     raw = message.as_bytes(policy=email.policy.SMTP)
@@ -1959,7 +1959,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     for message_id in ids:
         try:
             mailbox, validity, uid = _decode_ref(message_id)
-            with _imap() as client:
+            with _imap(socket_timeout=10.0) as client:
                 source, raw, flags = _fetch_message(client, mailbox, validity, uid)
             original = _read_email_result(
                 source, raw, flags, message_id, mailbox

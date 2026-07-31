@@ -859,7 +859,9 @@ class ICloudMailTests(unittest.TestCase):
         context.__enter__.return_value = client
         with mock.patch.object(
             server, "_prepare_outgoing", return_value=message
-        ), mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ) as connect, mock.patch.object(
             server, "_special_mailbox", return_value="Drafts"
         ):
             result = server.create_draft({})
@@ -867,6 +869,7 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["internet_message_id"], "<draft@example.com>")
         self.assertIsNone(result["draft_id"])
         self.assertFalse(result["retry_create"])
+        connect.assert_called_once_with(socket_timeout=10.0)
 
     def test_create_draft_preserves_receipt_on_raw_imap_recovery_error(self) -> None:
         message = EmailMessage()
@@ -1182,7 +1185,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "_decode_ref", return_value=("INBOX", 7, 9)
         ), mock.patch.object(
             server, "_imap", return_value=context
-        ), mock.patch.object(
+        ) as connect, mock.patch.object(
             server, "_fetch_message", return_value=(source, b"", "")
         ) as fetch, mock.patch.object(
             server,
@@ -1202,6 +1205,7 @@ class ICloudMailTests(unittest.TestCase):
             prepare.call_args.args[0]["body"],
         )
         fetch.assert_called_once()
+        connect.assert_called_once_with(socket_timeout=10.0)
 
     def test_forward_rejects_multiple_sources_before_connecting(self) -> None:
         with mock.patch.object(server, "_imap") as connect:
