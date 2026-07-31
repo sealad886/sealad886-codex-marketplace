@@ -1122,6 +1122,38 @@ class ICloudMailTests(unittest.TestCase):
             {"anchor", "related"},
         )
 
+    def test_thread_read_connects_siblings_through_missing_parent(self) -> None:
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "subject": "Re: Project",
+            "internet_message_id": "<anchor@example.com>",
+            "references": ["<missing-parent@example.com>"],
+            "in_reply_to": "<missing-parent@example.com>",
+        }
+        sibling = {
+            "id": "sibling",
+            "mailbox": "INBOX",
+            "subject": "Re: Project",
+            "internet_message_id": "<sibling@example.com>",
+            "references": ["<missing-parent@example.com>"],
+            "in_reply_to": "<missing-parent@example.com>",
+        }
+        with mock.patch.object(
+            server, "read_email", return_value=anchor
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={"emails": [sibling, anchor], "truncated": False},
+        ), mock.patch.object(
+            server, "_read_emails_shared", return_value=[sibling]
+        ):
+            result = server.read_email_thread({"message_id": "anchor"})
+        self.assertEqual(
+            {message["id"] for message in result["messages"]},
+            {"anchor", "sibling"},
+        )
+
     def test_empty_subject_thread_returns_only_anchor(self) -> None:
         anchor = {
             "id": "anchor",

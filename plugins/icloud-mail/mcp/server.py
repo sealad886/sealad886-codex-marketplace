@@ -1082,7 +1082,9 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
         }
 
     connected_ids = {anchor["id"]}
-    connected_internet_ids = {internet_id(anchor)} - {""}
+    connected_reference_nodes = (
+        {internet_id(anchor)} | references(anchor)
+    ) - {""}
     changed = True
     while changed:
         changed = False
@@ -1091,17 +1093,13 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 continue
             message_id = internet_id(message)
             message_references = references(message)
-            connected_messages = [
-                item for item in candidates if item["id"] in connected_ids
-            ]
-            linked = bool(message_references & connected_internet_ids) or any(
-                message_id and message_id in references(item)
-                for item in connected_messages
-            )
+            message_reference_nodes = (
+                {message_id} | message_references
+            ) - {""}
+            linked = bool(message_reference_nodes & connected_reference_nodes)
             if linked:
                 connected_ids.add(message["id"])
-                if message_id:
-                    connected_internet_ids.add(message_id)
+                connected_reference_nodes.update(message_reference_nodes)
                 changed = True
     connected = [item for item in candidates if item["id"] in connected_ids]
     selected = connected[:maximum]
