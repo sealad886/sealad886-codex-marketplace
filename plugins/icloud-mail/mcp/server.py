@@ -39,6 +39,7 @@ CONFIG_VERSION = 1
 MAX_RESULTS = 50
 MAX_MOVE_RESULTS = 5
 MAX_FLAG_RESULTS = 5
+MAX_MAILBOX_STATUS = 100
 MAX_SEARCH_SCAN = 80
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
@@ -589,18 +590,68 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
     match = re.search(rb"\bBODYSTRUCTURE\b", metadata, flags=re.I)
     if not match:
         return False
-    structure = metadata[match.end():]
-    disposition = re.search(
-        rb'\(\s*"ATTACHMENT"(?:\s|\))',
-        structure,
-        flags=re.I,
-    )
-    named_parameter = re.search(
-        rb'"(?:NAME|FILENAME)"\s+(?:"(?:[^"\\]|\\.)*"|[^\s()]+)',
-        structure,
-        flags=re.I,
-    )
-    return bool(disposition or named_parameter)
+
+    def parse(position: int) -> tuple[Any, int]:
+        while position < len(metadata) and metadata[position:position + 1].isspace():
+            position += 1
+        if position >= len(metadata):
+            raise ValueError
+        if metadata[position:position + 1] == b"(":
+            values = []
+            position += 1
+            while True:
+                while position < len(metadata) and metadata[position:position + 1].isspace():
+                    position += 1
+                if position >= len(metadata):
+                    raise ValueError
+                if metadata[position:position + 1] == b")":
+                    return values, position + 1
+                value, position = parse(position)
+                values.append(value)
+        if metadata[position:position + 1] == b'"':
+            position += 1
+            value = bytearray()
+            while position < len(metadata):
+                character = metadata[position:position + 1]
+                position += 1
+                if character == b'"':
+                    return bytes(value), position
+                if character == b"\\" and position < len(metadata):
+                    character = metadata[position:position + 1]
+                    position += 1
+                value.extend(character)
+            raise ValueError
+        end = position
+        while end < len(metadata) and not metadata[end:end + 1].isspace() and metadata[end:end + 1] not in {b"(", b")"}:
+            end += 1
+        atom = metadata[position:end]
+        return (None if atom.upper() == b"NIL" else atom), end
+
+    def contains_attachment(node: Any) -> bool:
+        if not isinstance(node, list):
+            return False
+        if node and isinstance(node[0], bytes) and node[0].upper() == b"ATTACHMENT":
+            return True
+        if (
+            len(node) > 2
+            and isinstance(node[0], bytes)
+            and isinstance(node[1], bytes)
+            and isinstance(node[2], list)
+        ):
+            parameters = node[2]
+            if any(
+                isinstance(parameters[index], bytes)
+                and parameters[index].upper() in {b"NAME", b"FILENAME"}
+                for index in range(0, len(parameters) - 1, 2)
+            ):
+                return True
+        return any(contains_attachment(value) for value in node if isinstance(value, list))
+
+    try:
+        structure, _ = parse(match.end())
+    except ValueError:
+        return False
+    return contains_attachment(structure)
 
 
 def get_account_status(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -820,7 +871,12 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("list_mailboxes takes no arguments")
     with _imap() as client:
         mailboxes = _mailboxes(client)
-        for item in mailboxes:
+        client.sock.settimeout(min(_timeout(), 4.0))
+        for index, item in enumerate(mailboxes):
+            if index >= MAX_MAILBOX_STATUS:
+                item["messages"] = None
+                item["unread"] = None
+                continue
             status, data = client.status(
                 _quoted_mailbox(item["name"]), "(MESSAGES UNSEEN)"
             )
@@ -1046,6 +1102,7 @@ def read_email(arguments: dict[str, Any]) -> dict[str, Any]:
 def _read_emails_shared(message_ids: list[str]) -> list[dict[str, Any]]:
     results = []
     with _imap() as client:
+        client.sock.settimeout(min(_timeout(), 8.0))
         for message_id in message_ids:
             mailbox, validity, uid = _decode_ref(message_id)
             try:

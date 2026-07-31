@@ -273,6 +273,25 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIsNone(result["mailboxes"][0]["messages"])
         self.assertIsNone(result["mailboxes"][0]["unread"])
 
+    def test_mailbox_status_enumeration_has_time_and_count_bounds(self) -> None:
+        client = mock.MagicMock()
+        mailboxes = [
+            {"name": f"Folder {index}", "flags": []}
+            for index in range(server.MAX_MAILBOX_STATUS + 1)
+        ]
+        client.status.return_value = ("OK", [b"(MESSAGES 1 UNSEEN 0)"])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(server, "_mailboxes", return_value=mailboxes):
+            result = server.list_mailboxes({})
+        client.sock.settimeout.assert_called_once_with(4.0)
+        self.assertEqual(client.status.call_count, server.MAX_MAILBOX_STATUS)
+        self.assertIsNone(result["mailboxes"][-1]["messages"])
+
     def test_search_summary_detects_content_type_name_attachment(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -308,6 +327,13 @@ class ICloudMailTests(unittest.TestCase):
         )
         result = server._fetch_summary(client, "INBOX", 7, 9)
         self.assertFalse(result["has_attachments"])
+
+    def test_bodystructure_description_named_name_is_not_attachment(self) -> None:
+        metadata = (
+            b'9 (BODYSTRUCTURE ("TEXT" "PLAIN" NIL NIL "NAME" '
+            b'"7BIT" 10 1) FLAGS ())'
+        )
+        self.assertFalse(server._bodystructure_has_attachment(metadata))
 
     def test_search_summary_reads_only_the_flags_response_field(self) -> None:
         client = mock.MagicMock()
@@ -1477,8 +1503,11 @@ class ICloudMailTests(unittest.TestCase):
 
     def test_selected_thread_messages_share_one_imap_session(self) -> None:
         context = mock.MagicMock()
-        context.__enter__.return_value = mock.MagicMock()
-        with mock.patch.object(server, "_imap", return_value=context) as connect, mock.patch.object(
+        client = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
+        ), mock.patch.object(server, "_imap", return_value=context) as connect, mock.patch.object(
             server, "_decode_ref", return_value=("INBOX", 7, 9)
         ), mock.patch.object(
             server, "_fetch_message", return_value=(EmailMessage(), b"", "")
@@ -1492,6 +1521,7 @@ class ICloudMailTests(unittest.TestCase):
             result = server._read_emails_shared(["first", "second"])
         self.assertEqual(result, [{"id": "first"}, {"id": "second"}])
         connect.assert_called_once_with()
+        client.sock.settimeout.assert_called_once_with(8.0)
 
     def test_shared_thread_fetch_skips_vanished_non_anchor_message(self) -> None:
         context = mock.MagicMock()
