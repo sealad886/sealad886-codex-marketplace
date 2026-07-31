@@ -520,7 +520,6 @@ def _fetch_summary(
         raise MailError("Message no longer exists in this mailbox")
     message = email.message_from_bytes(headers, policy=email.policy.default)
     flags = metadata.decode("ascii", errors="replace")
-    lower_metadata = metadata.lower()
     message_id = _encode_ref(mailbox, expected_validity, uid)
     return {
         "id": message_id,
@@ -532,15 +531,29 @@ def _fetch_summary(
         "date": message.get("Date", ""),
         "unread": "\\Seen" not in flags,
         "flagged": "\\Flagged" in flags,
-        "has_attachments": (
-            b"attachment" in lower_metadata
-            or b"filename" in lower_metadata
-            or b'"name"' in lower_metadata
-        ),
+        "has_attachments": _bodystructure_has_attachment(metadata),
         "snippet": "",
         "references": message.get("References", "").split(),
         "in_reply_to": message.get("In-Reply-To", ""),
     }
+
+
+def _bodystructure_has_attachment(metadata: bytes) -> bool:
+    match = re.search(rb"\bBODYSTRUCTURE\b", metadata, flags=re.I)
+    if not match:
+        return False
+    structure = metadata[match.end():]
+    disposition = re.search(
+        rb'\(\s*"ATTACHMENT"(?:\s|\))',
+        structure,
+        flags=re.I,
+    )
+    named_parameter = re.search(
+        rb'"(?:NAME|FILENAME)"\s+(?:"(?:[^"\\]|\\.)*"|[^\s()]+)',
+        structure,
+        flags=re.I,
+    )
+    return bool(disposition or named_parameter)
 
 
 def get_account_status(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1390,6 +1403,7 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         del wire["Bcc"]
     client: smtplib.SMTP | None = None
     refused: dict[str, tuple[int, bytes]] | None = None
+    acceptance_unconfirmed: str | None = None
     cleanup_warning = None
     try:
         client = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout())
@@ -1397,7 +1411,12 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         client.starttls(context=ssl.create_default_context())
         client.ehlo()
         client.login(username, password)
-        refused = client.send_message(wire, from_addr=sender, to_addrs=recipients)
+        try:
+            refused = client.send_message(
+                wire, from_addr=sender, to_addrs=recipients
+            )
+        except (smtplib.SMTPServerDisconnected, OSError, TimeoutError) as error:
+            acceptance_unconfirmed = type(error).__name__
     except smtplib.SMTPException as error:
         raise MailError(f"iCloud SMTP rejected the request: {type(error).__name__}") from None
     except (OSError, TimeoutError) as error:
@@ -1413,12 +1432,27 @@ def _smtp_send(message: Message) -> dict[str, Any]:
                         f"{type(error).__name__}"
                     )
     result = {
-        "status": "accepted",
+        "status": (
+            "acceptance_unconfirmed"
+            if acceptance_unconfirmed
+            else "accepted"
+        ),
         "internet_message_id": message.get("Message-ID", ""),
         "from": sender,
         "recipients": recipients,
         "refused": sorted(refused or {}),
     }
+    if acceptance_unconfirmed:
+        result.update(
+            {
+                "error": (
+                    "Connection was lost while awaiting the SMTP DATA result: "
+                    f"{acceptance_unconfirmed}"
+                ),
+                "retry_send": False,
+                "next_step": "Check Sent Mail before deciding whether to send again.",
+            }
+        )
     if cleanup_warning:
         result["cleanup_warning"] = cleanup_warning
         result["retry_send"] = False
@@ -1444,9 +1478,26 @@ def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     raw = message.as_bytes(policy=email.policy.SMTP)
     with _imap() as client:
         drafts = _special_mailbox(client, "Drafts", ["Drafts"])
-        status, data = client.append(
-            _quoted_mailbox(drafts), "(\\Draft \\Seen)", None, raw
-        )
+        try:
+            status, data = client.append(
+                _quoted_mailbox(drafts), "(\\Draft \\Seen)", None, raw
+            )
+        except (
+            OSError,
+            TimeoutError,
+            imaplib.IMAP4.error,
+        ) as error:
+            return {
+                "draft_id": None,
+                "internet_message_id": message["Message-ID"],
+                "status": "creation_unconfirmed",
+                "error": (
+                    "Connection was lost while awaiting the IMAP APPEND result: "
+                    f"{type(error).__name__}"
+                ),
+                "retry_create": False,
+                "next_step": "Find the draft by its Internet Message-ID before creating another.",
+            }
         if status != "OK":
             raise MailError("Could not create iCloud Mail draft")
         append_uid = client.response("APPENDUID")[1]

@@ -197,6 +197,24 @@ class ICloudMailTests(unittest.TestCase):
         result = server._fetch_summary(client, "INBOX", 7, 9)
         self.assertTrue(result["has_attachments"])
 
+    def test_search_summary_does_not_match_attachment_in_content_id(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = b"Subject: No attachment\r\n\r\n"
+        client.uid.return_value = (
+            "OK",
+            [
+                (
+                    b'9 (UID 9 BODYSTRUCTURE ("TEXT" "PLAIN" '
+                    b'NIL "<attachment@example.com>" NIL "7BIT" 10 1))',
+                    headers,
+                )
+            ],
+        )
+        result = server._fetch_summary(client, "INBOX", 7, 9)
+        self.assertFalse(result["has_attachments"])
+
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
         self.assertEqual(names, set(server.HANDLERS))
@@ -623,6 +641,25 @@ class ICloudMailTests(unittest.TestCase):
             result = server.create_draft({})
         self.assertEqual(result["status"], "created_unresolved")
         self.assertFalse(result["retry_create"])
+
+    def test_create_draft_reports_unconfirmed_append_without_retry(self) -> None:
+        message = EmailMessage()
+        message["Message-ID"] = "<draft@example.com>"
+        message.set_content("draft")
+        client = mock.MagicMock()
+        client.append.side_effect = OSError("connection reset")
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(
+            server, "_prepare_outgoing", return_value=message
+        ), mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_special_mailbox", return_value="Drafts"
+        ):
+            result = server.create_draft({})
+        self.assertEqual(result["status"], "creation_unconfirmed")
+        self.assertIsNone(result["draft_id"])
+        self.assertFalse(result["retry_create"])
+        self.assertIn("Internet Message-ID", result["next_step"])
 
     def test_batch_moves_return_completed_and_failed_receipts(self) -> None:
         client = mock.MagicMock()
@@ -1199,6 +1236,31 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["status"], "accepted")
         self.assertFalse(result["retry_send"])
         self.assertIn("cleanup failed", result["cleanup_warning"])
+
+    def test_smtp_data_disconnect_returns_unconfirmed_without_retry(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message["Subject"] = "Test"
+        message["Message-ID"] = "<test@icloud.com>"
+        message.set_content("body")
+        smtp = mock.MagicMock()
+        smtp.send_message.side_effect = server.smtplib.SMTPServerDisconnected(
+            "connection reset"
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        self.assertEqual(result["status"], "acceptance_unconfirmed")
+        self.assertFalse(result["retry_send"])
+        self.assertIn("Check Sent Mail", result["next_step"])
 
     def test_tool_errors_do_not_disclose_secret(self) -> None:
         secret = "do-not-leak"
