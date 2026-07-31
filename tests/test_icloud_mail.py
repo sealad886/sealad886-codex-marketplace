@@ -1152,8 +1152,44 @@ class ICloudMailTests(unittest.TestCase):
         receipt = result["results"][0]
         self.assertEqual(receipt["status"], "partial")
         self.assertEqual(receipt["changes"]["read"]["status"], "updated")
-        self.assertNotIn("flagged", receipt["changes"])
+        self.assertEqual(receipt["changes"]["flagged"]["status"], "unconfirmed")
         self.assertIn("connection reset", receipt["error"])
+
+    def test_flag_receipt_marks_first_store_transport_failure_unconfirmed(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 1)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"1 (UID 1)"]),
+            OSError("connection reset"),
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.set_email_flags(
+                {"message_ids": [message_id], "read": True}
+            )
+        receipt = result["results"][0]
+        self.assertEqual(receipt["status"], "unconfirmed")
+        self.assertEqual(receipt["changes"]["read"]["status"], "unconfirmed")
+
+    def test_list_drafts_bounds_both_imap_sessions(self) -> None:
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ) as connect, mock.patch.object(
+            server, "_special_mailbox", return_value="Drafts"
+        ), mock.patch.object(
+            server, "search_emails", return_value={"emails": [], "truncated": False}
+        ) as search:
+            result = server.list_drafts({"max_results": 5})
+        self.assertEqual(result, {"emails": [], "truncated": False})
+        connect.assert_called_once_with(socket_timeout=10.0)
+        search.assert_called_once_with(
+            {"mailbox": "Drafts", "max_results": 5}, socket_timeout=10.0
+        )
 
     def test_flag_update_rejects_non_boolean_values_before_connecting(self) -> None:
         with mock.patch.object(server, "_imap") as connect:

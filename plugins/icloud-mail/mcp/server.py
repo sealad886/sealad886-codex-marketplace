@@ -959,7 +959,9 @@ def _decode_imap_utf7(value: bytes) -> str:
     return "".join(output)
 
 
-def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
+def search_emails(
+    arguments: dict[str, Any], *, socket_timeout: float | None = None
+) -> dict[str, Any]:
     allowed = {
         "mailbox", "query", "from", "to", "subject", "after", "before",
         "unread", "flagged", "has_attachment", "max_results",
@@ -997,7 +999,7 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
         criteria.append("FLAGGED")
     elif arguments.get("flagged") is False:
         criteria.append("UNFLAGGED")
-    with _imap() as client:
+    with _imap(socket_timeout=socket_timeout) as client:
         validity = _select(client, mailbox, readonly=True)
         thread_reference_ids = _list(
             arguments.get("_thread_reference_ids", []),
@@ -1438,6 +1440,7 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
         client.sock.settimeout(min(_timeout(), 25.0))
         for message_id in ids:
             changes = {}
+            active_change = None
             try:
                 mailbox, validity, uid = _decode_ref(message_id)
                 if _select(client, mailbox, readonly=False) != validity:
@@ -1458,12 +1461,12 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
                             if arguments[key] is True
                             else "-FLAGS.SILENT"
                         )
-                        status, _ = client.uid(
-                            "STORE", str(uid), operation, f"({flag})"
-                        )
+                        active_change = key
+                        status, _ = client.uid("STORE", str(uid), operation, f"({flag})")
                         changes[key] = {
                             "status": "updated" if status == "OK" else "failed"
                         }
+                        active_change = None
                 failures = [
                     key for key, value in changes.items() if value["status"] == "failed"
                 ]
@@ -1490,13 +1493,21 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
                 TimeoutError,
                 imaplib.IMAP4.error,
             ) as error:
+                if active_change is not None:
+                    changes[active_change] = {"status": "unconfirmed"}
                 successes = [
                     key for key, value in changes.items() if value["status"] == "updated"
                 ]
                 results.append(
                     {
                         "message_id": message_id,
-                        "status": "partial" if successes else "failed",
+                        "status": (
+                            "partial"
+                            if successes
+                            else "unconfirmed"
+                            if active_change is not None
+                            else "failed"
+                        ),
                         "changes": changes,
                         "error": str(error),
                     }
@@ -1883,9 +1894,11 @@ def list_drafts(arguments: dict[str, Any]) -> dict[str, Any]:
     maximum = arguments.get("max_results", 20)
     if set(arguments) - {"max_results"}:
         raise ValueError("unsupported list_drafts fields")
-    with _imap() as client:
+    with _imap(socket_timeout=10.0) as client:
         drafts = _special_mailbox(client, "Drafts", ["Drafts"])
-    return search_emails({"mailbox": drafts, "max_results": maximum})
+    return search_emails(
+        {"mailbox": drafts, "max_results": maximum}, socket_timeout=10.0
+    )
 
 
 def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
