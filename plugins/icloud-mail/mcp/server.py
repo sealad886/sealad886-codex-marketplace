@@ -880,7 +880,7 @@ def _mailboxes(client: imaplib.IMAP4_SSL) -> list[dict[str, Any]]:
 def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
     if arguments:
         raise ValueError("list_mailboxes takes no arguments")
-    with _imap() as client:
+    with _imap(socket_timeout=4.0) as client:
         mailboxes = _mailboxes(client)
         client.sock.settimeout(min(_timeout(), 4.0))
         for index, item in enumerate(mailboxes):
@@ -1213,7 +1213,7 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 internet_id(item)
                 for item in result["emails"]
                 if internet_id(item)
-                and item.get("in_reply_to")
+                and internet_id(item) not in reference_ids
             )
         )[: 10 - len(reference_ids)]
         if second_wave_ids:
@@ -1400,7 +1400,7 @@ def move_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     if not ids:
         raise ValueError("message_ids must not be empty")
     destination = _text(arguments["destination"], "mailbox", required=True, limit=500)
-    with _imap() as client:
+    with _imap(socket_timeout=10.0) as client:
         return _move_batch(client, ids, destination)
 
 
@@ -1408,7 +1408,7 @@ def archive_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"message_ids"}:
         raise ValueError("archive_emails requires message_ids")
     ids = _list(arguments["message_ids"], "message_ids", limit=MAX_MOVE_RESULTS)
-    with _imap() as client:
+    with _imap(socket_timeout=10.0) as client:
         destination = _special_mailbox(client, "Archive", ["Archive"])
         return _move_batch(client, ids, destination)
 
@@ -1417,7 +1417,7 @@ def trash_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"message_ids"}:
         raise ValueError("trash_emails requires message_ids")
     ids = _list(arguments["message_ids"], "message_ids", limit=MAX_MOVE_RESULTS)
-    with _imap() as client:
+    with _imap(socket_timeout=10.0) as client:
         destination = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
         return _move_batch(client, ids, destination)
 
@@ -1436,7 +1436,7 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
         if arguments.get(key) is not None and not isinstance(arguments[key], bool):
             raise ValueError(f"{key} must be a boolean")
     results = []
-    with _imap() as client:
+    with _imap(socket_timeout=10.0) as client:
         client.sock.settimeout(min(_timeout(), 25.0))
         for message_id in ids:
             changes = {}

@@ -304,8 +304,9 @@ class ICloudMailTests(unittest.TestCase):
             os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
         ), mock.patch.object(
             server, "_imap", return_value=context
-        ), mock.patch.object(server, "_mailboxes", return_value=mailboxes):
+        ) as connect, mock.patch.object(server, "_mailboxes", return_value=mailboxes):
             result = server.list_mailboxes({})
+        connect.assert_called_once_with(socket_timeout=4.0)
         client.sock.settimeout.assert_called_once_with(4.0)
         self.assertEqual(client.status.call_count, server.MAX_MAILBOX_STATUS)
         self.assertIsNone(result["mailboxes"][-1]["messages"])
@@ -942,6 +943,24 @@ class ICloudMailTests(unittest.TestCase):
                 5,
             )
 
+    def test_move_workflows_bound_imap_session_setup(self) -> None:
+        for name, arguments in (
+            ("move_emails", {"message_ids": ["one"], "destination": "Folder"}),
+            ("archive_emails", {"message_ids": ["one"]}),
+            ("trash_emails", {"message_ids": ["one"]}),
+        ):
+            context = mock.MagicMock()
+            context.__enter__.return_value = mock.MagicMock()
+            with self.subTest(name=name), mock.patch.object(
+                server, "_imap", return_value=context
+            ) as connect, mock.patch.object(
+                server, "_special_mailbox", return_value=name
+            ), mock.patch.object(
+                server, "_move_batch", return_value={"results": []}
+            ):
+                getattr(server, name)(arguments)
+            connect.assert_called_once_with(socket_timeout=10.0)
+
     def test_batch_moves_preserve_receipts_on_transport_failure(self) -> None:
         client = mock.MagicMock()
         with mock.patch.object(
@@ -1076,8 +1095,9 @@ class ICloudMailTests(unittest.TestCase):
         context.__enter__.return_value = client
         with mock.patch.dict(
             os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
-        ), mock.patch.object(server, "_imap", return_value=context):
+        ), mock.patch.object(server, "_imap", return_value=context) as connect:
             server.set_email_flags({"message_ids": [message_id], "read": True})
+        connect.assert_called_once_with(socket_timeout=10.0)
         client.sock.settimeout.assert_called_once_with(25.0)
         tool = next(item for item in server.TOOLS if item["name"] == "set_email_flags")
         self.assertEqual(
@@ -1574,7 +1594,7 @@ class ICloudMailTests(unittest.TestCase):
             **anchor,
             "id": "b",
             "internet_message_id": "<b@example.com>",
-            "in_reply_to": "<a@example.com>",
+            "references": ["<a@example.com>"],
         }
         reply_c = {
             **anchor,
