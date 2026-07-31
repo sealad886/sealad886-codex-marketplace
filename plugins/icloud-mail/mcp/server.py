@@ -39,7 +39,7 @@ CONFIG_VERSION = 1
 MAX_RESULTS = 50
 MAX_MOVE_RESULTS = 5
 MAX_FLAG_RESULTS = 5
-MAX_SEARCH_SCAN = 200
+MAX_SEARCH_SCAN = 80
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 REF_PREFIX = "icloud-mail:"
@@ -918,6 +918,7 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     elif arguments.get("flagged") is False:
         criteria.append("UNFLAGGED")
     with _imap() as client:
+        client.sock.settimeout(min(_timeout(), 5.0))
         validity = _select(client, mailbox, readonly=True)
         thread_reference_ids = _list(
             arguments.get("_thread_reference_ids", []),
@@ -1070,6 +1071,9 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
     if not 0 <= index < len(parts):
         raise MailError("Attachment no longer exists")
     part = parts[index]
+    advertised_parts = {id(item) for item in _attachment_parts(message)}
+    if id(part) not in advertised_parts:
+        raise MailError("Attachment identifier is not an advertised attachment")
     payload = _attachment_payload(part)
     if len(payload) > MAX_ATTACHMENT_BYTES:
         raise MailError("Attachment exceeds the 5 MiB result limit")
@@ -1879,7 +1883,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                         "and 10 MiB total"
                     )
                 content_type = part.get_content_type().split("/", 1)
-                if part.is_multipart() and content_type[0] == "multipart":
+                if part.is_multipart() or content_type[0] == "message":
                     content_type = ["application", "octet-stream"]
                 forwarded.add_attachment(
                     payload,

@@ -173,6 +173,32 @@ class ICloudMailTests(unittest.TestCase):
         self.assertTrue(result["truncated"])
         self.assertEqual(fetch.call_count, 50)
 
+    def test_attachment_scan_caps_socket_timeout_and_total_fetches(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1000"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = (
+            "OK",
+            [b" ".join(str(index).encode() for index in range(1, 1001))],
+        )
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server,
+            "_fetch_summary",
+            return_value={"id": "message", "has_attachments": False},
+        ) as fetch:
+            result = server.search_emails(
+                {"has_attachment": True, "max_results": 50}
+            )
+        client.sock.settimeout.assert_called_once_with(5.0)
+        self.assertEqual(result["scanned"], 80)
+        self.assertEqual(fetch.call_count, 80)
+
     def test_search_skips_a_message_that_vanishes_during_summary_fetch(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"2"])
@@ -507,6 +533,25 @@ class ICloudMailTests(unittest.TestCase):
         payload = base64.b64decode(result["content_base64"])
         self.assertIn(b"Subject: Attached", payload)
         self.assertIn(b"attached body", payload)
+
+    def test_read_attachment_rejects_guessed_body_part_id(self) -> None:
+        outer = EmailMessage()
+        outer.set_content("private body")
+        message_id = server._encode_ref("INBOX", 7, 9)
+        body_token = base64.urlsafe_b64encode(b"0").decode().rstrip("=")
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(outer, b"", "")
+        ), self.assertRaisesRegex(server.MailError, "not an advertised attachment"):
+            server.read_attachment(
+                {
+                    "message_id": message_id,
+                    "attachment_id": f"{message_id}.{body_token}",
+                }
+            )
 
     def test_clear_configuration_preserves_keychain_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, self.config_environment(
@@ -1141,6 +1186,7 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["results"][0]["status"], "accepted")
         attachments = list(outgoing.iter_attachments())
         self.assertEqual(len(attachments), 1)
+        self.assertEqual(attachments[0].get_content_type(), "application/octet-stream")
         self.assertIn(b"Subject: Nested", server._attachment_payload(attachments[0]))
 
     def test_html_only_forward_content_is_converted_to_text(self) -> None:
