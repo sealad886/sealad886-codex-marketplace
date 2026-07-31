@@ -449,6 +449,56 @@ def _summary(message: Message, message_id: str, flags: str = "") -> dict[str, An
     }
 
 
+def _fetch_summary(
+    client: imaplib.IMAP4_SSL,
+    mailbox: str,
+    expected_validity: int,
+    uid: int,
+) -> dict[str, Any]:
+    actual = _select(client, mailbox, readonly=True)
+    if actual != expected_validity:
+        raise MailError("Message identifier is stale because the mailbox changed")
+    status, data = client.uid(
+        "FETCH",
+        str(uid),
+        (
+            "(BODY.PEEK[HEADER.FIELDS "
+            "(MESSAGE-ID SUBJECT FROM TO CC DATE)] BODYSTRUCTURE FLAGS)"
+        ),
+    )
+    if status != "OK" or not data:
+        raise MailError("Message no longer exists in this mailbox")
+    headers = b""
+    metadata = b""
+    for item in data:
+        if isinstance(item, tuple):
+            metadata += item[0] if isinstance(item[0], bytes) else b""
+            headers += item[1] if isinstance(item[1], bytes) else b""
+        elif isinstance(item, bytes):
+            metadata += item
+    if not headers:
+        raise MailError("Message no longer exists in this mailbox")
+    message = email.message_from_bytes(headers, policy=email.policy.default)
+    flags = metadata.decode("ascii", errors="replace")
+    lower_metadata = metadata.lower()
+    message_id = _encode_ref(mailbox, expected_validity, uid)
+    return {
+        "id": message_id,
+        "internet_message_id": message.get("Message-ID", ""),
+        "subject": _decode_header(message.get("Subject")),
+        "from": _addresses(message.get("From")),
+        "to": _addresses(message.get("To")),
+        "cc": _addresses(message.get("Cc")),
+        "date": message.get("Date", ""),
+        "unread": "\\Seen" not in flags,
+        "flagged": "\\Flagged" in flags,
+        "has_attachments": (
+            b"attachment" in lower_metadata or b"filename" in lower_metadata
+        ),
+        "snippet": "",
+    }
+
+
 def get_account_status(arguments: dict[str, Any]) -> dict[str, Any]:
     if arguments:
         raise ValueError("get_account_status takes no arguments")
@@ -783,9 +833,7 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
             if len(results) >= maximum:
                 break
             scanned += 1
-            message, _, flags = _fetch_message(client, mailbox, validity, uid)
-            ref = _encode_ref(mailbox, validity, uid)
-            item = _summary(message, ref, flags)
+            item = _fetch_summary(client, mailbox, validity, uid)
             if arguments.get("has_attachment") is not None and (
                 item["has_attachments"] is not arguments["has_attachment"]
             ):
@@ -1031,6 +1079,13 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
             mailbox, validity, uid = _decode_ref(message_id)
             if _select(client, mailbox, readonly=False) != validity:
                 raise MailError("Message identifier is stale because the mailbox changed")
+            exists_status, exists_data = client.uid("FETCH", str(uid), "(UID)")
+            if (
+                exists_status != "OK"
+                or not exists_data
+                or not any(item for item in exists_data if item is not None)
+            ):
+                raise MailError("Message no longer exists in the source mailbox")
             for key, flag in (("read", "\\Seen"), ("flagged", "\\Flagged")):
                 if arguments.get(key) is not None:
                     operation = "+FLAGS.SILENT" if arguments[key] is True else "-FLAGS.SILENT"
@@ -1217,7 +1272,14 @@ def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
             if search_status != "OK" or not search_data or not search_data[0]:
                 raise MailError("Draft identifier recovery failed")
             uid = int(search_data[0].split()[-1])
-        except (MailError, ValueError, TypeError):
+        except (
+            MailError,
+            ValueError,
+            TypeError,
+            OSError,
+            TimeoutError,
+            imaplib.IMAP4.error,
+        ):
             return {
                 "draft_id": None,
                 "internet_message_id": message["Message-ID"],

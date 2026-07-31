@@ -103,10 +103,13 @@ class ICloudMailTests(unittest.TestCase):
         )
         context = mock.MagicMock()
         context.__enter__.return_value = client
-        message = EmailMessage()
-        message.set_content("No attachment")
         with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
-            server, "_fetch_message", return_value=(message, b"", "")
+            server,
+            "_fetch_summary",
+            side_effect=lambda _client, mailbox, validity, uid: {
+                "id": server._encode_ref(mailbox, validity, uid),
+                "has_attachments": False,
+            },
         ) as fetch:
             result = server.search_emails(
                 {"has_attachment": True, "max_results": 1}
@@ -115,6 +118,26 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["scanned"], 50)
         self.assertTrue(result["truncated"])
         self.assertEqual(fetch.call_count, 50)
+
+    def test_search_summary_fetches_headers_without_full_message_body(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = (
+            b"Message-ID: <one@example.com>\r\n"
+            b"Subject: One\r\n"
+            b"From: Alice <alice@example.com>\r\n\r\n"
+        )
+        client.uid.return_value = (
+            "OK",
+            [(b'9 (UID 9 FLAGS (\\Seen) BODYSTRUCTURE ("TEXT" "PLAIN"))', headers)],
+        )
+        result = server._fetch_summary(client, "INBOX", 7, 9)
+        self.assertEqual(result["subject"], "One")
+        self.assertFalse(result["has_attachments"])
+        fetch_arguments = client.uid.call_args.args[2]
+        self.assertIn("HEADER.FIELDS", fetch_arguments)
+        self.assertNotIn("BODY.PEEK[]", fetch_arguments)
 
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
@@ -317,6 +340,25 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIsNone(result["draft_id"])
         self.assertFalse(result["retry_create"])
 
+    def test_create_draft_preserves_receipt_on_raw_imap_recovery_error(self) -> None:
+        message = EmailMessage()
+        message["Message-ID"] = "<draft@example.com>"
+        message.set_content("draft")
+        client = mock.MagicMock()
+        client.append.return_value = ("OK", [b"APPEND completed"])
+        client.response.return_value = ("APPENDUID", None)
+        client.select.side_effect = OSError("connection reset")
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(
+            server, "_prepare_outgoing", return_value=message
+        ), mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_special_mailbox", return_value="Drafts"
+        ):
+            result = server.create_draft({})
+        self.assertEqual(result["status"], "created_unresolved")
+        self.assertFalse(result["retry_create"])
+
     def test_batch_moves_return_completed_and_failed_receipts(self) -> None:
         client = mock.MagicMock()
         with mock.patch.object(
@@ -340,6 +382,18 @@ class ICloudMailTests(unittest.TestCase):
         client.uid.return_value = ("OK", [None])
         with self.assertRaisesRegex(server.MailError, "no longer exists"):
             server._move(client, message_id, "Archive")
+
+    def test_flag_update_rejects_a_missing_source_uid(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"0"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [None])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            with self.assertRaisesRegex(server.MailError, "no longer exists"):
+                server.set_email_flags({"message_ids": [message_id], "read": True})
 
     def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
         original = {
