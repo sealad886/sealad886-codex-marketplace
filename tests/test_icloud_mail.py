@@ -741,6 +741,24 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["results"][1]["status"], "failed")
         self.assertEqual(result["results"][1]["message_id"], "second")
 
+    def test_move_batch_caps_socket_timeout_and_public_batch_size(self) -> None:
+        client = mock.MagicMock()
+        with mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
+        ), mock.patch.object(
+            server,
+            "_move",
+            return_value={"message_id": "one", "status": "moved"},
+        ):
+            server._move_batch(client, ["one"], "Archive")
+        client.sock.settimeout.assert_called_once_with(25.0)
+        for name in ("move_emails", "archive_emails", "trash_emails"):
+            tool = next(item for item in server.TOOLS if item["name"] == name)
+            self.assertEqual(
+                tool["inputSchema"]["properties"]["message_ids"]["maxItems"],
+                5,
+            )
+
     def test_batch_moves_preserve_receipts_on_transport_failure(self) -> None:
         client = mock.MagicMock()
         with mock.patch.object(
@@ -1067,6 +1085,50 @@ class ICloudMailTests(unittest.TestCase):
             "Hello & welcome\nNext",
         )
 
+    def test_forward_wraps_serialized_multipart_attachment_as_binary(self) -> None:
+        original = {
+            "subject": "Source",
+            "from": [],
+            "date": "",
+            "body_text": "Body",
+            "body_html": "",
+        }
+        multipart_attachment = EmailMessage()
+        multipart_attachment.make_mixed()
+        nested = EmailMessage()
+        nested.set_content("nested payload")
+        multipart_attachment.attach(nested)
+        multipart_attachment.add_header(
+            "Content-Disposition", "attachment", filename="bundle.mime"
+        )
+        source = EmailMessage()
+        source.set_content("outer")
+        source.make_mixed()
+        source.attach(multipart_attachment)
+        outgoing = EmailMessage()
+        outgoing.set_content("forward")
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_read_email_result", return_value=original
+        ), mock.patch.object(
+            server, "_prepare_outgoing", return_value=outgoing
+        ), mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(source, b"", "")
+        ), mock.patch.object(
+            server, "_smtp_send", return_value={"status": "accepted"}
+        ):
+            server.forward_emails(
+                {"message_ids": ["source"], "to": ["recipient@example.com"]}
+            )
+        attachments = list(outgoing.iter_attachments())
+        self.assertEqual(attachments[0].get_content_type(), "application/octet-stream")
+        self.assertIn(b"nested payload", server._attachment_payload(attachments[0]))
+
     def test_thread_read_filters_same_subject_messages_by_reference_headers(self) -> None:
         anchor = {
             "id": "anchor",
@@ -1191,12 +1253,56 @@ class ICloudMailTests(unittest.TestCase):
             "references": [],
             "in_reply_to": "",
         }
-        with mock.patch.object(server, "read_email", return_value=anchor), mock.patch.object(
-            server, "search_emails"
-        ) as search:
+        unrelated = {
+            **anchor,
+            "id": "unrelated",
+            "internet_message_id": "<unrelated@example.com>",
+        }
+        with mock.patch.object(
+            server, "read_email", return_value=anchor
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={"emails": [unrelated, anchor], "truncated": False},
+        ) as search, mock.patch.object(
+            server, "_read_emails_shared", return_value=[]
+        ):
             result = server.read_email_thread({"message_id": "anchor"})
         self.assertEqual(result["messages"], [anchor])
-        search.assert_not_called()
+        self.assertNotIn("subject", search.call_args.args[0])
+
+    def test_thread_read_finds_linked_reply_with_changed_subject(self) -> None:
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "subject": "Original",
+            "internet_message_id": "<anchor@example.com>",
+            "references": [],
+            "in_reply_to": "",
+        }
+        reply = {
+            "id": "reply",
+            "mailbox": "INBOX",
+            "subject": "Completely changed",
+            "internet_message_id": "<reply@example.com>",
+            "references": ["<anchor@example.com>"],
+            "in_reply_to": "<anchor@example.com>",
+        }
+        with mock.patch.object(
+            server, "read_email", return_value=anchor
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={"emails": [reply, anchor], "truncated": False},
+        ) as search, mock.patch.object(
+            server, "_read_emails_shared", return_value=[reply]
+        ):
+            result = server.read_email_thread({"message_id": "anchor"})
+        self.assertEqual(
+            {message["id"] for message in result["messages"]},
+            {"anchor", "reply"},
+        )
+        self.assertNotIn("subject", search.call_args.args[0])
 
     def test_truncated_thread_always_includes_requested_anchor(self) -> None:
         def message(index: int) -> dict[str, object]:
