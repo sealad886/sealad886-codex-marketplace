@@ -51,6 +51,22 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIn(b"multipart/mixed", payload)
         self.assertIn(b"nested payload", payload)
 
+    def test_attachment_entries_do_not_descend_into_attached_email(self) -> None:
+        nested = EmailMessage()
+        nested.set_content("nested body")
+        nested.add_attachment(
+            b"pdf data",
+            maintype="application",
+            subtype="pdf",
+            filename="inside.pdf",
+        )
+        outer = EmailMessage()
+        outer.set_content("outer body")
+        outer.add_attachment(nested, filename="attached.eml")
+        entries = server._attachment_entries(outer, "message")
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["filename"], "attached.eml")
+
     def test_self_test_is_offline_and_passes(self) -> None:
         result = subprocess.run(
             [sys.executable, str(SERVER), "--self-test"],
@@ -1303,6 +1319,10 @@ class ICloudMailTests(unittest.TestCase):
             {"anchor", "reply"},
         )
         self.assertNotIn("subject", search.call_args.args[0])
+        self.assertEqual(
+            search.call_args.args[0]["_thread_reference_ids"],
+            ["<anchor@example.com>"],
+        )
 
     def test_truncated_thread_always_includes_requested_anchor(self) -> None:
         def message(index: int) -> dict[str, object]:
@@ -1482,6 +1502,7 @@ class ICloudMailTests(unittest.TestCase):
 
         def lose_final_response(_payload: bytes) -> None:
             smtp.getreply()
+            smtp.send(b"wire")
             raise server.smtplib.SMTPServerDisconnected("connection reset")
 
         smtp.data.side_effect = lose_final_response
@@ -1499,6 +1520,34 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["status"], "acceptance_unconfirmed")
         self.assertFalse(result["retry_send"])
         self.assertIn("Check Sent Mail", result["next_step"])
+
+    def test_smtp_partial_payload_write_is_a_definite_failure(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message.set_content("body")
+        smtp = mock.MagicMock()
+        smtp.getreply.return_value = (354, b"continue")
+        smtp.send.side_effect = server.smtplib.SMTPServerDisconnected("partial")
+
+        def lose_during_payload(_payload: bytes) -> None:
+            smtp.getreply()
+            smtp.send(b"partial wire")
+
+        smtp.data.side_effect = lose_during_payload
+        smtp.send_message.side_effect = lambda *_args, **_kwargs: smtp.data(b"wire")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(
+            server.smtplib, "SMTP", return_value=smtp
+        ), self.assertRaisesRegex(server.MailError, "SMTPServerDisconnected"):
+            server._smtp_send(message)
 
     def test_smtp_disconnect_before_data_payload_is_a_definite_failure(self) -> None:
         message = EmailMessage()

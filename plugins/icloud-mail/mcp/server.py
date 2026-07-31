@@ -478,11 +478,10 @@ def _attachment_parts(message: Message) -> Iterator[Message]:
 
 def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any]]:
     entries = []
-    for index, part in enumerate(message.walk()):
+    walk_indices = {id(part): index for index, part in enumerate(message.walk())}
+    for part in _attachment_parts(message):
+        index = walk_indices[id(part)]
         filename = _decode_header(part.get_filename())
-        disposition = part.get_content_disposition()
-        if not filename and disposition != "attachment":
-            continue
         payload = _attachment_payload(part)
         token = base64.urlsafe_b64encode(str(index).encode()).decode().rstrip("=")
         entries.append(
@@ -875,6 +874,7 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     allowed = {
         "mailbox", "query", "from", "to", "subject", "after", "before",
         "unread", "flagged", "has_attachment", "max_results",
+        "_thread_reference_ids",
     }
     unknown = set(arguments) - allowed
     if unknown:
@@ -910,14 +910,37 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
         criteria.append("UNFLAGGED")
     with _imap() as client:
         validity = _select(client, mailbox, readonly=True)
-        charset = "UTF-8" if any(not item.isascii() for item in criteria) else None
-        wire_criteria: list[str | bytes] = (
-            [item.encode("utf-8") for item in criteria] if charset else criteria
+        thread_reference_ids = _list(
+            arguments.get("_thread_reference_ids", []),
+            "_thread_reference_ids",
+            limit=10,
         )
-        status, data = client.uid("search", charset, *wire_criteria)
-        if status != "OK":
-            raise MailError("iCloud Mail search failed")
-        uids = [int(item) for item in (data[0].split() if data and data[0] else [])]
+        if thread_reference_ids:
+            matched_uids: set[int] = set()
+            for reference_id in thread_reference_ids:
+                value = _text(
+                    reference_id, "_thread_reference_ids", required=True, limit=500
+                )
+                status, data = client.uid("search", None, "TEXT", _quoted(value))
+                if status != "OK":
+                    raise MailError("iCloud Mail thread search failed")
+                matched_uids.update(
+                    int(item)
+                    for item in (data[0].split() if data and data[0] else [])
+                )
+            uids = sorted(matched_uids)
+        else:
+            charset = "UTF-8" if any(not item.isascii() for item in criteria) else None
+            wire_criteria: list[str | bytes] = (
+                [item.encode("utf-8") for item in criteria] if charset else criteria
+            )
+            status, data = client.uid("search", charset, *wire_criteria)
+            if status != "OK":
+                raise MailError("iCloud Mail search failed")
+            uids = [
+                int(item)
+                for item in (data[0].split() if data and data[0] else [])
+            ]
         uids.reverse()
         results = []
         scanned = 0
@@ -1057,12 +1080,6 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
     maximum = arguments.get("max_results", 20)
     if isinstance(maximum, bool) or not isinstance(maximum, int) or not 1 <= maximum <= MAX_RESULTS:
         raise ValueError(f"max_results must be between 1 and {MAX_RESULTS}")
-    result = search_emails(
-        {"mailbox": anchor["mailbox"], "max_results": MAX_RESULTS}
-    )
-    candidates = list(reversed(result["emails"]))
-    if all(item["id"] != anchor["id"] for item in candidates):
-        candidates.append(anchor)
 
     def internet_id(message: dict[str, Any]) -> str:
         return message.get("internet_message_id", "").strip()
@@ -1076,6 +1093,25 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
             ]
             if value
         }
+
+    reference_ids = list(
+        dict.fromkeys(
+            [internet_id(anchor), *references(anchor)]
+        )
+    )[:10]
+    if not any(reference_ids):
+        result = {"emails": [], "truncated": False}
+    else:
+        result = search_emails(
+            {
+                "mailbox": anchor["mailbox"],
+                "_thread_reference_ids": reference_ids,
+                "max_results": MAX_RESULTS,
+            }
+        )
+    candidates = list(reversed(result["emails"]))
+    if all(item["id"] != anchor["id"] for item in candidates):
+        candidates.append(anchor)
 
     connected_ids = {anchor["id"]}
     connected_reference_nodes = (
@@ -1463,7 +1499,7 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     client: smtplib.SMTP | None = None
     refused: dict[str, tuple[int, bytes]] | None = None
     acceptance_unconfirmed: str | None = None
-    data_accepted = False
+    payload_sent = False
     cleanup_warning = None
     try:
         client = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout())
@@ -1473,14 +1509,22 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         client.login(username, password)
         original_data = client.data
         original_getreply = client.getreply
+        original_send = client.send
         data_command_active = False
+        data_command_accepted = False
 
         def tracked_getreply() -> tuple[int, bytes]:
-            nonlocal data_accepted
+            nonlocal data_command_accepted
             reply = original_getreply()
             if data_command_active and reply[0] == 354:
-                data_accepted = True
+                data_command_accepted = True
             return reply
+
+        def tracked_send(payload: bytes) -> None:
+            nonlocal payload_sent
+            original_send(payload)
+            if data_command_active and data_command_accepted:
+                payload_sent = True
 
         def tracked_data(payload: Any) -> tuple[int, bytes]:
             nonlocal data_command_active
@@ -1491,18 +1535,20 @@ def _smtp_send(message: Message) -> dict[str, Any]:
                 data_command_active = False
 
         client.getreply = tracked_getreply
+        client.send = tracked_send
         client.data = tracked_data
         try:
             refused = client.send_message(
                 wire, from_addr=sender, to_addrs=recipients
             )
         except (smtplib.SMTPServerDisconnected, OSError, TimeoutError) as error:
-            if not data_accepted:
+            if not payload_sent:
                 raise
             acceptance_unconfirmed = type(error).__name__
         finally:
             client.data = original_data
             client.getreply = original_getreply
+            client.send = original_send
     except smtplib.SMTPException as error:
         raise MailError(f"iCloud SMTP rejected the request: {type(error).__name__}") from None
     except (OSError, TimeoutError) as error:
