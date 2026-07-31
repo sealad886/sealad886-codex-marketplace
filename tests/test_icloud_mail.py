@@ -219,9 +219,10 @@ class ICloudMailTests(unittest.TestCase):
             )
 
     def test_legacy_imap_username_is_validated(self) -> None:
-        with mock.patch.dict(
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
             os.environ,
             {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
                 "ICLOUD_MAIL_USERNAME": "primary@icloud.com",
                 "ICLOUD_MAIL_IMAP_USERNAME": "safe\r\nA001 EXPUNGE",
             },
@@ -543,6 +544,23 @@ class ICloudMailTests(unittest.TestCase):
         client.uid.return_value = ("OK", [None])
         with self.assertRaisesRegex(server.MailError, "no longer exists"):
             server._move(client, message_id, "Archive")
+
+    def test_move_copy_fallback_reports_source_marked_deleted(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        client = mock.MagicMock()
+        client.capabilities = ()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"9 (UID 9)"]),
+            ("OK", [b"COPY completed"]),
+            ("OK", [b"STORE completed"]),
+        ]
+        result = server._move(client, message_id, "Archive")
+        self.assertEqual(result["status"], "copied_and_marked_deleted")
+        client.uid.assert_called_with(
+            "STORE", "9", "+FLAGS.SILENT", "(\\Deleted)"
+        )
 
     def test_flag_update_rejects_a_missing_source_uid(self) -> None:
         message_id = server._encode_ref("INBOX", 7, 9)
@@ -897,6 +915,16 @@ class ICloudMailTests(unittest.TestCase):
             ],
         )
 
+    def test_keychain_helper_requires_configuration_before_opening(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ), mock.patch.object(server.sys, "platform", "darwin"), mock.patch.object(
+            server.subprocess, "run"
+        ) as run:
+            with self.assertRaisesRegex(server.MailError, "not configured"):
+                server.open_keychain_access({})
+        run.assert_not_called()
+
     def test_bcc_is_removed_from_wire_copy(self) -> None:
         message = EmailMessage()
         message["From"] = "me@icloud.com"
@@ -908,9 +936,10 @@ class ICloudMailTests(unittest.TestCase):
 
         smtp = mock.MagicMock()
         smtp.__enter__.return_value = smtp
-        with mock.patch.dict(
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
             os.environ,
             {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
                 "ICLOUD_MAIL_USERNAME": "me@icloud.com",
                 "ICLOUD_MAIL_APP_PASSWORD": "secret",
             },
@@ -932,9 +961,10 @@ class ICloudMailTests(unittest.TestCase):
         smtp = mock.MagicMock()
         smtp.send_message.return_value = {}
         smtp.quit.side_effect = server.smtplib.SMTPServerDisconnected("closed")
-        with mock.patch.dict(
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
             os.environ,
             {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
                 "ICLOUD_MAIL_USERNAME": "me@icloud.com",
                 "ICLOUD_MAIL_APP_PASSWORD": "secret",
             },
@@ -947,9 +977,10 @@ class ICloudMailTests(unittest.TestCase):
 
     def test_tool_errors_do_not_disclose_secret(self) -> None:
         secret = "do-not-leak"
-        with mock.patch.dict(
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
             os.environ,
             {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
                 "ICLOUD_MAIL_USERNAME": "me@icloud.com",
                 "ICLOUD_MAIL_APP_PASSWORD": secret,
             },

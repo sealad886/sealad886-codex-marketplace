@@ -699,12 +699,12 @@ def open_apple_password_page(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def open_keychain_access(arguments: dict[str, Any]) -> dict[str, Any]:
+    account = _load_config(required=True)["account_address"]
     result = _open_macos(
         arguments,
         "/System/Applications/Utilities/Keychain Access.app",
         "Keychain Access",
     )
-    account = _load_config(required=True)["account_address"]
     result["instructions"] = {
         "keychain_item_name": KEYCHAIN_SERVICE,
         "account_name": account,
@@ -1064,13 +1064,15 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
     }
     if "MOVE" in capabilities:
         status, _ = client.uid("MOVE", str(uid), _quoted_mailbox(destination))
+        outcome = "moved"
     else:
         status, _ = client.uid("COPY", str(uid), _quoted_mailbox(destination))
         if status == "OK":
             status, _ = client.uid("STORE", str(uid), "+FLAGS.SILENT", "(\\Deleted)")
+        outcome = "copied_and_marked_deleted"
     if status != "OK":
         raise MailError(f"Could not move message to {destination!r}")
-    return {"message_id": message_id, "destination": destination, "status": "moved"}
+    return {"message_id": message_id, "destination": destination, "status": outcome}
 
 
 def _move_batch(

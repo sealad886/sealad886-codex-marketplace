@@ -4,8 +4,10 @@
 
 Use an Apple app-specific password, never the primary Apple Account password.
 The Apple Account must have two-factor authentication enabled. The server reads
-the mailbox identity from `ICLOUD_MAIL_USERNAME` and obtains the app-specific
-password from `ICLOUD_MAIL_APP_PASSWORD` or, on macOS, a Keychain item named
+the mailbox identity from the saved `configure_account` `account_address`.
+`ICLOUD_MAIL_USERNAME` is a legacy fallback only when no saved configuration
+exists. The server obtains the app-specific password from
+`ICLOUD_MAIL_APP_PASSWORD` or, on macOS, a Keychain item named
 `codex-icloud-mail`.
 
 Non-secret account settings are stored outside the plugin cache in a user-only
