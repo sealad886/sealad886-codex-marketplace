@@ -141,8 +141,11 @@ class ICloudMailTests(unittest.TestCase):
         client.uid.return_value = ("OK", [b""])
         context = mock.MagicMock()
         context.__enter__.return_value = client
-        with mock.patch.object(server, "_imap", return_value=context):
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ) as connect:
             server.search_emails({"subject": "日本語"})
+        connect.assert_called_once_with(socket_timeout=5.0)
         client.uid.assert_called_once_with(
             "search", "UTF-8", b"ALL", b"SUBJECT", b'"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"'
         )
@@ -578,6 +581,24 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(plain, "")
         self.assertIn("outer html", html_body)
         self.assertNotIn("attached plain text", html_body)
+
+    def test_unnamed_attached_email_is_an_attachment_boundary(self) -> None:
+        nested = EmailMessage()
+        nested["Subject"] = "Forwarded"
+        nested.set_content("forwarded plain text")
+        outer = EmailMessage()
+        outer.set_content("<p>outer html</p>", subtype="html")
+        outer.add_attachment(nested)
+        attached = list(outer.iter_parts())[-1]
+        if "Content-Disposition" in attached:
+            del attached["Content-Disposition"]
+        plain, html_body = server._body(outer)
+        entries = server._attachment_entries(outer, "message")
+        self.assertEqual(plain, "")
+        self.assertIn("outer html", html_body)
+        self.assertNotIn("forwarded plain text", html_body)
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["content_type"], "message/rfc822")
 
     def test_filename_marked_inline_text_is_not_used_as_parent_body(self) -> None:
         outer = EmailMessage()

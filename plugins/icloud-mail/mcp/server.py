@@ -449,6 +449,7 @@ def _body(message: Message) -> tuple[str, str]:
         if (
             part.get_content_disposition() == "attachment"
             or part.get_filename() is not None
+            or part.get_content_type() == "message/rfc822"
         ):
             continue
         if part.is_multipart():
@@ -491,7 +492,11 @@ def _attachment_payload(part: Message) -> bytes:
 def _attachment_parts(message: Message) -> Iterator[Message]:
     for part in message.iter_parts() if message.is_multipart() else ():
         filename = _decode_header(part.get_filename())
-        if filename or part.get_content_disposition() == "attachment":
+        if (
+            filename
+            or part.get_content_disposition() == "attachment"
+            or part.get_content_type() == "message/rfc822"
+        ):
             yield part
         elif part.is_multipart():
             yield from _attachment_parts(part)
@@ -965,7 +970,7 @@ def _decode_imap_utf7(value: bytes) -> str:
 
 
 def search_emails(
-    arguments: dict[str, Any], *, socket_timeout: float | None = None
+    arguments: dict[str, Any], *, socket_timeout: float | None = 5.0
 ) -> dict[str, Any]:
     allowed = {
         "mailbox", "query", "from", "to", "subject", "after", "before",
