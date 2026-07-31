@@ -530,7 +530,9 @@ def _fetch_summary(
         "unread": "\\Seen" not in flags,
         "flagged": "\\Flagged" in flags,
         "has_attachments": (
-            b"attachment" in lower_metadata or b"filename" in lower_metadata
+            b"attachment" in lower_metadata
+            or b"filename" in lower_metadata
+            or b'"name"' in lower_metadata
         ),
         "snippet": "",
         "references": message.get("References", "").split(),
@@ -947,7 +949,14 @@ def _read_emails_shared(message_ids: list[str]) -> list[dict[str, Any]]:
     with _imap() as client:
         for message_id in message_ids:
             mailbox, validity, uid = _decode_ref(message_id)
-            message, raw, flags = _fetch_message(client, mailbox, validity, uid)
+            try:
+                message, raw, flags = _fetch_message(
+                    client, mailbox, validity, uid
+                )
+            except MailError as error:
+                if str(error) == "Message no longer exists in this mailbox":
+                    continue
+                raise
             results.append(
                 _read_email_result(message, raw, flags, message_id, mailbox)
             )
@@ -1056,11 +1065,16 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
     messages = [
         anchor if item["id"] == anchor["id"] else loaded[item["id"]]
         for item in selected
+        if item["id"] == anchor["id"] or item["id"] in loaded
     ]
     return {
         "messages": messages,
         "threading": "RFC Message-ID, References, and In-Reply-To relationships",
-        "truncated": result["truncated"] or len(connected_ids) > maximum,
+        "truncated": (
+            result["truncated"]
+            or len(connected_ids) > maximum
+            or len(loaded) < len(other_ids)
+        ),
     }
 
 
@@ -1506,8 +1520,17 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     try:
         with _imap() as client:
             trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
-            _move(client, draft_id, trash)
-        created["old_draft_cleanup"] = {"status": "moved_to_trash"}
+            cleanup = _move(client, draft_id, trash)
+        if cleanup["status"] in {"moved", "copied_and_marked_deleted"}:
+            created["old_draft_cleanup"] = {
+                "status": "moved_to_trash",
+                "method": cleanup["status"],
+            }
+        else:
+            created["old_draft_cleanup"] = {
+                **cleanup,
+                "retry_update": False,
+            }
     except (MailError, ValueError) as error:
         created["old_draft_cleanup"] = {
             "status": "failed",
@@ -1540,8 +1563,17 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     try:
         with _imap() as client:
             trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
-            _move(client, draft_id, trash)
-        result["draft_cleanup"] = {"status": "moved_to_trash"}
+            cleanup = _move(client, draft_id, trash)
+        if cleanup["status"] in {"moved", "copied_and_marked_deleted"}:
+            result["draft_cleanup"] = {
+                "status": "moved_to_trash",
+                "method": cleanup["status"],
+            }
+        else:
+            result["draft_cleanup"] = {
+                **cleanup,
+                "retry_send": False,
+            }
     except (MailError, ValueError) as error:
         result["draft_cleanup"] = {
             "status": "failed",

@@ -179,6 +179,24 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIn("HEADER.FIELDS", fetch_arguments)
         self.assertNotIn("BODY.PEEK[]", fetch_arguments)
 
+    def test_search_summary_detects_content_type_name_attachment(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = b"Subject: Legacy attachment\r\n\r\n"
+        client.uid.return_value = (
+            "OK",
+            [
+                (
+                    b'9 (UID 9 BODYSTRUCTURE ("APPLICATION" "PDF" '
+                    b'("NAME" "report.pdf") NIL NIL "BASE64" 100))',
+                    headers,
+                )
+            ],
+        )
+        result = server._fetch_summary(client, "INBOX", 7, 9)
+        self.assertTrue(result["has_attachments"])
+
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
         self.assertEqual(names, set(server.HANDLERS))
@@ -459,6 +477,66 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["draft_id"], "replacement")
         self.assertEqual(result["old_draft_cleanup"]["status"], "failed")
         self.assertFalse(result["old_draft_cleanup"]["retry_update"])
+
+    def test_update_draft_preserves_partial_move_cleanup_receipt(self) -> None:
+        old_id = server._encode_ref("Drafts", 7, 9)
+        replacement = {"draft_id": "replacement", "status": "created"}
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        partial = {
+            "message_id": old_id,
+            "destination": "Trash",
+            "status": "copied_source_cleanup_failed",
+            "retry_move": False,
+        }
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(server, "_validate_draft_ref"), mock.patch.object(
+            server, "create_draft", return_value=replacement.copy()
+        ), mock.patch.object(
+            server, "_special_mailbox", return_value="Trash"
+        ), mock.patch.object(server, "_move", return_value=partial):
+            result = server.update_draft(
+                {
+                    "draft_id": old_id,
+                    "to": ["recipient@example.com"],
+                    "subject": "Replacement",
+                    "body": "Body",
+                }
+            )
+        self.assertEqual(
+            result["old_draft_cleanup"]["status"],
+            "copied_source_cleanup_failed",
+        )
+        self.assertFalse(result["old_draft_cleanup"]["retry_update"])
+
+    def test_send_draft_preserves_partial_move_cleanup_receipt(self) -> None:
+        draft_id = server._encode_ref("Drafts", 7, 9)
+        message = EmailMessage()
+        accepted = {"status": "accepted"}
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        partial = {
+            "message_id": draft_id,
+            "destination": "Trash",
+            "status": "copied_source_cleanup_unconfirmed",
+            "retry_move": False,
+        }
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(server, "_validate_draft_ref"), mock.patch.object(
+            server, "_fetch_message", return_value=(message, b"", "\\Draft")
+        ), mock.patch.object(
+            server, "_smtp_send", return_value=accepted
+        ), mock.patch.object(
+            server, "_special_mailbox", return_value="Trash"
+        ), mock.patch.object(server, "_move", return_value=partial):
+            result = server.send_draft({"draft_id": draft_id})
+        self.assertEqual(
+            result["draft_cleanup"]["status"],
+            "copied_source_cleanup_unconfirmed",
+        )
+        self.assertFalse(result["draft_cleanup"]["retry_send"])
 
     def test_update_draft_preserves_old_draft_when_replacement_is_unresolved(self) -> None:
         old_id = server._encode_ref("Drafts", 7, 9)
@@ -993,6 +1071,27 @@ class ICloudMailTests(unittest.TestCase):
             result = server._read_emails_shared(["first", "second"])
         self.assertEqual(result, [{"id": "first"}, {"id": "second"}])
         connect.assert_called_once_with()
+
+    def test_shared_thread_fetch_skips_vanished_non_anchor_message(self) -> None:
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        message = EmailMessage()
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server,
+            "_fetch_message",
+            side_effect=[
+                server.MailError("Message no longer exists in this mailbox"),
+                (message, b"", ""),
+            ],
+        ), mock.patch.object(
+            server,
+            "_read_email_result",
+            return_value={"id": "surviving"},
+        ):
+            result = server._read_emails_shared(["vanished", "surviving"])
+        self.assertEqual(result, [{"id": "surviving"}])
 
     def test_gui_helpers_open_only_fixed_targets(self) -> None:
         completed = mock.MagicMock(returncode=0)
