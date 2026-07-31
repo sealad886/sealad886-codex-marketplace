@@ -639,7 +639,12 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
         def has_filename(parameters: Any) -> bool:
             return isinstance(parameters, list) and any(
                 isinstance(parameters[index], bytes)
-                and parameters[index].upper() in {b"NAME", b"FILENAME"}
+                and re.fullmatch(
+                    rb"(?:NAME|FILENAME)(?:\*|\*\d+\*?)?",
+                    parameters[index],
+                    flags=re.I,
+                )
+                is not None
                 for index in range(0, len(parameters) - 1, 2)
             )
 
@@ -1208,14 +1213,20 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 "max_results": MAX_RESULTS,
             }
         )
-        second_wave_ids = list(
+        second_wave_candidates = list(
             dict.fromkeys(
                 internet_id(item)
                 for item in result["emails"]
                 if internet_id(item)
                 and internet_id(item) not in reference_ids
             )
-        )[: 10 - len(reference_ids)]
+        )
+        second_wave_budget = 10 - len(reference_ids)
+        second_wave_ids = second_wave_candidates[:second_wave_budget]
+        result["truncated"] = (
+            result["truncated"]
+            or len(second_wave_candidates) > second_wave_budget
+        )
         if second_wave_ids:
             expanded = search_emails(
                 {

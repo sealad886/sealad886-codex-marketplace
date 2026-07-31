@@ -361,6 +361,16 @@ class ICloudMailTests(unittest.TestCase):
         )
         self.assertTrue(server._bodystructure_has_attachment(metadata))
 
+    def test_bodystructure_extended_filename_parameter_is_attachment(self) -> None:
+        for parameter in (b"FILENAME*", b"FILENAME*0*", b"NAME*0"):
+            metadata = (
+                b'9 (BODYSTRUCTURE ("APPLICATION" "PDF" ('
+                + b'"' + parameter + b'" "UTF-8\'\'report.pdf") '
+                + b'NIL NIL "BASE64" 10))'
+            )
+            with self.subTest(parameter=parameter):
+                self.assertTrue(server._bodystructure_has_attachment(metadata))
+
     def test_search_summary_reads_only_the_flags_response_field(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -1621,6 +1631,42 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(
             search.call_args_list[1].args[0]["_thread_reference_ids"],
             ["<b@example.com>"],
+        )
+
+    def test_thread_reports_truncation_when_second_wave_seeds_are_capped(self) -> None:
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "subject": "Thread",
+            "internet_message_id": "<anchor@example.com>",
+            "references": [f"<parent-{index}@example.com>" for index in range(4)],
+            "in_reply_to": "",
+        }
+        replies = [
+            {
+                **anchor,
+                "id": f"reply-{index}",
+                "internet_message_id": f"<reply-{index}@example.com>",
+                "references": ["<anchor@example.com>"],
+            }
+            for index in range(6)
+        ]
+        with mock.patch.object(
+            server, "read_email", return_value=anchor
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            side_effect=[
+                {"emails": replies, "truncated": False},
+                {"emails": [], "truncated": False},
+            ],
+        ) as search, mock.patch.object(
+            server, "_read_emails_shared", return_value=replies
+        ):
+            result = server.read_email_thread({"message_id": "anchor"})
+        self.assertTrue(result["truncated"])
+        self.assertEqual(
+            len(search.call_args_list[1].args[0]["_thread_reference_ids"]), 5
         )
 
     def test_truncated_thread_always_includes_requested_anchor(self) -> None:
