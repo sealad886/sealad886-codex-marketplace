@@ -369,7 +369,8 @@ def _decode_ref(value: Any) -> tuple[str, int, int]:
         or payload["u"] <= 0
     ):
         raise ValueError("message_id is malformed")
-    return payload["m"], payload["v"], payload["u"]
+    mailbox = _text(payload["m"], "mailbox", required=True, limit=500)
+    return mailbox, payload["v"], payload["u"]
 
 
 def _fetch_message(
@@ -1213,11 +1214,30 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
         _validate_draft_ref(client, draft_id)
         message, _, _ = _fetch_message(client, mailbox, validity, uid)
     result = _smtp_send(message)
-    with _imap() as client:
-        trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
-        _move(client, draft_id, trash)
     result["draft_id"] = draft_id
+    try:
+        with _imap() as client:
+            trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
+            _move(client, draft_id, trash)
+        result["draft_cleanup"] = {"status": "moved_to_trash"}
+    except (MailError, ValueError) as error:
+        result["draft_cleanup"] = {
+            "status": "failed",
+            "error": str(error),
+            "retry_send": False,
+            "next_step": "Remove or move the draft manually; the email was already accepted.",
+        }
     return result
+
+
+def _format_addresses(addresses: list[dict[str, str]]) -> str:
+    return ", ".join(
+        email.utils.formataddr((item.get("name", ""), item["address"]))
+        if item.get("name")
+        else item["address"]
+        for item in addresses
+        if item.get("address")
+    )
 
 
 def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1229,53 +1249,64 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("message_ids must not be empty")
     results = []
     for message_id in ids:
-        original = read_email({"message_id": message_id})
-        subject = original["subject"]
-        subject = subject if re.match(r"^fwd?:", subject, re.I) else f"Fwd: {subject}"
-        note = _text(arguments.get("note"), "note", limit=20_000)
-        quoted = "\n".join(
-            [
-                note,
-                "",
-                "---------- Forwarded message ----------",
-                f"From: {original['from']}",
-                f"Date: {original['date']}",
-                f"Subject: {original['subject']}",
-                "",
-                original["body_text"],
-            ]
-        ).strip()
-        outgoing = {
-            "to": arguments.get("to"),
-            "cc": arguments.get("cc"),
-            "bcc": arguments.get("bcc"),
-            "from": arguments.get("from"),
-            "subject": subject,
-            "body": quoted,
-        }
-        forwarded = _prepare_outgoing(outgoing)
-        mailbox, validity, uid = _decode_ref(message_id)
-        with _imap() as client:
-            source, _, _ = _fetch_message(client, mailbox, validity, uid)
-        for part in source.walk():
-            filename = _decode_header(part.get_filename())
-            if not filename and part.get_content_disposition() != "attachment":
-                continue
-            payload = part.get_payload(decode=True) or b""
-            if len(payload) > MAX_ATTACHMENT_BYTES:
-                raise MailError(
-                    f"Cannot forward {filename or 'attachment'}: exceeds 5 MiB limit"
-                )
-            content_type = part.get_content_type().split("/", 1)
-            forwarded.add_attachment(
-                payload,
-                maintype=content_type[0],
-                subtype=content_type[1],
-                filename=filename or "attachment",
+        try:
+            original = read_email({"message_id": message_id})
+            subject = original["subject"]
+            subject = (
+                subject if re.match(r"^fwd?:", subject, re.I) else f"Fwd: {subject}"
             )
-        sent = _smtp_send(forwarded)
-        sent["source_message_id"] = message_id
-        results.append(sent)
+            note = _text(arguments.get("note"), "note", limit=20_000)
+            quoted = "\n".join(
+                [
+                    note,
+                    "",
+                    "---------- Forwarded message ----------",
+                    f"From: {_format_addresses(original['from'])}",
+                    f"Date: {original['date']}",
+                    f"Subject: {original['subject']}",
+                    "",
+                    original["body_text"],
+                ]
+            ).strip()
+            outgoing = {
+                "to": arguments.get("to"),
+                "cc": arguments.get("cc"),
+                "bcc": arguments.get("bcc"),
+                "from": arguments.get("from"),
+                "subject": subject,
+                "body": quoted,
+            }
+            forwarded = _prepare_outgoing(outgoing)
+            mailbox, validity, uid = _decode_ref(message_id)
+            with _imap() as client:
+                source, _, _ = _fetch_message(client, mailbox, validity, uid)
+            for part in source.walk():
+                filename = _decode_header(part.get_filename())
+                if not filename and part.get_content_disposition() != "attachment":
+                    continue
+                payload = part.get_payload(decode=True) or b""
+                if len(payload) > MAX_ATTACHMENT_BYTES:
+                    raise MailError(
+                        f"Cannot forward {filename or 'attachment'}: exceeds 5 MiB limit"
+                    )
+                content_type = part.get_content_type().split("/", 1)
+                forwarded.add_attachment(
+                    payload,
+                    maintype=content_type[0],
+                    subtype=content_type[1],
+                    filename=filename or "attachment",
+                )
+            sent = _smtp_send(forwarded)
+            sent["source_message_id"] = message_id
+            results.append(sent)
+        except (MailError, ValueError) as error:
+            results.append(
+                {
+                    "source_message_id": message_id,
+                    "status": "failed",
+                    "error": str(error),
+                }
+            )
     return {"results": results}
 
 

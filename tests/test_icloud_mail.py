@@ -54,6 +54,9 @@ class ICloudMailTests(unittest.TestCase):
         for malformed in ("", "icloud-mail:not-base64", "gmail:abc"):
             with self.assertRaises(ValueError):
                 server._decode_ref(malformed)
+        injected = server._encode_ref("INBOX\r\nA001 EXPUNGE", 15, 99)
+        with self.assertRaisesRegex(ValueError, "invalid or too long"):
+            server._decode_ref(injected)
 
     def test_modified_utf7_mailbox_names_decode(self) -> None:
         self.assertEqual(server._decode_imap_utf7(b"Sent Messages"), "Sent Messages")
@@ -213,6 +216,68 @@ class ICloudMailTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Drafts mailbox"):
                 server.send_draft({"draft_id": ordinary_id})
         create.assert_not_called()
+
+    def test_send_draft_preserves_acceptance_when_cleanup_fails(self) -> None:
+        draft_id = server._encode_ref("Drafts", 7, 9)
+        message = EmailMessage()
+        accepted = {"status": "accepted", "internet_message_id": "<sent@example.com>"}
+        first_context = mock.MagicMock()
+        first_context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", side_effect=[first_context, server.MailError("offline")]
+        ), mock.patch.object(server, "_validate_draft_ref"), mock.patch.object(
+            server, "_fetch_message", return_value=(message, b"", "\\Draft")
+        ), mock.patch.object(
+            server, "_smtp_send", return_value=accepted.copy()
+        ):
+            result = server.send_draft({"draft_id": draft_id})
+        self.assertEqual(result["status"], "accepted")
+        self.assertEqual(result["draft_cleanup"]["status"], "failed")
+        self.assertFalse(result["draft_cleanup"]["retry_send"])
+
+    def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
+        original = {
+            "subject": "Status",
+            "from": [{"name": "Alice", "address": "alice@example.com"}],
+            "date": "Thu, 31 Jul 2026 09:00:00 +0000",
+            "body_text": "Original",
+        }
+        forwarded = EmailMessage()
+        forwarded.set_content("forward")
+        source = EmailMessage()
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server,
+            "read_email",
+            side_effect=[original, server.MailError("missing message")],
+        ), mock.patch.object(
+            server, "_prepare_outgoing", return_value=forwarded
+        ) as prepare, mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(source, b"", "")
+        ), mock.patch.object(
+            server,
+            "_smtp_send",
+            return_value={"status": "accepted", "internet_message_id": "<sent>"},
+        ):
+            result = server.forward_emails(
+                {
+                    "message_ids": ["first", "second"],
+                    "to": ["recipient@example.com"],
+                }
+            )
+        self.assertEqual(result["results"][0]["status"], "accepted")
+        self.assertEqual(result["results"][0]["source_message_id"], "first")
+        self.assertEqual(result["results"][1]["status"], "failed")
+        self.assertEqual(result["results"][1]["source_message_id"], "second")
+        self.assertIn(
+            "From: Alice <alice@example.com>",
+            prepare.call_args.args[0]["body"],
+        )
 
     def test_thread_read_filters_same_subject_messages_by_reference_headers(self) -> None:
         anchor = {
