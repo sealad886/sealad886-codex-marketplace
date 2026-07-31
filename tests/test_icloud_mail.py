@@ -714,9 +714,9 @@ class ICloudMailTests(unittest.TestCase):
         validate_context.__enter__.return_value = mock.MagicMock()
         with mock.patch.object(
             server, "_imap", side_effect=[validate_context, server.MailError("offline")]
-        ), mock.patch.object(server, "_validate_draft_ref"), mock.patch.object(
+        ) as connect, mock.patch.object(server, "_validate_draft_ref"), mock.patch.object(
             server, "create_draft", return_value=replacement.copy()
-        ):
+        ) as create:
             result = server.update_draft(
                 {
                     "draft_id": old_id,
@@ -728,6 +728,34 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["draft_id"], "replacement")
         self.assertEqual(result["old_draft_cleanup"]["status"], "failed")
         self.assertFalse(result["old_draft_cleanup"]["retry_update"])
+        create.assert_called_once_with(
+            {
+                "to": ["recipient@example.com"],
+                "subject": "Replacement",
+                "body": "Body",
+            },
+            socket_timeout=10.0,
+        )
+        self.assertEqual(
+            connect.call_args_list,
+            [mock.call(socket_timeout=10.0), mock.call(socket_timeout=10.0)],
+        )
+
+    def test_reply_preparation_caps_imap_phase(self) -> None:
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        reply = EmailMessage()
+        with mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ) as connect, mock.patch.object(
+            server, "_fetch_message", return_value=(reply, b"", "")
+        ), mock.patch.object(
+            server, "_outgoing", return_value=EmailMessage()
+        ):
+            server._prepare_outgoing({"reply_message_id": "message"})
+        connect.assert_called_once_with(socket_timeout=10.0)
 
     def test_update_draft_preserves_partial_move_cleanup_receipt(self) -> None:
         old_id = server._encode_ref("Drafts", 7, 9)
@@ -1489,7 +1517,7 @@ class ICloudMailTests(unittest.TestCase):
         )
         self.assertNotIn("subject", search.call_args.args[0])
         self.assertEqual(
-            search.call_args.args[0]["_thread_reference_ids"],
+            search.call_args_list[0].args[0]["_thread_reference_ids"],
             ["<anchor@example.com>"],
         )
 

@@ -1211,7 +1211,6 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 internet_id(item)
                 for item in result["emails"]
                 if internet_id(item)
-                and not item.get("references")
                 and item.get("in_reply_to")
             )
         )[: 10 - len(reference_ids)]
@@ -1746,7 +1745,7 @@ def _prepare_outgoing(arguments: dict[str, Any]) -> EmailMessage:
     reply_id = arguments.get("reply_message_id")
     if reply_id:
         mailbox, validity, uid = _decode_ref(reply_id)
-        with _imap() as client:
+        with _imap(socket_timeout=10.0) as client:
             reply, _, _ = _fetch_message(client, mailbox, validity, uid)
     return _outgoing(arguments, reply)
 
@@ -1755,10 +1754,12 @@ def send_email(arguments: dict[str, Any]) -> dict[str, Any]:
     return _smtp_send(_prepare_outgoing(arguments))
 
 
-def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
+def create_draft(
+    arguments: dict[str, Any], *, socket_timeout: float | None = None
+) -> dict[str, Any]:
     message = _prepare_outgoing(arguments)
     raw = message.as_bytes(policy=email.policy.SMTP)
-    with _imap() as client:
+    with _imap(socket_timeout=socket_timeout) as client:
         drafts = _special_mailbox(client, "Drafts", ["Drafts"])
         try:
             status, data = client.append(
@@ -1841,11 +1842,11 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     draft_id = arguments.get("draft_id")
     if not draft_id:
         raise ValueError("update_draft requires draft_id")
-    with _imap() as client:
+    with _imap(socket_timeout=10.0) as client:
         _validate_draft_ref(client, draft_id)
     replacement = dict(arguments)
     del replacement["draft_id"]
-    created = create_draft(replacement)
+    created = create_draft(replacement, socket_timeout=10.0)
     created["replaced_draft_id"] = draft_id
     if not created.get("draft_id"):
         created["old_draft_cleanup"] = {
@@ -1855,7 +1856,7 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
         return created
     created["status"] = "updated"
     try:
-        with _imap() as client:
+        with _imap(socket_timeout=10.0) as client:
             trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
             cleanup = _move(client, draft_id, trash)
         if cleanup["status"] in {"moved", "copied_and_marked_deleted"}:
