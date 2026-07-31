@@ -40,6 +40,7 @@ MAX_RESULTS = 50
 MAX_MOVE_RESULTS = 5
 MAX_FLAG_RESULTS = 5
 MAX_MAILBOX_STATUS = 100
+MAX_RECIPIENTS = 20
 MAX_SEARCH_SCAN = 80
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
@@ -1000,6 +1001,7 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
             limit=10,
         )
         if thread_reference_ids:
+            client.sock.settimeout(min(_timeout(), 10.0))
             matched_uids: set[int] = set()
             for reference_id in thread_reference_ids:
                 value = _text(
@@ -1189,7 +1191,7 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
             for value in [internet_id(anchor), *references(anchor)]
             if value
         )
-    )[:10]
+    )[:5]
     if not reference_ids:
         result = {"emails": [], "truncated": False}
     else:
@@ -1200,6 +1202,31 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 "max_results": MAX_RESULTS,
             }
         )
+        second_wave_ids = list(
+            dict.fromkeys(
+                internet_id(item)
+                for item in result["emails"]
+                if internet_id(item)
+                and not item.get("references")
+                and item.get("in_reply_to")
+            )
+        )[: 10 - len(reference_ids)]
+        if second_wave_ids:
+            expanded = search_emails(
+                {
+                    "mailbox": anchor["mailbox"],
+                    "_thread_reference_ids": second_wave_ids,
+                    "max_results": MAX_RESULTS,
+                }
+            )
+            combined = {
+                item["id"]: item
+                for item in [*result["emails"], *expanded["emails"]]
+            }
+            result = {
+                "emails": list(combined.values()),
+                "truncated": result["truncated"] or expanded["truncated"],
+            }
     candidates = list(reversed(result["emails"]))
     if all(item["id"] != anchor["id"] for item in candidates):
         candidates.append(anchor)
@@ -1475,7 +1502,7 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _recipients(value: Any, name: str, *, required: bool = False) -> list[str]:
-    raw = _list(value, name, limit=100)
+    raw = _list(value, name, limit=MAX_RECIPIENTS)
     result = []
     for item in raw:
         address = _text(item, name, required=True, limit=320)
@@ -1510,6 +1537,8 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
     to = _recipients(arguments.get("to"), "to")
     cc = _recipients(arguments.get("cc"), "cc")
     bcc = _recipients(arguments.get("bcc"), "bcc")
+    if len(to) + len(cc) + len(bcc) > MAX_RECIPIENTS:
+        raise ValueError(f"message may contain at most {MAX_RECIPIENTS} recipients")
     if reply is None and not (to or cc or bcc):
         raise ValueError("at least one to, cc, or bcc recipient is required")
     if to:
@@ -1587,6 +1616,8 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     ]
     if not recipients:
         raise ValueError("message has no recipients")
+    if len(recipients) > MAX_RECIPIENTS:
+        raise ValueError(f"message may contain at most {MAX_RECIPIENTS} recipients")
     wire = email.message_from_bytes(
         message.as_bytes(policy=email.policy.SMTP), policy=email.policy.SMTP
     )
@@ -1598,7 +1629,9 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     payload_sent = False
     cleanup_warning = None
     try:
-        client = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout())
+        client = smtplib.SMTP(
+            SMTP_HOST, SMTP_PORT, timeout=min(_timeout(), 15.0)
+        )
         client.ehlo()
         client.starttls(context=ssl.create_default_context())
         client.ehlo()
@@ -2009,11 +2042,11 @@ TOOLS = [
     {"name": "move_emails", "description": "Explicitly move up to five messages to a named iCloud Mail folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}, "destination": {"type": "string"}}, "required": ["message_ids", "destination"], "additionalProperties": False}},
     {"name": "archive_emails", "description": "Explicitly move up to five messages to the iCloud Archive folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
     {"name": "trash_emails", "description": "Explicitly move up to five messages to iCloud Trash without permanent deletion.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
-    {"name": "create_draft", "description": "Create an iCloud Mail draft without sending it.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
-    {"name": "update_draft", "description": "Replace an existing draft with revised content without sending it.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "required": ["draft_id"], "additionalProperties": False}},
-    {"name": "send_email", "description": "Send a new message or reply through iCloud SMTP; use only on explicit send intent.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
+    {"name": "create_draft", "description": "Create an iCloud Mail draft without sending it.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
+    {"name": "update_draft", "description": "Replace an existing draft with revised content without sending it.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "required": ["draft_id"], "additionalProperties": False}},
+    {"name": "send_email", "description": "Send a new message or reply through iCloud SMTP; use only on explicit send intent.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
     {"name": "send_draft", "description": "Send an existing reviewed draft and move it to Trash; explicit send intent required.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}}, "required": ["draft_id"], "additionalProperties": False}},
-    {"name": "forward_emails", "description": "Forward one existing message with an optional note; explicit send intent required. One source per call preserves an unambiguous acceptance receipt within the tool timeout.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 1}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}, "required": ["message_ids"], "additionalProperties": False}},
+    {"name": "forward_emails", "description": "Forward one existing message with an optional note; explicit send intent required. One source per call preserves an unambiguous acceptance receipt within the tool timeout.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 1}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "note": {"type": "string"}}, "required": ["message_ids"], "additionalProperties": False}},
 ]
 
 HANDLERS = {

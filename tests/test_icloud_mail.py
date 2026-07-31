@@ -147,6 +147,24 @@ class ICloudMailTests(unittest.TestCase):
             "search", "UTF-8", b"ALL", b"SUBJECT", b'"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"'
         )
 
+    def test_thread_reference_search_caps_search_and_fetch_phases(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"0"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [b""])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
+        ), mock.patch.object(server, "_imap", return_value=context):
+            server.search_emails(
+                {"_thread_reference_ids": ["<a@example.com>"]}
+            )
+        self.assertEqual(
+            client.sock.settimeout.call_args_list,
+            [mock.call(10.0), mock.call(5.0)],
+        )
+
     def test_attachment_filter_has_a_bounded_scan_budget(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1000"])
@@ -1475,6 +1493,48 @@ class ICloudMailTests(unittest.TestCase):
             ["<anchor@example.com>"],
         )
 
+    def test_thread_discovery_expands_one_in_reply_to_generation(self) -> None:
+        anchor = {
+            "id": "a",
+            "mailbox": "INBOX",
+            "subject": "Thread",
+            "internet_message_id": "<a@example.com>",
+            "references": [],
+            "in_reply_to": "",
+        }
+        reply_b = {
+            **anchor,
+            "id": "b",
+            "internet_message_id": "<b@example.com>",
+            "in_reply_to": "<a@example.com>",
+        }
+        reply_c = {
+            **anchor,
+            "id": "c",
+            "internet_message_id": "<c@example.com>",
+            "in_reply_to": "<b@example.com>",
+        }
+        with mock.patch.object(
+            server, "read_email", return_value=anchor
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            side_effect=[
+                {"emails": [anchor, reply_b], "truncated": False},
+                {"emails": [reply_b, reply_c], "truncated": False},
+            ],
+        ) as search, mock.patch.object(
+            server, "_read_emails_shared", return_value=[reply_b, reply_c]
+        ):
+            result = server.read_email_thread({"message_id": "a"})
+        self.assertEqual(
+            {item["id"] for item in result["messages"]}, {"a", "b", "c"}
+        )
+        self.assertEqual(
+            search.call_args_list[1].args[0]["_thread_reference_ids"],
+            ["<b@example.com>"],
+        )
+
     def test_truncated_thread_always_includes_requested_anchor(self) -> None:
         def message(index: int) -> dict[str, object]:
             return {
@@ -1614,12 +1674,36 @@ class ICloudMailTests(unittest.TestCase):
                 "ICLOUD_MAIL_APP_PASSWORD": "secret",
             },
             clear=True,
-        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+        ), mock.patch.object(
+            server.smtplib, "SMTP", return_value=smtp
+        ) as smtp_class:
             result = server._smtp_send(message)
 
         sent = smtp.send_message.call_args.args[0]
         self.assertIsNone(sent.get("Bcc"))
         self.assertEqual(result["recipients"], ["to@example.com", "hidden@example.com"])
+        smtp_class.assert_called_once_with(
+            server.SMTP_HOST, server.SMTP_PORT, timeout=15.0
+        )
+
+    def test_smtp_rejects_more_than_twenty_recipients(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = ", ".join(
+            f"person{index}@example.com"
+            for index in range(server.MAX_RECIPIENTS + 1)
+        )
+        message.set_content("body")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), self.assertRaisesRegex(ValueError, "at most 20 recipients"):
+            server._smtp_send(message)
 
     def test_smtp_acceptance_survives_quit_failure(self) -> None:
         message = EmailMessage()
