@@ -13,7 +13,7 @@ The repository and marketplace are both named `sealad886-codex-marketplace`. Ind
 | Plugin | Stable version | Purpose | Install selector |
 |---|---:|---|---|
 | [Project Delivery](plugins/project-delivery/README.md) | `1.4.1` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
-| [Conversation Visuals](plugins/conversation-visuals/README.md) | `0.1.0` | Enrich supported Codex and ChatGPT conversations with relevant sourced and generated visuals | `conversation-visuals@sealad886-codex-marketplace` |
+| [Conversation Visuals](plugins/conversation-visuals/README.md) | `0.1.1` | Enrich supported Codex and ChatGPT conversations with relevant sourced and generated visuals | `conversation-visuals@sealad886-codex-marketplace` |
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 
@@ -50,7 +50,7 @@ sealad886-codex-marketplace/
         └── skills/
 ```
 
-Only a plugin's own subtree is installable. Repository CI, tests, contributor tooling, audit evidence, Git metadata, and development environments stay outside installed payloads. Marketplace entries use `git-subdir` and immutable release refs so Codex receives the intended package rather than the repository root.
+Only a plugin's own subtree is installable. Repository CI, tests, contributor tooling, audit evidence, Git metadata, and development environments stay outside installed payloads. Marketplace entries use supported, validated source declarations that resolve to the intended package rather than the repository root.
 
 Every marketplace plugin must:
 
@@ -58,7 +58,7 @@ Every marketplace plugin must:
 - include a valid `.codex-plugin/plugin.json` and package-local documentation;
 - declare its own capabilities, trust boundary, dependencies, licensing, and release version;
 - remain useful without another Andrew Cox plugin unless an explicit optional relationship is documented;
-- be pinned to a resolvable immutable tag or commit before the catalog advertises it;
+- carry a Semantic Versioning release identity and a resolvable immutable release tag;
 - pass Plugin Creator validation and an evidence-proportional release review in the change that adds it; and
 - add its package-specific validation to repository CI before becoming available.
 

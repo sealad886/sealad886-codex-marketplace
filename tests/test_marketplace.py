@@ -67,7 +67,7 @@ def create_repository_fixture(root: Path) -> dict[str, object]:
         while source_path.parts and source_path.parts[0] == ".":
             source_path = Path(*source_path.parts[1:])
         shutil.copytree(REPOSITORY_ROOT / source_path, root / source_path)
-        pinned_version = version_from_tag(entry["source"]["ref"])
+        pinned_version = version_from_tag(entry["source"].get("ref"))
         if pinned_version is not None:
             manifest_path = source_path / ".codex-plugin" / "plugin.json"
             manifest = json.loads(
@@ -82,7 +82,9 @@ def create_repository_fixture(root: Path) -> dict[str, object]:
     run_git(root, "init", "-q")
     commit_fixture(root, "fixture: add catalog plugins")
     for entry in marketplace["plugins"]:
-        run_git(root, "tag", entry["source"]["ref"])
+        source_ref = entry["source"].get("ref")
+        if source_ref is not None:
+            run_git(root, "tag", source_ref)
     return marketplace
 
 
@@ -118,10 +120,55 @@ def example_entry(source_ref: str) -> dict[str, object]:
 
 
 class MarketplaceTests(unittest.TestCase):
+    def test_conversation_visuals_uses_manifest_visible_local_source(self) -> None:
+        marketplace = json.loads(
+            (REPOSITORY_ROOT / MARKETPLACE_PATH).read_text(encoding="utf-8")
+        )
+        entry = next(
+            item
+            for item in marketplace["plugins"]
+            if item["name"] == "conversation-visuals"
+        )
+
+        self.assertEqual(
+            entry["source"],
+            {
+                "source": "local",
+                "path": "./plugins/conversation-visuals",
+            },
+        )
+
     def test_repository_marketplace_and_license_parity_pass(self) -> None:
         result = run_checker(REPOSITORY_ROOT)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("license_parity=true", result.stdout)
+
+    def test_local_marketplace_entry_requires_complete_interface(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repository"
+            marketplace = create_repository_fixture(root)
+            entry = next(
+                item
+                for item in marketplace["plugins"]
+                if item["name"] == "conversation-visuals"
+            )
+            manifest_path = (
+                root
+                / entry["source"]["path"]
+                / ".codex-plugin"
+                / "plugin.json"
+            )
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["interface"]["longDescription"] = ""
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            result = run_checker(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "local manifest interface.longDescription must be non-empty",
+                result.stdout,
+            )
 
     def test_marketplace_path_escape_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
@@ -135,6 +182,19 @@ class MarketplaceTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("escapes the repository", result.stdout)
 
+    def test_non_string_source_type_fails_without_traceback(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repository"
+            marketplace = create_repository_fixture(root)
+            marketplace["plugins"][1]["source"]["source"] = []
+            write_marketplace(root, marketplace)
+
+            result = run_checker(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("source.source must be one of", result.stdout)
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_mutable_marketplace_ref_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "repository"
@@ -146,6 +206,25 @@ class MarketplaceTests(unittest.TestCase):
 
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("must be an immutable version tag", result.stdout)
+
+    def test_project_delivery_requires_pinned_source(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "repository"
+            marketplace = create_repository_fixture(root)
+            marketplace["plugins"][0]["source"] = {
+                "source": "local",
+                "path": "./plugins/project-delivery",
+            }
+            write_marketplace(root, marketplace)
+
+            result = run_checker(root)
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "project-delivery source.source must be 'git-subdir'",
+                result.stdout,
+            )
+            self.assertNotIn("Traceback", result.stderr)
 
     def test_nonexistent_immutable_looking_ref_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

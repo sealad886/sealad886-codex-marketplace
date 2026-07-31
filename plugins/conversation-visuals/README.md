@@ -75,6 +75,6 @@ python3 plugins/conversation-visuals/mcp/server.py --self-test
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-The released marketplace entry must use a `git-subdir` source pinned to an
-immutable tag or commit containing this exact package. Start a fresh task after
-installation so the host loads the current plugin catalog.
+Validate the manifest with the current Codex Plugin Creator workflow before a
+release. Start a fresh task after installation so the host loads the current
+plugin catalog.

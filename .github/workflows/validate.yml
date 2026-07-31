@@ -18,6 +18,34 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Validate repository marketplace and license parity
+        run: python3 scripts/check_marketplace.py .
+
+      - name: Validate manifests with OpenAI Plugin Creator
+        env:
+          PLUGIN_VALIDATOR_SHA256: ebda00d55d7518b127f675f062fb5c6e7a1ffdc0a99df1a55ac594400d7d3228
+          PLUGIN_VALIDATOR_URL: https://raw.githubusercontent.com/openai/codex/2c351cb8646054427e0ea81a484233114b1234f7/codex-rs/skills/src/assets/samples/plugin-creator/scripts/validate_plugin.py
+        run: |
+          validator_root="$RUNNER_TEMP/plugin-creator-validator"
+          validator_script="$validator_root/validate_plugin.py"
+          python3 -m venv "$validator_root/venv"
+          "$validator_root/venv/bin/python" -m pip install \
+            --disable-pip-version-check 'PyYAML==6.0.3'
+          curl --fail --location --silent --show-error \
+            "$PLUGIN_VALIDATOR_URL" --output "$validator_script"
+          echo "$PLUGIN_VALIDATOR_SHA256  $validator_script" | shasum -a 256 -c -
+          mkdir "$validator_root/pinned"
+          while IFS=$'\t' read -r source_type source_ref plugin_dir; do
+            if [[ "$source_type" == "git-subdir" ]]; then
+              git archive "$source_ref" -- "$plugin_dir" | \
+                tar -x -C "$validator_root/pinned"
+              plugin_dir="$validator_root/pinned/$plugin_dir"
+            fi
+            "$validator_root/venv/bin/python" "$validator_script" "$plugin_dir"
+          done < <(
+            python3 -c 'import json; data = json.load(open(".agents/plugins/marketplace.json")); [print(source["source"], source.get("ref", "-"), source["path"].removeprefix("./"), sep="\t") for source in (entry["source"] for entry in data["plugins"])]'
+          )
+
       - name: Validate Project Delivery structure
         run: python3 scripts/check_plugin.py plugins/project-delivery --layout source
 
@@ -38,9 +66,6 @@ jobs:
 
       - name: Validate Conversation Visuals MCP
         run: python3 plugins/conversation-visuals/mcp/server.py --self-test
-
-      - name: Validate repository marketplace and license parity
-        run: python3 scripts/check_marketplace.py .
 
       - name: Run validator regression tests
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v
