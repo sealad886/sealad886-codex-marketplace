@@ -1127,7 +1127,19 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
         status, _ = client.uid("MOVE", str(uid), _quoted_mailbox(destination))
         outcome = "moved"
     else:
-        status, _ = client.uid("COPY", str(uid), _quoted_mailbox(destination))
+        try:
+            status, _ = client.uid(
+                "COPY", str(uid), _quoted_mailbox(destination)
+            )
+        except (OSError, TimeoutError, imaplib.IMAP4.error) as error:
+            return {
+                "message_id": message_id,
+                "destination": destination,
+                "status": "copy_unconfirmed",
+                "error": f"COPY response was lost: {type(error).__name__}",
+                "retry_move": False,
+                "next_step": "Inspect both source and destination mailboxes before acting again.",
+            }
         if status == "OK":
             try:
                 status, _ = client.uid(
@@ -1404,6 +1416,7 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     client: smtplib.SMTP | None = None
     refused: dict[str, tuple[int, bytes]] | None = None
     acceptance_unconfirmed: str | None = None
+    data_started = False
     cleanup_warning = None
     try:
         client = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout())
@@ -1411,12 +1424,24 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         client.starttls(context=ssl.create_default_context())
         client.ehlo()
         client.login(username, password)
+        original_data = client.data
+
+        def tracked_data(payload: Any) -> tuple[int, bytes]:
+            nonlocal data_started
+            data_started = True
+            return original_data(payload)
+
+        client.data = tracked_data
         try:
             refused = client.send_message(
                 wire, from_addr=sender, to_addrs=recipients
             )
         except (smtplib.SMTPServerDisconnected, OSError, TimeoutError) as error:
+            if not data_started:
+                raise
             acceptance_unconfirmed = type(error).__name__
+        finally:
+            client.data = original_data
     except smtplib.SMTPException as error:
         raise MailError(f"iCloud SMTP rejected the request: {type(error).__name__}") from None
     except (OSError, TimeoutError) as error:
@@ -1435,6 +1460,8 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         "status": (
             "acceptance_unconfirmed"
             if acceptance_unconfirmed
+            else "partial"
+            if refused
             else "accepted"
         ),
         "internet_message_id": message.get("Message-ID", ""),
@@ -1451,6 +1478,17 @@ def _smtp_send(message: Message) -> dict[str, Any]:
                 ),
                 "retry_send": False,
                 "next_step": "Check Sent Mail before deciding whether to send again.",
+            }
+        )
+    elif refused:
+        result.update(
+            {
+                "retry_send": False,
+                "retry_recipients": sorted(refused),
+                "next_step": (
+                    "Send a new message only to refused recipients; retrying the "
+                    "original message may duplicate delivery."
+                ),
             }
         )
     if cleanup_warning:
@@ -1614,6 +1652,13 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
         message, _, _ = _fetch_message(client, mailbox, validity, uid)
     result = _smtp_send(message)
     result["draft_id"] = draft_id
+    if result["status"] != "accepted":
+        result["draft_cleanup"] = {
+            "status": "preserved",
+            "reason": f"SMTP result is {result['status']}",
+            "retry_send": False,
+        }
+        return result
     try:
         with _imap() as client:
             trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
