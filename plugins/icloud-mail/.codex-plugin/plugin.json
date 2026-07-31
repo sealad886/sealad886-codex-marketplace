@@ -1,0 +1,42 @@
+{
+  "name": "icloud-mail",
+  "version": "0.1.0",
+  "description": "Read, search, organize, draft, and send iCloud Mail through a local, dependency-free MCP server.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/icloud-mail",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "icloud",
+    "mail",
+    "email",
+    "imap",
+    "smtp"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "iCloud Mail",
+    "shortDescription": "Read, organize, draft, and send iCloud email",
+    "longDescription": "iCloud Mail connects Codex to an iCloud mailbox through Apple's documented TLS IMAP and SMTP endpoints. It supports mailbox search and reading, attachments, folders, flags, archiving, Trash, drafts, replies, forwards, and sending while keeping the Apple app-specific password out of tool arguments and results.",
+    "developerName": "Andrew Cox",
+    "category": "Productivity",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/icloud-mail",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Summarize important unread iCloud Mail.",
+      "Find recent iCloud email and draft a reply.",
+      "Review iCloud Mail attachments that need attention."
+    ],
+    "brandColor": "#1687F8",
+    "composerIcon": "./assets/icloud-mail-icon.svg",
+    "logo": "./assets/icloud-mail-logo.svg"
+  },
+  "mcpServers": "./.mcp.json"
+}
