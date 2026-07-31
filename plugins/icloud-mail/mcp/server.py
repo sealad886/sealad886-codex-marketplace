@@ -213,8 +213,18 @@ def _text(value: Any, name: str, *, required: bool = False, limit: int = 10_000)
     value = value.strip()
     if required and not value:
         raise ValueError(f"{name} must not be empty")
+    protocol_or_header_fields = {
+        "mailbox",
+        "query",
+        "from",
+        "to",
+        "subject",
+        "after",
+        "before",
+        "imap_username",
+    }
     if len(value) > limit or (
-        name in {"mailbox", "query"} and ("\r" in value or "\n" in value)
+        name in protocol_or_header_fields and ("\r" in value or "\n" in value)
     ):
         raise ValueError(f"{name} is invalid or too long")
     return value
@@ -321,7 +331,7 @@ def _imap() -> Iterator[imaplib.IMAP4_SSL]:
 
 
 def _select(client: imaplib.IMAP4_SSL, mailbox: str, *, readonly: bool) -> int:
-    status, data = client.select(_quoted(mailbox), readonly=readonly)
+    status, data = client.select(_quoted_mailbox(mailbox), readonly=readonly)
     if status != "OK":
         raise MailError(f"Cannot open mailbox {mailbox!r}")
     response = client.response("UIDVALIDITY")[1]
@@ -647,7 +657,9 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
     with _imap() as client:
         mailboxes = _mailboxes(client)
         for item in mailboxes:
-            status, data = client.status(_quoted(item["name"]), "(MESSAGES UNSEEN)")
+            status, data = client.status(
+                _quoted_mailbox(item["name"]), "(MESSAGES UNSEEN)"
+            )
             text = data[0].decode("ascii", errors="replace") if status == "OK" and data else ""
             counts = dict(re.findall(r"(MESSAGES|UNSEEN) (\d+)", text))
             item["messages"] = int(counts.get("MESSAGES", 0))
@@ -657,6 +669,32 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
 
 def _quoted(value: str) -> str:
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def _quoted_mailbox(value: str) -> str:
+    return _quoted(_encode_imap_utf7(value))
+
+
+def _encode_imap_utf7(value: str) -> str:
+    """Encode a Unicode mailbox name using RFC 3501 modified UTF-7."""
+    output: list[str] = []
+    non_ascii: list[str] = []
+
+    def flush() -> None:
+        if not non_ascii:
+            return
+        encoded = base64.b64encode("".join(non_ascii).encode("utf-16-be"))
+        output.append("&" + encoded.decode("ascii").rstrip("=").replace("/", ",") + "-")
+        non_ascii.clear()
+
+    for character in value:
+        if "\x20" <= character <= "\x7e":
+            flush()
+            output.append("&-" if character == "&" else character)
+        else:
+            non_ascii.append(character)
+    flush()
+    return "".join(output)
 
 
 def _decode_imap_utf7(value: bytes) -> str:
@@ -820,14 +858,61 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
     if isinstance(maximum, bool) or not isinstance(maximum, int) or not 1 <= maximum <= MAX_RESULTS:
         raise ValueError(f"max_results must be between 1 and {MAX_RESULTS}")
     subject = re.sub(r"^(?:(?:re|fw|fwd):\s*)+", "", anchor["subject"], flags=re.I)
+    if not subject:
+        return {
+            "messages": [anchor],
+            "threading": "RFC Message-ID, References, and In-Reply-To relationships",
+            "truncated": False,
+        }
     result = search_emails(
-        {"mailbox": anchor["mailbox"], "subject": subject, "max_results": maximum}
+        {"mailbox": anchor["mailbox"], "subject": subject, "max_results": MAX_RESULTS}
     )
-    messages = [read_email({"message_id": item["id"]}) for item in reversed(result["emails"])]
+    candidates = [
+        read_email({"message_id": item["id"]}) for item in reversed(result["emails"])
+    ]
+    if all(item["id"] != anchor["id"] for item in candidates):
+        candidates.append(anchor)
+
+    def internet_id(message: dict[str, Any]) -> str:
+        return message.get("internet_message_id", "").strip()
+
+    def references(message: dict[str, Any]) -> set[str]:
+        return {
+            value
+            for value in [
+                *message.get("references", []),
+                message.get("in_reply_to", "").strip(),
+            ]
+            if value
+        }
+
+    connected_ids = {anchor["id"]}
+    connected_internet_ids = {internet_id(anchor)} - {""}
+    changed = True
+    while changed:
+        changed = False
+        for message in candidates:
+            if message["id"] in connected_ids:
+                continue
+            message_id = internet_id(message)
+            message_references = references(message)
+            connected_messages = [
+                item for item in candidates if item["id"] in connected_ids
+            ]
+            linked = bool(message_references & connected_internet_ids) or any(
+                message_id and message_id in references(item)
+                for item in connected_messages
+            )
+            if linked:
+                connected_ids.add(message["id"])
+                if message_id:
+                    connected_internet_ids.add(message_id)
+                changed = True
+    messages = [item for item in candidates if item["id"] in connected_ids][:maximum]
     return {
         "messages": messages,
-        "threading": "best-effort RFC headers and normalized subject within one mailbox",
-        "truncated": result["truncated"],
+        "threading": "RFC Message-ID, References, and In-Reply-To relationships",
+        "truncated": result["truncated"] or len(connected_ids) > maximum,
     }
 
 
@@ -854,9 +939,9 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
         for value in client.capabilities
     }
     if "MOVE" in capabilities:
-        status, _ = client.uid("MOVE", str(uid), _quoted(destination))
+        status, _ = client.uid("MOVE", str(uid), _quoted_mailbox(destination))
     else:
-        status, _ = client.uid("COPY", str(uid), _quoted(destination))
+        status, _ = client.uid("COPY", str(uid), _quoted_mailbox(destination))
         if status == "OK":
             status, _ = client.uid("STORE", str(uid), "+FLAGS.SILENT", "(\\Deleted)")
     if status != "OK":
@@ -1064,7 +1149,9 @@ def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     raw = message.as_bytes(policy=email.policy.SMTP)
     with _imap() as client:
         drafts = _special_mailbox(client, "Drafts", ["Drafts"])
-        status, data = client.append(_quoted(drafts), "(\\Draft \\Seen)", None, raw)
+        status, data = client.append(
+            _quoted_mailbox(drafts), "(\\Draft \\Seen)", None, raw
+        )
         if status != "OK":
             raise MailError("Could not create iCloud Mail draft")
         validity = _select(client, drafts, readonly=True)
@@ -1081,10 +1168,22 @@ def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _validate_draft_ref(client: imaplib.IMAP4_SSL, draft_id: str) -> None:
+    mailbox, validity, uid = _decode_ref(draft_id)
+    drafts = _special_mailbox(client, "Drafts", ["Drafts"])
+    if mailbox.casefold() != drafts.casefold():
+        raise ValueError("draft_id must identify a message in the Drafts mailbox")
+    _, _, flags = _fetch_message(client, mailbox, validity, uid)
+    if "\\Draft" not in flags:
+        raise ValueError("draft_id must identify a message with the Draft flag")
+
+
 def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     draft_id = arguments.get("draft_id")
     if not draft_id:
         raise ValueError("update_draft requires draft_id")
+    with _imap() as client:
+        _validate_draft_ref(client, draft_id)
     replacement = dict(arguments)
     del replacement["draft_id"]
     created = create_draft(replacement)
@@ -1111,6 +1210,7 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     draft_id = arguments["draft_id"]
     mailbox, validity, uid = _decode_ref(draft_id)
     with _imap() as client:
+        _validate_draft_ref(client, draft_id)
         message, _, _ = _fetch_message(client, mailbox, validity, uid)
     result = _smtp_send(message)
     with _imap() as client:

@@ -59,6 +59,23 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(server._decode_imap_utf7(b"Sent Messages"), "Sent Messages")
         self.assertEqual(server._decode_imap_utf7(b"Fish &- Chips"), "Fish & Chips")
         self.assertEqual(server._decode_imap_utf7(b"&ZeVnLIqe-"), "日本語")
+        self.assertEqual(server._encode_imap_utf7("Sent Messages"), "Sent Messages")
+        self.assertEqual(server._encode_imap_utf7("Fish & Chips"), "Fish &- Chips")
+        self.assertEqual(server._encode_imap_utf7("日本語"), "&ZeVnLIqe-")
+
+    def test_imap_search_values_reject_protocol_line_breaks(self) -> None:
+        for field in ("query", "from", "to", "subject"):
+            with self.subTest(field=field), self.assertRaisesRegex(
+                ValueError, "invalid or too long"
+            ):
+                server.search_emails({field: "safe\r\nA001 EXPUNGE"})
+
+    def test_non_ascii_mailbox_is_reencoded_for_wire_commands(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        self.assertEqual(server._select(client, "日本語", readonly=True), 7)
+        client.select.assert_called_once_with('"&ZeVnLIqe-"', readonly=True)
 
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
@@ -175,6 +192,91 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["inbox_messages"], 12)
         smtp.login.assert_called_once_with("primary@icloud.com", "secret")
         smtp.send_message.assert_not_called()
+
+    def test_draft_mutations_reject_an_ordinary_message_reference(self) -> None:
+        ordinary_id = server._encode_ref("Sent Messages", 7, 9)
+        client = mock.MagicMock()
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_special_mailbox", return_value="Drafts"
+        ), mock.patch.object(server, "create_draft") as create:
+            with self.assertRaisesRegex(ValueError, "Drafts mailbox"):
+                server.update_draft(
+                    {
+                        "draft_id": ordinary_id,
+                        "to": ["recipient@example.com"],
+                        "subject": "Replacement",
+                        "body": "Body",
+                    }
+                )
+            with self.assertRaisesRegex(ValueError, "Drafts mailbox"):
+                server.send_draft({"draft_id": ordinary_id})
+        create.assert_not_called()
+
+    def test_thread_read_filters_same_subject_messages_by_reference_headers(self) -> None:
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "subject": "Status",
+            "internet_message_id": "<anchor@example.com>",
+            "references": [],
+            "in_reply_to": "",
+        }
+        related = {
+            "id": "related",
+            "mailbox": "INBOX",
+            "subject": "Re: Status",
+            "internet_message_id": "<related@example.com>",
+            "references": ["<anchor@example.com>"],
+            "in_reply_to": "<anchor@example.com>",
+        }
+        unrelated = {
+            "id": "unrelated",
+            "mailbox": "INBOX",
+            "subject": "Status",
+            "internet_message_id": "<other@example.com>",
+            "references": [],
+            "in_reply_to": "",
+        }
+        messages = {"anchor": anchor, "related": related, "unrelated": unrelated}
+        with mock.patch.object(
+            server, "read_email", side_effect=lambda args: messages[args["message_id"]]
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={
+                "emails": [
+                    {"id": "unrelated"},
+                    {"id": "related"},
+                    {"id": "anchor"},
+                ],
+                "truncated": False,
+            },
+        ):
+            result = server.read_email_thread(
+                {"message_id": "anchor", "max_results": 20}
+            )
+        self.assertEqual(
+            {message["id"] for message in result["messages"]},
+            {"anchor", "related"},
+        )
+
+    def test_empty_subject_thread_returns_only_anchor(self) -> None:
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "subject": "",
+            "internet_message_id": "<anchor@example.com>",
+            "references": [],
+            "in_reply_to": "",
+        }
+        with mock.patch.object(server, "read_email", return_value=anchor), mock.patch.object(
+            server, "search_emails"
+        ) as search:
+            result = server.read_email_thread({"message_id": "anchor"})
+        self.assertEqual(result["messages"], [anchor])
+        search.assert_not_called()
 
     def test_gui_helpers_open_only_fixed_targets(self) -> None:
         completed = mock.MagicMock(returncode=0)
