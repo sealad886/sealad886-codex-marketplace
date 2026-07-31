@@ -184,6 +184,14 @@ class ICloudMailTests(unittest.TestCase):
             self.assertNotIn("password", json.dumps(payload).lower())
             self.assertEqual(server._username(), "primary@icloud.com")
 
+    def test_configuration_does_not_chmod_an_existing_override_parent(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ):
+            os.chmod(temporary, 0o755)
+            server.configure_account({"account_address": "primary@icloud.com"})
+            self.assertEqual(Path(temporary).stat().st_mode & 0o777, 0o755)
+
     def test_incoming_aliases_are_all_mail_and_sender_aliases_are_restricted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, self.config_environment(
             temporary
@@ -401,6 +409,20 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["results"][1]["status"], "failed")
         self.assertEqual(result["results"][1]["message_id"], "second")
 
+    def test_batch_moves_preserve_receipts_on_transport_failure(self) -> None:
+        client = mock.MagicMock()
+        with mock.patch.object(
+            server,
+            "_move",
+            side_effect=[
+                {"message_id": "first", "destination": "Archive", "status": "moved"},
+                OSError("connection reset"),
+            ],
+        ):
+            result = server._move_batch(client, ["first", "second"], "Archive")
+        self.assertEqual(result["results"][0]["status"], "moved")
+        self.assertEqual(result["results"][1]["status"], "failed")
+
     def test_move_rejects_a_missing_source_uid_even_when_imap_returns_ok(self) -> None:
         message_id = server._encode_ref("INBOX", 7, 9)
         client = mock.MagicMock()
@@ -445,6 +467,27 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["results"][0]["status"], "updated")
         self.assertEqual(result["results"][1]["status"], "failed")
 
+    def test_flag_receipt_reports_partial_per_flag_outcome(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 1)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"1 (UID 1)"]),
+            ("OK", [b"1 (FLAGS (\\Seen))"]),
+            ("NO", [b"flag update rejected"]),
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.set_email_flags(
+                {"message_ids": [message_id], "read": True, "flagged": True}
+            )
+        receipt = result["results"][0]
+        self.assertEqual(receipt["status"], "partial")
+        self.assertEqual(receipt["changes"]["read"]["status"], "updated")
+        self.assertEqual(receipt["changes"]["flagged"]["status"], "failed")
+
     def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
         original = {
             "subject": "Status",
@@ -488,6 +531,39 @@ class ICloudMailTests(unittest.TestCase):
             "From: Alice <alice@example.com>",
             prepare.call_args.args[0]["body"],
         )
+
+    def test_forwarding_enforces_aggregate_attachment_limit(self) -> None:
+        original = {
+            "subject": "Files",
+            "from": [{"name": "", "address": "alice@example.com"}],
+            "date": "Thu, 31 Jul 2026 09:00:00 +0000",
+            "body_text": "Files",
+            "body_html": "",
+        }
+        source = EmailMessage()
+        source.set_content("body")
+        for index in range(3):
+            source.add_attachment(
+                b"x" * (4 * 1024 * 1024),
+                maintype="application",
+                subtype="octet-stream",
+                filename=f"file-{index}.bin",
+            )
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(server, "read_email", return_value=original), mock.patch.object(
+            server, "_prepare_outgoing", return_value=EmailMessage()
+        ), mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_fetch_message", return_value=(source, b"", "")
+        ), mock.patch.object(server, "_smtp_send") as send:
+            result = server.forward_emails(
+                {"message_ids": ["source"], "to": ["recipient@example.com"]}
+            )
+        self.assertEqual(result["results"][0]["status"], "failed")
+        self.assertIn("10 MiB total", result["results"][0]["error"])
+        send.assert_not_called()
 
     def test_html_only_forward_content_is_converted_to_text(self) -> None:
         self.assertEqual(

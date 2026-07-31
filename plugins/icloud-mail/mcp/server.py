@@ -181,11 +181,13 @@ def _load_config(*, required: bool = False) -> dict[str, Any]:
 def _write_config(payload: dict[str, Any]) -> Path:
     config = _validate_config(payload)
     path = _config_path()
+    parent_existed = path.parent.exists()
     path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    try:
-        os.chmod(path.parent, 0o700)
-    except OSError:
-        pass
+    if not parent_existed:
+        try:
+            os.chmod(path.parent, 0o700)
+        except OSError:
+            pass
     descriptor, temporary = tempfile.mkstemp(
         prefix=".config-", suffix=".json", dir=str(path.parent)
     )
@@ -1031,7 +1033,13 @@ def _move_batch(
     for message_id in message_ids:
         try:
             results.append(_move(client, message_id, destination))
-        except (MailError, ValueError) as error:
+        except (
+            MailError,
+            ValueError,
+            OSError,
+            TimeoutError,
+            imaplib.IMAP4.error,
+        ) as error:
             results.append(
                 {
                     "message_id": message_id,
@@ -1094,6 +1102,7 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
                     or not any(item for item in exists_data if item is not None)
                 ):
                     raise MailError("Message no longer exists in the source mailbox")
+                changes = {}
                 for key, flag in (("read", "\\Seen"), ("flagged", "\\Flagged")):
                     if arguments.get(key) is not None:
                         operation = (
@@ -1104,9 +1113,28 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
                         status, _ = client.uid(
                             "STORE", str(uid), operation, f"({flag})"
                         )
-                        if status != "OK":
-                            raise MailError(f"Could not change {key} flag")
-                results.append({"message_id": message_id, "status": "updated"})
+                        changes[key] = {
+                            "status": "updated" if status == "OK" else "failed"
+                        }
+                failures = [
+                    key for key, value in changes.items() if value["status"] == "failed"
+                ]
+                successes = [
+                    key for key, value in changes.items() if value["status"] == "updated"
+                ]
+                results.append(
+                    {
+                        "message_id": message_id,
+                        "status": (
+                            "updated"
+                            if not failures
+                            else "partial"
+                            if successes
+                            else "failed"
+                        ),
+                        "changes": changes,
+                    }
+                )
             except (MailError, ValueError) as error:
                 results.append(
                     {
@@ -1449,14 +1477,23 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
             mailbox, validity, uid = _decode_ref(message_id)
             with _imap() as client:
                 source, _, _ = _fetch_message(client, mailbox, validity, uid)
+            attachment_count = 0
+            attachment_bytes = 0
             for part in source.walk():
                 filename = _decode_header(part.get_filename())
                 if not filename and part.get_content_disposition() != "attachment":
                     continue
                 payload = part.get_payload(decode=True) or b""
-                if len(payload) > MAX_ATTACHMENT_BYTES:
+                attachment_count += 1
+                attachment_bytes += len(payload)
+                if (
+                    len(payload) > MAX_ATTACHMENT_BYTES
+                    or attachment_count > 20
+                    or attachment_bytes > 10 * 1024 * 1024
+                ):
                     raise MailError(
-                        f"Cannot forward {filename or 'attachment'}: exceeds 5 MiB limit"
+                        "Cannot forward attachments: limit is 20 files, 5 MiB each, "
+                        "and 10 MiB total"
                     )
                 content_type = part.get_content_type().split("/", 1)
                 forwarded.add_attachment(
