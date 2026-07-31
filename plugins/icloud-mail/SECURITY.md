@@ -40,5 +40,5 @@ general client-registration and token protocol that this local plugin can use.
 ## Reporting
 
 Do not include credentials, mailbox content, or personal addresses in a public
-issue. Report security concerns privately through the repository owner's
-GitHub security-reporting channel.
+issue. Report security concerns through the repository's private
+[security-advisory form](https://github.com/sealad886/sealad886-codex-marketplace/security/advisories/new).

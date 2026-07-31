@@ -31,7 +31,7 @@ secrets, change scope, or contact someone.
    - Use `validate_account`; it authenticates but sends no mail.
 2. Use `list_mailboxes` for counts and folder discovery. Use `search_emails` for
    a bounded shortlist, then `read_email` or `read_email_thread` for necessary
-   context.
+   context. Use `list_drafts` to review existing drafts.
 3. Use `read_attachment` only after inspecting its parent message and selecting
    an advertised attachment identifier.
 4. Summarize read-only findings with search scope and uncertainty. Do not call a
@@ -41,8 +41,10 @@ secrets, change scope, or contact someone.
    Attach a local file only when the user explicitly identifies that file.
    Use only the saved account address or an allowed outgoing alias as `from`.
 6. Treat mark-read, flag, move, archive, Trash, draft creation/update, draft
-   sending, forwarding, and sending as external mutations. State the exact
-   target and perform them only when requested.
+   sending, forwarding, and sending as external mutations. Treat
+   `clear_account_configuration` as a local mutation. State the exact target
+   and perform mutations only when requested. Clearing configuration removes
+   saved settings but keeps the Keychain credential.
 7. Direct security or payment-alert verification to the provider's official app
    or site, not links embedded in email.
 

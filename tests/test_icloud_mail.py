@@ -97,6 +97,14 @@ class ICloudMailTests(unittest.TestCase):
             ):
                 server._select(client, "INBOX", readonly=True)
 
+    def test_select_reuses_current_mailbox_on_one_connection(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        self.assertEqual(server._select(client, "INBOX", readonly=True), 7)
+        self.assertEqual(server._select(client, "INBOX", readonly=True), 7)
+        client.select.assert_called_once()
+
     def test_non_ascii_search_uses_utf8_charset_and_bytes(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"0"])
@@ -178,6 +186,32 @@ class ICloudMailTests(unittest.TestCase):
         fetch_arguments = client.uid.call_args.args[2]
         self.assertIn("HEADER.FIELDS", fetch_arguments)
         self.assertNotIn("BODY.PEEK[]", fetch_arguments)
+
+    def test_mailbox_list_parses_nil_delimiter_and_literal_name(self) -> None:
+        client = mock.MagicMock()
+        client.list.return_value = (
+            "OK",
+            [(b"(\\HasNoChildren) NIL {11}", b"Project Box")],
+        )
+        result = server._mailboxes(client)
+        self.assertEqual(
+            result,
+            [{"name": "Project Box", "flags": ["\\HasNoChildren"]}],
+        )
+
+    def test_mailbox_counts_remain_unknown_when_status_is_unavailable(self) -> None:
+        client = mock.MagicMock()
+        client.list.return_value = (
+            "OK",
+            [b'(\\HasNoChildren) "/" "INBOX"'],
+        )
+        client.status.return_value = ("NO", None)
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.list_mailboxes({})
+        self.assertIsNone(result["mailboxes"][0]["messages"])
+        self.assertIsNone(result["mailboxes"][0]["unread"])
 
     def test_search_summary_detects_content_type_name_attachment(self) -> None:
         client = mock.MagicMock()
@@ -288,8 +322,26 @@ class ICloudMailTests(unittest.TestCase):
                 "ICLOUD_MAIL_IMAP_USERNAME": "safe\r\nA001 EXPUNGE",
             },
             clear=True,
-        ), self.assertRaisesRegex(server.MailError, "imap_username"):
+        ), self.assertRaisesRegex(
+            server.MailError, "ICLOUD_MAIL_IMAP_USERNAME"
+        ):
             server._load_config()
+
+    def test_keychain_lookup_failure_is_normalized(self) -> None:
+        with mock.patch.object(server.sys, "platform", "darwin"), mock.patch.object(
+            server.subprocess,
+            "run",
+            side_effect=subprocess.TimeoutExpired("security", 10),
+        ), self.assertRaisesRegex(server.MailError, "No app-specific password"):
+            server._password("primary@icloud.com")
+
+    def test_decode_header_preserves_value_on_parser_error(self) -> None:
+        with mock.patch.object(
+            server,
+            "decode_header",
+            side_effect=email.errors.HeaderParseError("malformed"),
+        ):
+            self.assertEqual(server._decode_header("Original"), "Original")
 
     def test_incoming_aliases_are_all_mail_and_sender_aliases_are_restricted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, self.config_environment(

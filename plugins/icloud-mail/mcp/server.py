@@ -144,18 +144,26 @@ def _load_config(*, required: bool = False) -> dict[str, Any]:
     if not path.exists():
         legacy = os.environ.get("ICLOUD_MAIL_USERNAME", "").strip()
         if legacy:
-            account = _email_address(legacy, "ICLOUD_MAIL_USERNAME")
-            return _validate_config({
-                **_default_config(),
-                "account_address": account,
-                "imap_username": os.environ.get(
-                    "ICLOUD_MAIL_IMAP_USERNAME", ""
-                ).strip(),
-                "default_from": account,
-                "display_name": os.environ.get(
-                    "ICLOUD_MAIL_DISPLAY_NAME", ""
-                ).strip(),
-            })
+            try:
+                account = _email_address(legacy, "ICLOUD_MAIL_USERNAME")
+                return _validate_config({
+                    **_default_config(),
+                    "account_address": account,
+                    "imap_username": os.environ.get(
+                        "ICLOUD_MAIL_IMAP_USERNAME", ""
+                    ).strip(),
+                    "default_from": account,
+                    "display_name": os.environ.get(
+                        "ICLOUD_MAIL_DISPLAY_NAME", ""
+                    ).strip(),
+                })
+            except (MailError, ValueError) as error:
+                raise MailError(
+                    "iCloud Mail environment configuration "
+                    "(ICLOUD_MAIL_USERNAME, ICLOUD_MAIL_IMAP_USERNAME, "
+                    "ICLOUD_MAIL_DISPLAY_NAME) is invalid: "
+                    f"{error}"
+                ) from None
         if required:
             raise MailError(
                 "iCloud Mail is not configured; run configure_account first"
@@ -248,7 +256,7 @@ def _decode_header(value: str | None) -> str:
         return ""
     try:
         return str(make_header(decode_header(value)))
-    except (LookupError, UnicodeError):
+    except (LookupError, UnicodeError, email.errors.HeaderParseError):
         return value
 
 
@@ -285,22 +293,29 @@ def _password(username: str) -> tuple[str, str]:
     if environment:
         return environment, "environment"
     if sys.platform == "darwin":
-        result = subprocess.run(
-            [
-                "/usr/bin/security",
-                "find-generic-password",
-                "-a",
-                username,
-                "-s",
-                KEYCHAIN_SERVICE,
-                "-w",
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
-        if result.returncode == 0 and result.stdout.rstrip("\n"):
+        try:
+            result = subprocess.run(
+                [
+                    "/usr/bin/security",
+                    "find-generic-password",
+                    "-a",
+                    username,
+                    "-s",
+                    KEYCHAIN_SERVICE,
+                    "-w",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except (OSError, subprocess.SubprocessError):
+            result = None
+        if (
+            result is not None
+            and result.returncode == 0
+            and result.stdout.rstrip("\n")
+        ):
             return result.stdout.rstrip("\n"), "macOS Keychain"
     raise MailError(
         "No app-specific password found; store service codex-icloud-mail in "
@@ -329,6 +344,8 @@ def _imap() -> Iterator[imaplib.IMAP4_SSL]:
         raise MailError(f"Could not connect to iCloud IMAP: {type(error).__name__}") from None
     finally:
         if client is not None:
+            client.__dict__.pop("_codex_selected_mailbox", None)
+            client.__dict__.pop("_codex_selected_uidvalidity", None)
             try:
                 client.logout()
             except (imaplib.IMAP4.error, OSError):
@@ -336,6 +353,9 @@ def _imap() -> Iterator[imaplib.IMAP4_SSL]:
 
 
 def _select(client: imaplib.IMAP4_SSL, mailbox: str, *, readonly: bool) -> int:
+    selected = client.__dict__.get("_codex_selected_mailbox")
+    if selected == (mailbox, readonly):
+        return client.__dict__["_codex_selected_uidvalidity"]
     status, data = client.select(_quoted_mailbox(mailbox), readonly=readonly)
     if status != "OK":
         raise MailError(f"Cannot open mailbox {mailbox!r}")
@@ -343,9 +363,12 @@ def _select(client: imaplib.IMAP4_SSL, mailbox: str, *, readonly: bool) -> int:
     if not response or response[0] is None:
         raise MailError("Mailbox did not provide UIDVALIDITY")
     try:
-        return int(response[0])
+        validity = int(response[0])
     except (TypeError, ValueError):
         raise MailError("Mailbox provided invalid UIDVALIDITY") from None
+    client.__dict__["_codex_selected_mailbox"] = (mailbox, readonly)
+    client.__dict__["_codex_selected_uidvalidity"] = validity
+    return validity
 
 
 def _encode_ref(mailbox: str, uidvalidity: int, uid: int) -> str:
@@ -745,14 +768,21 @@ def _mailboxes(client: imaplib.IMAP4_SSL) -> list[dict[str, Any]]:
     if status != "OK":
         raise MailError("Could not list iCloud Mail mailboxes")
     result = []
-    pattern = re.compile(rb'^\((?P<flags>[^)]*)\) "(?P<delimiter>[^"]*)" (?P<name>.+)$')
+    pattern = re.compile(
+        rb'^\((?P<flags>[^)]*)\) (?:"(?P<delimiter>[^"]*)"|NIL) (?P<name>.+)$'
+    )
     for raw in data or []:
         if not raw:
+            continue
+        if isinstance(raw, tuple):
+            raw = b" ".join(item for item in raw if isinstance(item, bytes))
+        if not isinstance(raw, bytes):
             continue
         match = pattern.match(raw)
         if not match:
             continue
         name_raw = match.group("name").strip()
+        name_raw = re.sub(rb"^\{\d+\}\s*", b"", name_raw)
         if name_raw.startswith(b'"') and name_raw.endswith(b'"'):
             name_raw = name_raw[1:-1].replace(b'\\"', b'"').replace(b"\\\\", b"\\")
         name = _decode_imap_utf7(name_raw)
@@ -772,8 +802,12 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
             )
             text = data[0].decode("ascii", errors="replace") if status == "OK" and data else ""
             counts = dict(re.findall(r"(MESSAGES|UNSEEN) (\d+)", text))
-            item["messages"] = int(counts.get("MESSAGES", 0))
-            item["unread"] = int(counts.get("UNSEEN", 0))
+            item["messages"] = (
+                int(counts["MESSAGES"]) if "MESSAGES" in counts else None
+            )
+            item["unread"] = (
+                int(counts["UNSEEN"]) if "UNSEEN" in counts else None
+            )
         return {"mailboxes": mailboxes}
 
 
