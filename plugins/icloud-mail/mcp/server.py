@@ -10,6 +10,7 @@ import datetime as dt
 import email
 import email.policy
 import email.utils
+import html
 import imaplib
 import json
 import os
@@ -36,6 +37,7 @@ SMTP_PORT = 587
 KEYCHAIN_SERVICE = "codex-icloud-mail"
 CONFIG_VERSION = 1
 MAX_RESULTS = 50
+MAX_SEARCH_SCAN = 200
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 REF_PREFIX = "icloud-mail:"
@@ -761,14 +763,23 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
         criteria.append("UNFLAGGED")
     with _imap() as client:
         validity = _select(client, mailbox, readonly=True)
-        status, data = client.uid("search", None, *criteria)
+        charset = "UTF-8" if any(not item.isascii() for item in criteria) else None
+        wire_criteria: list[str | bytes] = (
+            [item.encode("utf-8") for item in criteria] if charset else criteria
+        )
+        status, data = client.uid("search", charset, *wire_criteria)
         if status != "OK":
             raise MailError("iCloud Mail search failed")
         uids = [int(item) for item in (data[0].split() if data and data[0] else [])]
         uids.reverse()
         results = []
         scanned = 0
-        for uid in uids:
+        scan_limit = (
+            min(len(uids), MAX_SEARCH_SCAN, max(maximum * 5, MAX_RESULTS))
+            if arguments.get("has_attachment") is not None
+            else len(uids)
+        )
+        for uid in uids[:scan_limit]:
             if len(results) >= maximum:
                 break
             scanned += 1
@@ -950,6 +961,25 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
     return {"message_id": message_id, "destination": destination, "status": "moved"}
 
 
+def _move_batch(
+    client: imaplib.IMAP4_SSL, message_ids: list[Any], destination: str
+) -> dict[str, Any]:
+    results = []
+    for message_id in message_ids:
+        try:
+            results.append(_move(client, message_id, destination))
+        except (MailError, ValueError) as error:
+            results.append(
+                {
+                    "message_id": message_id,
+                    "destination": destination,
+                    "status": "failed",
+                    "error": str(error),
+                }
+            )
+    return {"results": results}
+
+
 def move_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"message_ids", "destination"}:
         raise ValueError("move_emails requires message_ids and destination")
@@ -958,7 +988,7 @@ def move_emails(arguments: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("message_ids must not be empty")
     destination = _text(arguments["destination"], "mailbox", required=True, limit=500)
     with _imap() as client:
-        return {"results": [_move(client, item, destination) for item in ids]}
+        return _move_batch(client, ids, destination)
 
 
 def archive_emails(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -967,7 +997,7 @@ def archive_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     ids = _list(arguments["message_ids"], "message_ids", limit=50)
     with _imap() as client:
         destination = _special_mailbox(client, "Archive", ["Archive"])
-        return {"results": [_move(client, item, destination) for item in ids]}
+        return _move_batch(client, ids, destination)
 
 
 def trash_emails(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -976,7 +1006,7 @@ def trash_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     ids = _list(arguments["message_ids"], "message_ids", limit=50)
     with _imap() as client:
         destination = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
-        return {"results": [_move(client, item, destination) for item in ids]}
+        return _move_batch(client, ids, destination)
 
 
 def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1188,11 +1218,20 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     replacement = dict(arguments)
     del replacement["draft_id"]
     created = create_draft(replacement)
-    with _imap() as client:
-        trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
-        _move(client, draft_id, trash)
     created["replaced_draft_id"] = draft_id
     created["status"] = "updated"
+    try:
+        with _imap() as client:
+            trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
+            _move(client, draft_id, trash)
+        created["old_draft_cleanup"] = {"status": "moved_to_trash"}
+    except (MailError, ValueError) as error:
+        created["old_draft_cleanup"] = {
+            "status": "failed",
+            "error": str(error),
+            "retry_update": False,
+            "next_step": "Remove or move the old draft manually; the replacement exists.",
+        }
     return created
 
 
@@ -1240,6 +1279,12 @@ def _format_addresses(addresses: list[dict[str, str]]) -> str:
     )
 
 
+def _html_to_text(value: str) -> str:
+    text = re.sub(r"(?is)<(script|style).*?>.*?</\1>", "", value)
+    text = re.sub(r"(?i)<br\s*/?>|</p\s*>|</div\s*>", "\n", text)
+    return html.unescape(re.sub(r"(?s)<[^>]+>", "", text)).strip()
+
+
 def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     allowed = {"message_ids", "to", "cc", "bcc", "note", "from"}
     if set(arguments) - allowed:
@@ -1265,7 +1310,8 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                     f"Date: {original['date']}",
                     f"Subject: {original['subject']}",
                     "",
-                    original["body_text"],
+                    original["body_text"]
+                    or _html_to_text(original.get("body_html", "")),
                 ]
             ).strip()
             outgoing = {

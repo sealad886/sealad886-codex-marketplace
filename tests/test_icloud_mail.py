@@ -80,6 +80,42 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(server._select(client, "日本語", readonly=True), 7)
         client.select.assert_called_once_with('"&ZeVnLIqe-"', readonly=True)
 
+    def test_non_ascii_search_uses_utf8_charset_and_bytes(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"0"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [b""])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            server.search_emails({"subject": "日本語"})
+        client.uid.assert_called_once_with(
+            "search", "UTF-8", b"ALL", b"SUBJECT", b'"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"'
+        )
+
+    def test_attachment_filter_has_a_bounded_scan_budget(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1000"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = (
+            "OK",
+            [b" ".join(str(index).encode() for index in range(1, 1001))],
+        )
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        message = EmailMessage()
+        message.set_content("No attachment")
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_fetch_message", return_value=(message, b"", "")
+        ) as fetch:
+            result = server.search_emails(
+                {"has_attachment": True, "max_results": 1}
+            )
+        self.assertEqual(result["returned"], 0)
+        self.assertEqual(result["scanned"], 50)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(fetch.call_count, 50)
+
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
         self.assertEqual(names, set(server.HANDLERS))
@@ -235,6 +271,43 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["draft_cleanup"]["status"], "failed")
         self.assertFalse(result["draft_cleanup"]["retry_send"])
 
+    def test_update_draft_preserves_replacement_when_cleanup_fails(self) -> None:
+        old_id = server._encode_ref("Drafts", 7, 9)
+        replacement = {"draft_id": "replacement", "status": "created"}
+        validate_context = mock.MagicMock()
+        validate_context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", side_effect=[validate_context, server.MailError("offline")]
+        ), mock.patch.object(server, "_validate_draft_ref"), mock.patch.object(
+            server, "create_draft", return_value=replacement.copy()
+        ):
+            result = server.update_draft(
+                {
+                    "draft_id": old_id,
+                    "to": ["recipient@example.com"],
+                    "subject": "Replacement",
+                    "body": "Body",
+                }
+            )
+        self.assertEqual(result["draft_id"], "replacement")
+        self.assertEqual(result["old_draft_cleanup"]["status"], "failed")
+        self.assertFalse(result["old_draft_cleanup"]["retry_update"])
+
+    def test_batch_moves_return_completed_and_failed_receipts(self) -> None:
+        client = mock.MagicMock()
+        with mock.patch.object(
+            server,
+            "_move",
+            side_effect=[
+                {"message_id": "first", "destination": "Archive", "status": "moved"},
+                server.MailError("stale"),
+            ],
+        ):
+            result = server._move_batch(client, ["first", "second"], "Archive")
+        self.assertEqual(result["results"][0]["status"], "moved")
+        self.assertEqual(result["results"][1]["status"], "failed")
+        self.assertEqual(result["results"][1]["message_id"], "second")
+
     def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
         original = {
             "subject": "Status",
@@ -277,6 +350,12 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIn(
             "From: Alice <alice@example.com>",
             prepare.call_args.args[0]["body"],
+        )
+
+    def test_html_only_forward_content_is_converted_to_text(self) -> None:
+        self.assertEqual(
+            server._html_to_text("<p>Hello &amp; welcome</p><div>Next</div>"),
+            "Hello & welcome\nNext",
         )
 
     def test_thread_read_filters_same_subject_messages_by_reference_headers(self) -> None:
