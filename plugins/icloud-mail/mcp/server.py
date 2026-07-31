@@ -854,13 +854,15 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
         }
 
 
-def read_email(arguments: dict[str, Any]) -> dict[str, Any]:
-    if set(arguments) - {"message_id", "include_raw_mime"}:
-        raise ValueError("unsupported read_email fields")
-    message_id = arguments.get("message_id")
-    mailbox, validity, uid = _decode_ref(message_id)
-    with _imap() as client:
-        message, raw, flags = _fetch_message(client, mailbox, validity, uid)
+def _read_email_result(
+    message: Message,
+    raw: bytes,
+    flags: str,
+    message_id: str,
+    mailbox: str,
+    *,
+    include_raw_mime: bool = False,
+) -> dict[str, Any]:
     plain, html = _body(message)
     result = _summary(message, message_id, flags)
     result.update(
@@ -874,11 +876,28 @@ def read_email(arguments: dict[str, Any]) -> dict[str, Any]:
             "in_reply_to": message.get("In-Reply-To", ""),
         }
     )
-    if arguments.get("include_raw_mime") is True:
+    if include_raw_mime:
         if len(raw) > MAX_ATTACHMENT_BYTES:
             raise MailError("Raw MIME exceeds the 5 MiB result limit")
         result["raw_mime_base64"] = base64.b64encode(raw).decode()
     return result
+
+
+def read_email(arguments: dict[str, Any]) -> dict[str, Any]:
+    if set(arguments) - {"message_id", "include_raw_mime"}:
+        raise ValueError("unsupported read_email fields")
+    message_id = arguments.get("message_id")
+    mailbox, validity, uid = _decode_ref(message_id)
+    with _imap() as client:
+        message, raw, flags = _fetch_message(client, mailbox, validity, uid)
+    return _read_email_result(
+        message,
+        raw,
+        flags,
+        message_id,
+        mailbox,
+        include_raw_mime=arguments.get("include_raw_mime") is True,
+    )
 
 
 def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -944,7 +963,7 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
             value
             for value in [
                 *message.get("references", []),
-                message.get("in_reply_to", "").strip(),
+                *message.get("in_reply_to", "").split(),
             ]
             if value
         }
@@ -1086,6 +1105,9 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
     ids = _list(arguments.get("message_ids"), "message_ids", limit=50)
     if not ids or arguments.get("read") is None and arguments.get("flagged") is None:
         raise ValueError("provide message_ids and at least one flag change")
+    for key in ("read", "flagged"):
+        if arguments.get(key) is not None and not isinstance(arguments[key], bool):
+            raise ValueError(f"{key} must be a boolean")
     results = []
     with _imap() as client:
         for message_id in ids:
@@ -1469,7 +1491,12 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     results = []
     for message_id in ids:
         try:
-            original = read_email({"message_id": message_id})
+            mailbox, validity, uid = _decode_ref(message_id)
+            with _imap() as client:
+                source, raw, flags = _fetch_message(client, mailbox, validity, uid)
+            original = _read_email_result(
+                source, raw, flags, message_id, mailbox
+            )
             subject = original["subject"]
             subject = (
                 subject if re.match(r"^fwd?:", subject, re.I) else f"Fwd: {subject}"
@@ -1497,9 +1524,6 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                 "body": quoted,
             }
             forwarded = _prepare_outgoing(outgoing)
-            mailbox, validity, uid = _decode_ref(message_id)
-            with _imap() as client:
-                source, _, _ = _fetch_message(client, mailbox, validity, uid)
             attachment_count = 0
             attachment_bytes = 0
             for part in source.walk():

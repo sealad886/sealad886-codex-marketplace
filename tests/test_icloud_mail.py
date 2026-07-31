@@ -515,6 +515,14 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(receipt["changes"]["read"]["status"], "updated")
         self.assertEqual(receipt["changes"]["flagged"]["status"], "failed")
 
+    def test_flag_update_rejects_non_boolean_values_before_connecting(self) -> None:
+        with mock.patch.object(server, "_imap") as connect:
+            with self.assertRaisesRegex(ValueError, "read must be a boolean"):
+                server.set_email_flags(
+                    {"message_ids": ["message"], "read": "true"}
+                )
+        connect.assert_not_called()
+
     def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
         original = {
             "subject": "Status",
@@ -529,7 +537,7 @@ class ICloudMailTests(unittest.TestCase):
         context.__enter__.return_value = mock.MagicMock()
         with mock.patch.object(
             server,
-            "read_email",
+            "_read_email_result",
             side_effect=[original, server.MailError("missing message")],
         ), mock.patch.object(
             server, "_prepare_outgoing", return_value=forwarded
@@ -539,7 +547,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "_imap", return_value=context
         ), mock.patch.object(
             server, "_fetch_message", return_value=(source, b"", "")
-        ), mock.patch.object(
+        ) as fetch, mock.patch.object(
             server,
             "_smtp_send",
             return_value={"status": "accepted", "internet_message_id": "<sent>"},
@@ -558,6 +566,7 @@ class ICloudMailTests(unittest.TestCase):
             "From: Alice <alice@example.com>",
             prepare.call_args.args[0]["body"],
         )
+        self.assertEqual(fetch.call_count, 2)
 
     def test_forwarding_enforces_aggregate_attachment_limit(self) -> None:
         original = {
@@ -578,7 +587,7 @@ class ICloudMailTests(unittest.TestCase):
             )
         context = mock.MagicMock()
         context.__enter__.return_value = mock.MagicMock()
-        with mock.patch.object(server, "read_email", return_value=original), mock.patch.object(
+        with mock.patch.object(server, "_read_email_result", return_value=original), mock.patch.object(
             server, "_prepare_outgoing", return_value=EmailMessage()
         ), mock.patch.object(
             server, "_decode_ref", return_value=("INBOX", 7, 9)
@@ -637,6 +646,37 @@ class ICloudMailTests(unittest.TestCase):
             result = server.read_email_thread(
                 {"message_id": "anchor", "max_results": 20}
             )
+        self.assertEqual(
+            {message["id"] for message in result["messages"]},
+            {"anchor", "related"},
+        )
+
+    def test_thread_read_splits_multiple_in_reply_to_message_ids(self) -> None:
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "subject": "Status",
+            "internet_message_id": "<anchor@example.com>",
+            "references": [],
+            "in_reply_to": "",
+        }
+        related = {
+            "id": "related",
+            "mailbox": "INBOX",
+            "subject": "Re: Status",
+            "internet_message_id": "<related@example.com>",
+            "references": [],
+            "in_reply_to": "<anchor@example.com> <other@example.com>",
+        }
+        messages = {"anchor": anchor, "related": related}
+        with mock.patch.object(
+            server, "read_email", side_effect=lambda args: messages[args["message_id"]]
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={"emails": [related, anchor], "truncated": False},
+        ):
+            result = server.read_email_thread({"message_id": "anchor"})
         self.assertEqual(
             {message["id"] for message in result["messages"]},
             {"anchor", "related"},
