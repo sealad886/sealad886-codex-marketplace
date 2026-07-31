@@ -438,6 +438,15 @@ def _attachment_payload(part: Message) -> bytes:
     return b""
 
 
+def _attachment_parts(message: Message) -> Iterator[Message]:
+    for part in message.iter_parts() if message.is_multipart() else ():
+        filename = _decode_header(part.get_filename())
+        if filename or part.get_content_disposition() == "attachment":
+            yield part
+        elif part.is_multipart():
+            yield from _attachment_parts(part)
+
+
 def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any]]:
     entries = []
     for index, part in enumerate(message.walk()):
@@ -866,7 +875,12 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
             if len(results) >= maximum:
                 break
             scanned += 1
-            item = _fetch_summary(client, mailbox, validity, uid)
+            try:
+                item = _fetch_summary(client, mailbox, validity, uid)
+            except MailError as error:
+                if str(error) == "Message no longer exists in this mailbox":
+                    continue
+                raise
             if arguments.get("has_attachment") is not None and (
                 item["has_attachments"] is not arguments["has_attachment"]
             ):
@@ -926,6 +940,18 @@ def read_email(arguments: dict[str, Any]) -> dict[str, Any]:
         mailbox,
         include_raw_mime=arguments.get("include_raw_mime") is True,
     )
+
+
+def _read_emails_shared(message_ids: list[str]) -> list[dict[str, Any]]:
+    results = []
+    with _imap() as client:
+        for message_id in message_ids:
+            mailbox, validity, uid = _decode_ref(message_id)
+            message, raw, flags = _fetch_message(client, mailbox, validity, uid)
+            results.append(
+                _read_email_result(message, raw, flags, message_id, mailbox)
+            )
+    return results
 
 
 def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1022,8 +1048,13 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
     selected = connected[:maximum]
     if anchor["id"] not in {item["id"] for item in selected}:
         selected = connected[: maximum - 1] + [anchor]
+    other_ids = [item["id"] for item in selected if item["id"] != anchor["id"]]
+    loaded = {
+        item["id"]: item
+        for item in _read_emails_shared(other_ids)
+    }
     messages = [
-        anchor if item["id"] == anchor["id"] else read_email({"message_id": item["id"]})
+        anchor if item["id"] == anchor["id"] else loaded[item["id"]]
         for item in selected
     ]
     return {
@@ -1046,7 +1077,7 @@ def _special_mailbox(client: imaplib.IMAP4_SSL, special: str, fallbacks: list[st
     raise MailError(f"Could not find the iCloud {special} mailbox")
 
 
-def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[str, str]:
+def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[str, Any]:
     mailbox, validity, uid = _decode_ref(message_id)
     actual = _select(client, mailbox, readonly=False)
     if actual != validity:
@@ -1068,7 +1099,27 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
     else:
         status, _ = client.uid("COPY", str(uid), _quoted_mailbox(destination))
         if status == "OK":
-            status, _ = client.uid("STORE", str(uid), "+FLAGS.SILENT", "(\\Deleted)")
+            try:
+                status, _ = client.uid(
+                    "STORE", str(uid), "+FLAGS.SILENT", "(\\Deleted)"
+                )
+            except (OSError, TimeoutError, imaplib.IMAP4.error) as error:
+                return {
+                    "message_id": message_id,
+                    "destination": destination,
+                    "status": "copied_source_cleanup_unconfirmed",
+                    "error": f"Source cleanup failed: {type(error).__name__}",
+                    "retry_move": False,
+                    "next_step": "Remove the source message manually; the destination copy exists.",
+                }
+            if status != "OK":
+                return {
+                    "message_id": message_id,
+                    "destination": destination,
+                    "status": "copied_source_cleanup_failed",
+                    "retry_move": False,
+                    "next_step": "Remove the source message manually; the destination copy exists.",
+                }
         outcome = "copied_and_marked_deleted"
     if status != "OK":
         raise MailError(f"Could not move message to {destination!r}")
@@ -1562,11 +1613,9 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
             forwarded = _prepare_outgoing(outgoing)
             attachment_count = 0
             attachment_bytes = 0
-            for part in source.walk():
+            for part in _attachment_parts(source):
                 filename = _decode_header(part.get_filename())
-                if not filename and part.get_content_disposition() != "attachment":
-                    continue
-                payload = part.get_payload(decode=True) or b""
+                payload = _attachment_payload(part)
                 attachment_count += 1
                 attachment_bytes += len(payload)
                 if (

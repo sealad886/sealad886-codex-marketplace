@@ -136,6 +136,29 @@ class ICloudMailTests(unittest.TestCase):
         self.assertTrue(result["truncated"])
         self.assertEqual(fetch.call_count, 50)
 
+    def test_search_skips_a_message_that_vanishes_during_summary_fetch(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"2"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [b"1 2"])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        surviving = {
+            "id": server._encode_ref("INBOX", 7, 1),
+            "has_attachments": False,
+        }
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server,
+            "_fetch_summary",
+            side_effect=[
+                server.MailError("Message no longer exists in this mailbox"),
+                surviving,
+            ],
+        ):
+            result = server.search_emails({"max_results": 2})
+        self.assertEqual(result["emails"], [surviving])
+        self.assertEqual(result["scanned"], 2)
+
     def test_search_summary_fetches_headers_without_full_message_body(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -562,6 +585,22 @@ class ICloudMailTests(unittest.TestCase):
             "STORE", "9", "+FLAGS.SILENT", "(\\Deleted)"
         )
 
+    def test_move_copy_fallback_preserves_copy_receipt_on_cleanup_failure(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        client = mock.MagicMock()
+        client.capabilities = ()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"9 (UID 9)"]),
+            ("OK", [b"COPY completed"]),
+            OSError("connection reset"),
+        ]
+        result = server._move(client, message_id, "Archive")
+        self.assertEqual(result["status"], "copied_source_cleanup_unconfirmed")
+        self.assertFalse(result["retry_move"])
+        self.assertIn("destination copy exists", result["next_step"])
+
     def test_flag_update_rejects_a_missing_source_uid(self) -> None:
         message_id = server._encode_ref("INBOX", 7, 9)
         client = mock.MagicMock()
@@ -755,6 +794,47 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIn("10 MiB total", result["results"][0]["error"])
         send.assert_not_called()
 
+    def test_forwarding_serializes_attached_email_once(self) -> None:
+        original = {
+            "subject": "Attached mail",
+            "from": [{"name": "", "address": "alice@example.com"}],
+            "date": "Thu, 31 Jul 2026 09:00:00 +0000",
+            "body_text": "See attachment",
+            "body_html": "",
+        }
+        nested = EmailMessage()
+        nested["Subject"] = "Nested"
+        nested.set_content("nested body")
+        source = EmailMessage()
+        source.set_content("outer body")
+        source.add_attachment(nested, filename="nested.eml")
+        outgoing = EmailMessage()
+        outgoing.set_content("forward")
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_read_email_result", return_value=original
+        ), mock.patch.object(
+            server, "_prepare_outgoing", return_value=outgoing
+        ), mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(source, b"", "")
+        ), mock.patch.object(
+            server,
+            "_smtp_send",
+            return_value={"status": "accepted"},
+        ):
+            result = server.forward_emails(
+                {"message_ids": ["source"], "to": ["recipient@example.com"]}
+            )
+        self.assertEqual(result["results"][0]["status"], "accepted")
+        attachments = list(outgoing.iter_attachments())
+        self.assertEqual(len(attachments), 1)
+        self.assertIn(b"Subject: Nested", server._attachment_payload(attachments[0]))
+
     def test_html_only_forward_content_is_converted_to_text(self) -> None:
         self.assertEqual(
             server._html_to_text("<p>Hello &amp; welcome</p><div>Next</div>"),
@@ -796,6 +876,10 @@ class ICloudMailTests(unittest.TestCase):
                 "emails": [unrelated, related, anchor],
                 "truncated": False,
             },
+        ), mock.patch.object(
+            server,
+            "_read_emails_shared",
+            side_effect=lambda ids: [messages[item] for item in ids],
         ):
             result = server.read_email_thread(
                 {"message_id": "anchor", "max_results": 20}
@@ -829,6 +913,10 @@ class ICloudMailTests(unittest.TestCase):
             server,
             "search_emails",
             return_value={"emails": [related, anchor], "truncated": False},
+        ), mock.patch.object(
+            server,
+            "_read_emails_shared",
+            side_effect=lambda ids: [messages[item] for item in ids],
         ):
             result = server.read_email_thread({"message_id": "anchor"})
         self.assertEqual(
@@ -876,6 +964,10 @@ class ICloudMailTests(unittest.TestCase):
             server,
             "search_emails",
             return_value={"emails": search_results, "truncated": False},
+        ), mock.patch.object(
+            server,
+            "_read_emails_shared",
+            side_effect=lambda ids: [messages[item] for item in ids],
         ):
             result = server.read_email_thread(
                 {"message_id": anchor["id"], "max_results": 20}
@@ -883,6 +975,24 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(len(result["messages"]), 20)
         self.assertIn(anchor, result["messages"])
         self.assertTrue(result["truncated"])
+
+    def test_selected_thread_messages_share_one_imap_session(self) -> None:
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(server, "_imap", return_value=context) as connect, mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(EmailMessage(), b"", "")
+        ), mock.patch.object(
+            server,
+            "_read_email_result",
+            side_effect=lambda _message, _raw, _flags, message_id, _mailbox: {
+                "id": message_id
+            },
+        ):
+            result = server._read_emails_shared(["first", "second"])
+        self.assertEqual(result, [{"id": "first"}, {"id": "second"}])
+        connect.assert_called_once_with()
 
     def test_gui_helpers_open_only_fixed_targets(self) -> None:
         completed = mock.MagicMock(returncode=0)
