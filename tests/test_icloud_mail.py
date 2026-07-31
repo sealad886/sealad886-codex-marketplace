@@ -217,6 +217,8 @@ class ICloudMailTests(unittest.TestCase):
         }:
             self.assertIn(required, names)
         self.assertNotIn("permanently_delete", names)
+        forward = next(tool for tool in server.TOOLS if tool["name"] == "forward_emails")
+        self.assertEqual(forward["inputSchema"]["required"], ["message_ids"])
 
     def test_configuration_persists_non_secret_settings_with_private_mode(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, self.config_environment(
@@ -345,6 +347,20 @@ class ICloudMailTests(unittest.TestCase):
         outer = EmailMessage()
         outer.set_content("<p>outer html</p>", subtype="html")
         outer.add_attachment(nested, filename="attached.eml")
+        plain, html_body = server._body(outer)
+        self.assertEqual(plain, "")
+        self.assertIn("outer html", html_body)
+        self.assertNotIn("attached plain text", html_body)
+
+    def test_filename_marked_inline_text_is_not_used_as_parent_body(self) -> None:
+        outer = EmailMessage()
+        outer.set_content("<p>outer html</p>", subtype="html")
+        outer.add_attachment(
+            "attached plain text",
+            subtype="plain",
+            filename="notes.txt",
+            disposition="inline",
+        )
         plain, html_body = server._body(outer)
         self.assertEqual(plain, "")
         self.assertIn("outer html", html_body)

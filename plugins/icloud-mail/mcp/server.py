@@ -401,7 +401,10 @@ def _body(message: Message) -> tuple[str, str]:
     pending = [message]
     while pending:
         part = pending.pop(0)
-        if part.get_content_disposition() == "attachment":
+        if (
+            part.get_content_disposition() == "attachment"
+            or part.get_filename() is not None
+        ):
             continue
         if part.is_multipart():
             pending[0:0] = list(part.iter_parts())
@@ -1701,7 +1704,7 @@ TOOLS = [
     {"name": "update_draft", "description": "Replace an existing draft with revised content without sending it.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "required": ["draft_id"], "additionalProperties": False}},
     {"name": "send_email", "description": "Send a new message or reply through iCloud SMTP; use only on explicit send intent.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
     {"name": "send_draft", "description": "Send an existing reviewed draft and move it to Trash; explicit send intent required.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}}, "required": ["draft_id"], "additionalProperties": False}},
-    {"name": "forward_emails", "description": "Forward one existing message with an optional note; explicit send intent required. One source per call preserves an unambiguous acceptance receipt within the tool timeout.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 1}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}, "required": ["message_ids", "to"], "additionalProperties": False}},
+    {"name": "forward_emails", "description": "Forward one existing message with an optional note; explicit send intent required. One source per call preserves an unambiguous acceptance receipt within the tool timeout.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 1}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}, "required": ["message_ids"], "additionalProperties": False}},
 ]
 
 HANDLERS = {
