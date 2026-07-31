@@ -148,8 +148,9 @@ From the repository root:
 python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_plugin.py plugins/icloud-mail --layout source
 python3 scripts/check_distribution_bundle.py plugins/icloud-mail
-python3 /Users/andrew/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py plugins/icloud-mail
-python3 /Users/andrew/.codex/skills/.system/skill-creator/scripts/quick_validate.py plugins/icloud-mail/skills/icloud-mail
+plugin_system_skills="${HOME}/.codex/skills/.system"
+python3 "${plugin_system_skills}/plugin-creator/scripts/validate_plugin.py" plugins/icloud-mail
+python3 "${plugin_system_skills}/skill-creator/scripts/quick_validate.py" plugins/icloud-mail/skills/icloud-mail
 python3 scripts/check_marketplace.py .
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```

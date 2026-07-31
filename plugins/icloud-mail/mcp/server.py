@@ -60,7 +60,8 @@ def _config_path() -> Path:
             / "iCloud Mail"
             / "config.json"
         )
-    base = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config"))
+    xdg_config = os.environ.get("XDG_CONFIG_HOME", "").strip()
+    base = Path(xdg_config).expanduser() if xdg_config else Path.home() / ".config"
     return base / "codex" / "icloud-mail" / "config.json"
 
 
@@ -144,7 +145,7 @@ def _load_config(*, required: bool = False) -> dict[str, Any]:
         legacy = os.environ.get("ICLOUD_MAIL_USERNAME", "").strip()
         if legacy:
             account = _email_address(legacy, "ICLOUD_MAIL_USERNAME")
-            return {
+            return _validate_config({
                 **_default_config(),
                 "account_address": account,
                 "imap_username": os.environ.get(
@@ -154,7 +155,7 @@ def _load_config(*, required: bool = False) -> dict[str, Any]:
                 "display_name": os.environ.get(
                     "ICLOUD_MAIL_DISPLAY_NAME", ""
                 ).strip(),
-            }
+            })
         if required:
             raise MailError(
                 "iCloud Mail is not configured; run configure_account first"
@@ -339,9 +340,12 @@ def _select(client: imaplib.IMAP4_SSL, mailbox: str, *, readonly: bool) -> int:
     if status != "OK":
         raise MailError(f"Cannot open mailbox {mailbox!r}")
     response = client.response("UIDVALIDITY")[1]
-    if not response:
+    if not response or response[0] is None:
         raise MailError("Mailbox did not provide UIDVALIDITY")
-    return int(response[0])
+    try:
+        return int(response[0])
+    except (TypeError, ValueError):
+        raise MailError("Mailbox provided invalid UIDVALIDITY") from None
 
 
 def _encode_ref(mailbox: str, uidvalidity: int, uid: int) -> str:
@@ -394,9 +398,13 @@ def _fetch_message(
 def _body(message: Message) -> tuple[str, str]:
     plain = ""
     html = ""
-    parts = message.walk() if message.is_multipart() else [message]
-    for part in parts:
+    pending = [message]
+    while pending:
+        part = pending.pop(0)
         if part.get_content_disposition() == "attachment":
+            continue
+        if part.is_multipart():
+            pending[0:0] = list(part.iter_parts())
             continue
         kind = part.get_content_type()
         if kind not in {"text/plain", "text/html"}:
@@ -413,6 +421,23 @@ def _body(message: Message) -> tuple[str, str]:
     return plain[:MAX_BODY_CHARS], html[:MAX_BODY_CHARS]
 
 
+def _attachment_payload(part: Message) -> bytes:
+    payload = part.get_payload(decode=True)
+    if isinstance(payload, bytes):
+        return payload
+    if part.get_content_type() == "message/rfc822":
+        nested = part.get_payload()
+        if isinstance(nested, list):
+            return b"".join(
+                item.as_bytes(policy=email.policy.default)
+                for item in nested
+                if isinstance(item, Message)
+            )
+        if isinstance(nested, Message):
+            return nested.as_bytes(policy=email.policy.default)
+    return b""
+
+
 def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any]]:
     entries = []
     for index, part in enumerate(message.walk()):
@@ -420,7 +445,7 @@ def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any
         disposition = part.get_content_disposition()
         if not filename and disposition != "attachment":
             continue
-        payload = part.get_payload(decode=True) or b""
+        payload = _attachment_payload(part)
         token = base64.urlsafe_b64encode(str(index).encode()).decode().rstrip("=")
         entries.append(
             {
@@ -794,6 +819,9 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     maximum = arguments.get("max_results", 20)
     if isinstance(maximum, bool) or not isinstance(maximum, int) or not 1 <= maximum <= MAX_RESULTS:
         raise ValueError(f"max_results must be between 1 and {MAX_RESULTS}")
+    for field in ("unread", "flagged", "has_attachment"):
+        if arguments.get(field) is not None and not isinstance(arguments[field], bool):
+            raise ValueError(f"{field} must be a boolean")
     criteria: list[str] = ["ALL"]
     mapping = {"query": "TEXT", "from": "FROM", "to": "TO", "subject": "SUBJECT"}
     for field, atom in mapping.items():
@@ -922,7 +950,7 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
     if not 0 <= index < len(parts):
         raise MailError("Attachment no longer exists")
     part = parts[index]
-    payload = part.get_payload(decode=True) or b""
+    payload = _attachment_payload(part)
     if len(payload) > MAX_ATTACHMENT_BYTES:
         raise MailError("Attachment exceeds the 5 MiB result limit")
     return {
@@ -1211,9 +1239,11 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
         raise ValueError("from must be the account address or a configured allowed alias")
     display = config["display_name"]
     message["From"] = email.utils.formataddr((display, sender)) if display else sender
-    to = _recipients(arguments.get("to"), "to", required=reply is None)
+    to = _recipients(arguments.get("to"), "to")
     cc = _recipients(arguments.get("cc"), "cc")
     bcc = _recipients(arguments.get("bcc"), "bcc")
+    if reply is None and not (to or cc or bcc):
+        raise ValueError("at least one to, cc, or bcc recipient is required")
     if to:
         message["To"] = ", ".join(to)
     if cc:
@@ -1222,7 +1252,7 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
         message["Bcc"] = ", ".join(bcc)
     subject = _text(arguments.get("subject"), "subject", required=reply is None, limit=998)
     if reply is not None:
-        if not to:
+        if not (to or cc or bcc):
             reply_target = reply.get("Reply-To") or reply.get("From")
             message["To"] = reply_target
         if not subject:

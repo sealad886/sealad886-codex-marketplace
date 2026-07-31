@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import base64
 import email
 import json
 import os
@@ -73,12 +74,28 @@ class ICloudMailTests(unittest.TestCase):
             ):
                 server.search_emails({field: "safe\r\nA001 EXPUNGE"})
 
+    def test_search_rejects_non_boolean_attachment_filter_before_connecting(self) -> None:
+        with mock.patch.object(server, "_imap") as connect:
+            with self.assertRaisesRegex(ValueError, "has_attachment must be a boolean"):
+                server.search_emails({"has_attachment": "false"})
+        connect.assert_not_called()
+
     def test_non_ascii_mailbox_is_reencoded_for_wire_commands(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
         client.response.return_value = ("UIDVALIDITY", [b"7"])
         self.assertEqual(server._select(client, "日本語", readonly=True), 7)
         client.select.assert_called_once_with('"&ZeVnLIqe-"', readonly=True)
+
+    def test_select_rejects_missing_and_invalid_uidvalidity(self) -> None:
+        for response in ([None], [b"not-a-number"]):
+            client = mock.MagicMock()
+            client.select.return_value = ("OK", [b"1"])
+            client.response.return_value = ("UIDVALIDITY", response)
+            with self.subTest(response=response), self.assertRaisesRegex(
+                server.MailError, "UIDVALIDITY"
+            ):
+                server._select(client, "INBOX", readonly=True)
 
     def test_non_ascii_search_uses_utf8_charset_and_bytes(self) -> None:
         client = mock.MagicMock()
@@ -192,6 +209,26 @@ class ICloudMailTests(unittest.TestCase):
             server.configure_account({"account_address": "primary@icloud.com"})
             self.assertEqual(Path(temporary).stat().st_mode & 0o777, 0o755)
 
+    def test_blank_xdg_config_home_uses_default_config_directory(self) -> None:
+        with mock.patch.object(server.sys, "platform", "linux"), mock.patch.dict(
+            os.environ, {"XDG_CONFIG_HOME": "   "}, clear=True
+        ):
+            self.assertEqual(
+                server._config_path(),
+                Path.home() / ".config" / "codex" / "icloud-mail" / "config.json",
+            )
+
+    def test_legacy_imap_username_is_validated(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_USERNAME": "primary@icloud.com",
+                "ICLOUD_MAIL_IMAP_USERNAME": "safe\r\nA001 EXPUNGE",
+            },
+            clear=True,
+        ), self.assertRaisesRegex(server.MailError, "imap_username"):
+            server._load_config()
+
     def test_incoming_aliases_are_all_mail_and_sender_aliases_are_restricted(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, self.config_environment(
             temporary
@@ -226,6 +263,74 @@ class ICloudMailTests(unittest.TestCase):
             self.assertEqual(
                 status["incoming_alias_scope"], "all aliases in the iCloud mailbox"
             )
+
+    def test_outgoing_message_accepts_cc_or_bcc_without_to(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ):
+            server.configure_account({"account_address": "primary@icloud.com"})
+            cc_only = server._outgoing(
+                {
+                    "cc": ["copy@example.com"],
+                    "subject": "Cc only",
+                    "body": "Body",
+                }
+            )
+            bcc_only = server._outgoing(
+                {
+                    "bcc": ["hidden@example.com"],
+                    "subject": "Bcc only",
+                    "body": "Body",
+                }
+            )
+        self.assertIsNone(cc_only.get("To"))
+        self.assertEqual(cc_only["Cc"], "copy@example.com")
+        self.assertIsNone(bcc_only.get("To"))
+        self.assertEqual(bcc_only["Bcc"], "hidden@example.com")
+
+    def test_outgoing_message_requires_a_recipient(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ):
+            server.configure_account({"account_address": "primary@icloud.com"})
+            with self.assertRaisesRegex(ValueError, "at least one"):
+                server._outgoing({"subject": "Nobody", "body": "Body"})
+
+    def test_attached_email_is_not_used_as_parent_body(self) -> None:
+        nested = EmailMessage()
+        nested["Subject"] = "Attached"
+        nested.set_content("attached plain text")
+        outer = EmailMessage()
+        outer.set_content("<p>outer html</p>", subtype="html")
+        outer.add_attachment(nested, filename="attached.eml")
+        plain, html_body = server._body(outer)
+        self.assertEqual(plain, "")
+        self.assertIn("outer html", html_body)
+        self.assertNotIn("attached plain text", html_body)
+
+    def test_read_attachment_serializes_attached_email(self) -> None:
+        nested = EmailMessage()
+        nested["From"] = "alice@example.com"
+        nested["Subject"] = "Attached"
+        nested.set_content("attached body")
+        outer = EmailMessage()
+        outer.set_content("outer body")
+        outer.add_attachment(nested, filename="attached.eml")
+        message_id = server._encode_ref("INBOX", 7, 9)
+        attachment_id = server._attachment_entries(outer, message_id)[0][
+            "attachment_id"
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_fetch_message", return_value=(outer, b"", "")
+        ):
+            result = server.read_attachment(
+                {"message_id": message_id, "attachment_id": attachment_id}
+            )
+        payload = base64.b64decode(result["content_base64"])
+        self.assertIn(b"Subject: Attached", payload)
+        self.assertIn(b"attached body", payload)
 
     def test_clear_configuration_preserves_keychain_contract(self) -> None:
         with tempfile.TemporaryDirectory() as temporary, self.config_environment(
