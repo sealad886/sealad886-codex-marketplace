@@ -284,6 +284,13 @@ class ICloudMailTests(unittest.TestCase):
                 server.send_draft({"draft_id": ordinary_id})
         create.assert_not_called()
 
+    def test_draft_validation_uses_case_sensitive_mailbox_identity(self) -> None:
+        draft_id = server._encode_ref("drafts", 7, 9)
+        client = mock.MagicMock()
+        with mock.patch.object(server, "_special_mailbox", return_value="Drafts"):
+            with self.assertRaisesRegex(ValueError, "Drafts mailbox"):
+                server._validate_draft_ref(client, draft_id)
+
     def test_send_draft_preserves_acceptance_when_cleanup_fails(self) -> None:
         draft_id = server._encode_ref("Drafts", 7, 9)
         message = EmailMessage()
@@ -457,6 +464,26 @@ class ICloudMailTests(unittest.TestCase):
             ("OK", [b"1 (UID 1)"]),
             ("OK", [b"1 (FLAGS (\\Seen))"]),
             ("OK", [None]),
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.set_email_flags(
+                {"message_ids": [first, second], "read": True}
+            )
+        self.assertEqual(result["results"][0]["status"], "updated")
+        self.assertEqual(result["results"][1]["status"], "failed")
+
+    def test_flag_batch_preserves_receipts_on_transport_failure(self) -> None:
+        first = server._encode_ref("INBOX", 7, 1)
+        second = server._encode_ref("INBOX", 7, 2)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"2"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"1 (UID 1)"]),
+            ("OK", [b"1 (FLAGS (\\Seen))"]),
+            OSError("connection reset"),
         ]
         context = mock.MagicMock()
         context.__enter__.return_value = client
@@ -718,6 +745,29 @@ class ICloudMailTests(unittest.TestCase):
         sent = smtp.send_message.call_args.args[0]
         self.assertIsNone(sent.get("Bcc"))
         self.assertEqual(result["recipients"], ["to@example.com", "hidden@example.com"])
+
+    def test_smtp_acceptance_survives_quit_failure(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message["Subject"] = "Test"
+        message["Message-ID"] = "<test@icloud.com>"
+        message.set_content("body")
+        smtp = mock.MagicMock()
+        smtp.send_message.return_value = {}
+        smtp.quit.side_effect = server.smtplib.SMTPServerDisconnected("closed")
+        with mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        self.assertEqual(result["status"], "accepted")
+        self.assertFalse(result["retry_send"])
+        self.assertIn("cleanup failed", result["cleanup_warning"])
 
     def test_tool_errors_do_not_disclose_secret(self) -> None:
         secret = "do-not-leak"

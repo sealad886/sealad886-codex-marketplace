@@ -1135,7 +1135,13 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
                         "changes": changes,
                     }
                 )
-            except (MailError, ValueError) as error:
+            except (
+                MailError,
+                ValueError,
+                OSError,
+                TimeoutError,
+                imaplib.IMAP4.error,
+            ) as error:
                 results.append(
                     {
                         "message_id": message_id,
@@ -1256,24 +1262,41 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     )
     if "Bcc" in wire:
         del wire["Bcc"]
+    client: smtplib.SMTP | None = None
+    refused: dict[str, tuple[int, bytes]] | None = None
+    cleanup_warning = None
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout()) as client:
-            client.ehlo()
-            client.starttls(context=ssl.create_default_context())
-            client.ehlo()
-            client.login(username, password)
-            refused = client.send_message(wire, from_addr=sender, to_addrs=recipients)
+        client = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout())
+        client.ehlo()
+        client.starttls(context=ssl.create_default_context())
+        client.ehlo()
+        client.login(username, password)
+        refused = client.send_message(wire, from_addr=sender, to_addrs=recipients)
     except smtplib.SMTPException as error:
         raise MailError(f"iCloud SMTP rejected the request: {type(error).__name__}") from None
     except (OSError, TimeoutError) as error:
         raise MailError(f"Could not connect to iCloud SMTP: {type(error).__name__}") from None
-    return {
+    finally:
+        if client is not None:
+            try:
+                client.quit()
+            except (smtplib.SMTPException, OSError, TimeoutError) as error:
+                if refused is not None:
+                    cleanup_warning = (
+                        "SMTP accepted the message, but connection cleanup failed: "
+                        f"{type(error).__name__}"
+                    )
+    result = {
         "status": "accepted",
         "internet_message_id": message.get("Message-ID", ""),
         "from": sender,
         "recipients": recipients,
-        "refused": sorted(refused),
+        "refused": sorted(refused or {}),
     }
+    if cleanup_warning:
+        result["cleanup_warning"] = cleanup_warning
+        result["retry_send"] = False
+    return result
 
 
 def _prepare_outgoing(arguments: dict[str, Any]) -> EmailMessage:
@@ -1347,7 +1370,7 @@ def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
 def _validate_draft_ref(client: imaplib.IMAP4_SSL, draft_id: str) -> None:
     mailbox, validity, uid = _decode_ref(draft_id)
     drafts = _special_mailbox(client, "Drafts", ["Drafts"])
-    if mailbox.casefold() != drafts.casefold():
+    if mailbox != drafts:
         raise ValueError("draft_id must identify a message in the Drafts mailbox")
     _, _, flags = _fetch_message(client, mailbox, validity, uid)
     if "\\Draft" not in flags:
