@@ -663,7 +663,13 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
             len(node) > 2
             and isinstance(node[0], bytes)
             and isinstance(node[1], bytes)
-            and has_filename(node[2])
+            and (
+                (
+                    node[0].upper() == b"MESSAGE"
+                    and node[1].upper() == b"RFC822"
+                )
+                or has_filename(node[2])
+            )
         ):
             return True
         return any(contains_attachment(value) for value in node if isinstance(value, list))

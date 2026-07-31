@@ -374,6 +374,13 @@ class ICloudMailTests(unittest.TestCase):
             with self.subTest(parameter=parameter):
                 self.assertTrue(server._bodystructure_has_attachment(metadata))
 
+    def test_bodystructure_unnamed_rfc822_part_is_attachment(self) -> None:
+        metadata = (
+            b'9 (BODYSTRUCTURE ("MESSAGE" "RFC822" NIL NIL NIL "7BIT" 100 '
+            b'NIL ("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1) 1))'
+        )
+        self.assertTrue(server._bodystructure_has_attachment(metadata))
+
     def test_search_summary_reads_only_the_flags_response_field(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
