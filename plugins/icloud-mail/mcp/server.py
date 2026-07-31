@@ -451,6 +451,8 @@ def _attachment_payload(part: Message) -> bytes:
     payload = part.get_payload(decode=True)
     if isinstance(payload, bytes):
         return payload
+    if part.is_multipart() and part.get_content_type() != "message/rfc822":
+        return part.as_bytes(policy=email.policy.default)
     if part.get_content_type() == "message/rfc822":
         nested = part.get_payload()
         if isinstance(nested, list):
@@ -1156,7 +1158,19 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
         for value in client.capabilities
     }
     if "MOVE" in capabilities:
-        status, _ = client.uid("MOVE", str(uid), _quoted_mailbox(destination))
+        try:
+            status, _ = client.uid(
+                "MOVE", str(uid), _quoted_mailbox(destination)
+            )
+        except (OSError, TimeoutError, imaplib.IMAP4.error) as error:
+            return {
+                "message_id": message_id,
+                "destination": destination,
+                "status": "move_unconfirmed",
+                "error": f"MOVE response was lost: {type(error).__name__}",
+                "retry_move": False,
+                "next_step": "Inspect both source and destination mailboxes before acting again.",
+            }
         outcome = "moved"
     else:
         try:

@@ -38,6 +38,19 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(manifest["version"], server.SERVER_INFO["version"])
         self.assertEqual(config["mcpServers"]["icloud-mail"]["args"], ["./mcp/server.py"])
 
+    def test_multipart_attachment_payload_is_serialized(self) -> None:
+        attachment = EmailMessage()
+        attachment.make_mixed()
+        nested = EmailMessage()
+        nested.set_content("nested payload")
+        attachment.attach(nested)
+        attachment.add_header(
+            "Content-Disposition", "attachment", filename="bundle.mime"
+        )
+        payload = server._attachment_payload(attachment)
+        self.assertIn(b"multipart/mixed", payload)
+        self.assertIn(b"nested payload", payload)
+
     def test_self_test_is_offline_and_passes(self) -> None:
         result = subprocess.run(
             [sys.executable, str(SERVER), "--self-test"],
@@ -796,6 +809,21 @@ class ICloudMailTests(unittest.TestCase):
         ]
         result = server._move(client, message_id, "Archive")
         self.assertEqual(result["status"], "copy_unconfirmed")
+        self.assertFalse(result["retry_move"])
+        self.assertIn("both source and destination", result["next_step"])
+
+    def test_native_move_reports_lost_response_without_retry(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        client = mock.MagicMock()
+        client.capabilities = (b"MOVE",)
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"9 (UID 9)"]),
+            OSError("connection reset"),
+        ]
+        result = server._move(client, message_id, "Archive")
+        self.assertEqual(result["status"], "move_unconfirmed")
         self.assertFalse(result["retry_move"])
         self.assertIn("both source and destination", result["next_step"])
 
