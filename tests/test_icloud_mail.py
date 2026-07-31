@@ -177,10 +177,15 @@ class ICloudMailTests(unittest.TestCase):
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1000"])
         client.response.return_value = ("UIDVALIDITY", [b"7"])
-        client.uid.return_value = (
-            "OK",
-            [b" ".join(str(index).encode() for index in range(1, 1001))],
-        )
+
+        def search_before_timeout(*_args: object) -> tuple[str, list[bytes]]:
+            client.sock.settimeout.assert_not_called()
+            return (
+                "OK",
+                [b" ".join(str(index).encode() for index in range(1, 1001))],
+            )
+
+        client.uid.side_effect = search_before_timeout
         context = mock.MagicMock()
         context.__enter__.return_value = client
         with mock.patch.dict(
@@ -322,6 +327,22 @@ class ICloudMailTests(unittest.TestCase):
         result = server._fetch_summary(client, "INBOX", 7, 9)
         self.assertTrue(result["unread"])
         self.assertFalse(result["flagged"])
+
+    def test_full_message_fetch_aggregates_separate_flags_metadata(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        raw = b"Subject: Draft\r\n\r\nbody"
+        client.uid.return_value = (
+            "OK",
+            [(b"9 (UID 9 BODY[] {24}", raw), b" FLAGS (\\Draft))"],
+        )
+        message, returned_raw, flags = server._fetch_message(
+            client, "Drafts", 7, 9
+        )
+        self.assertEqual(message["Subject"], "Draft")
+        self.assertEqual(returned_raw, raw)
+        self.assertEqual(flags, "\\Draft")
 
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}

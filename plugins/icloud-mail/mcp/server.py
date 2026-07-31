@@ -417,7 +417,20 @@ def _fetch_message(
     if status != "OK" or not data or not isinstance(data[0], tuple):
         raise MailError("Message no longer exists in this mailbox")
     raw = data[0][1]
-    flags_text = data[0][0].decode("ascii", errors="replace")
+    metadata = b""
+    for item in data:
+        if isinstance(item, tuple):
+            metadata += item[0] if isinstance(item[0], bytes) else b""
+        elif isinstance(item, bytes):
+            metadata += item
+    flag_matches = re.findall(
+        rb"(?:^|\s)FLAGS\s+\(([^)]*)\)", metadata, flags=re.I
+    )
+    flags_text = (
+        flag_matches[-1].decode("ascii", errors="replace")
+        if flag_matches
+        else ""
+    )
     return email.message_from_bytes(raw, policy=email.policy.default), raw, flags_text
 
 
@@ -918,7 +931,6 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     elif arguments.get("flagged") is False:
         criteria.append("UNFLAGGED")
     with _imap() as client:
-        client.sock.settimeout(min(_timeout(), 5.0))
         validity = _select(client, mailbox, readonly=True)
         thread_reference_ids = _list(
             arguments.get("_thread_reference_ids", []),
@@ -959,6 +971,7 @@ def search_emails(arguments: dict[str, Any]) -> dict[str, Any]:
             if arguments.get("has_attachment") is not None
             else len(uids)
         )
+        client.sock.settimeout(min(_timeout(), 5.0))
         for uid in uids[:scan_limit]:
             if len(results) >= maximum:
                 break
@@ -1109,10 +1122,12 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
 
     reference_ids = list(
         dict.fromkeys(
-            [internet_id(anchor), *references(anchor)]
+            value
+            for value in [internet_id(anchor), *references(anchor)]
+            if value
         )
     )[:10]
-    if not any(reference_ids):
+    if not reference_ids:
         result = {"emails": [], "truncated": False}
     else:
         result = search_emails(
