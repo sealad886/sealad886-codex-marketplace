@@ -329,7 +329,7 @@ def _password(username: str) -> tuple[str, str]:
 
 
 @contextmanager
-def _imap() -> Iterator[imaplib.IMAP4_SSL]:
+def _imap(*, socket_timeout: float | None = None) -> Iterator[imaplib.IMAP4_SSL]:
     username = _username()
     password, _ = _password(username)
     login = _imap_username()
@@ -339,7 +339,11 @@ def _imap() -> Iterator[imaplib.IMAP4_SSL]:
             IMAP_HOST,
             IMAP_PORT,
             ssl_context=ssl.create_default_context(),
-            timeout=_timeout(),
+            timeout=(
+                min(_timeout(), socket_timeout)
+                if socket_timeout is not None
+                else _timeout()
+            ),
         )
         client.login(login, password)
         yield client
@@ -1627,6 +1631,7 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     refused: dict[str, tuple[int, bytes]] | None = None
     acceptance_unconfirmed: str | None = None
     payload_sent = False
+    final_data_reply: tuple[int, bytes] | None = None
     cleanup_warning = None
     try:
         client = smtplib.SMTP(
@@ -1656,10 +1661,11 @@ def _smtp_send(message: Message) -> dict[str, Any]:
                 payload_sent = True
 
         def tracked_data(payload: Any) -> tuple[int, bytes]:
-            nonlocal data_command_active
+            nonlocal data_command_active, final_data_reply
             data_command_active = True
             try:
-                return original_data(payload)
+                final_data_reply = original_data(payload)
+                return final_data_reply
             finally:
                 data_command_active = False
 
@@ -1671,6 +1677,8 @@ def _smtp_send(message: Message) -> dict[str, Any]:
                 wire, from_addr=sender, to_addrs=recipients
             )
         except (smtplib.SMTPServerDisconnected, OSError, TimeoutError) as error:
+            if final_data_reply is not None and final_data_reply[0] != 250:
+                raise smtplib.SMTPDataError(*final_data_reply) from error
             if not payload_sent:
                 raise
             acceptance_unconfirmed = type(error).__name__
@@ -1883,7 +1891,7 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"draft_id"}:
         raise ValueError("send_draft requires draft_id")
     draft_id = arguments["draft_id"]
-    with _imap() as client:
+    with _imap(socket_timeout=10.0) as client:
         message = _validate_draft_ref(client, draft_id)
     current_date = email.utils.format_datetime(dt.datetime.now(dt.timezone.utc))
     if "Date" in message:
@@ -1900,7 +1908,7 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
         }
         return result
     try:
-        with _imap() as client:
+        with _imap(socket_timeout=10.0) as client:
             trash = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
             cleanup = _move(client, draft_id, trash)
         if cleanup["status"] in {"moved", "copied_and_marked_deleted"}:

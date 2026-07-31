@@ -1788,6 +1788,32 @@ class ICloudMailTests(unittest.TestCase):
         ), self.assertRaisesRegex(server.MailError, "SMTPServerDisconnected"):
             server._smtp_send(message)
 
+    def test_smtp_rejection_survives_rset_disconnect(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message.set_content("body")
+        smtp = mock.MagicMock()
+        smtp.data.return_value = (550, b"rejected")
+
+        def reject_then_disconnect(*_args: object, **_kwargs: object) -> None:
+            smtp.data(b"wire")
+            raise server.smtplib.SMTPServerDisconnected("RSET failed")
+
+        smtp.send_message.side_effect = reject_then_disconnect
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(
+            server.smtplib, "SMTP", return_value=smtp
+        ), self.assertRaisesRegex(server.MailError, "SMTPDataError"):
+            server._smtp_send(message)
+
     def test_smtp_disconnect_before_data_payload_is_a_definite_failure(self) -> None:
         message = EmailMessage()
         message["From"] = "me@icloud.com"
@@ -1909,7 +1935,7 @@ class ICloudMailTests(unittest.TestCase):
         first_context.__enter__.return_value = mock.MagicMock()
         with mock.patch.object(
             server, "_imap", side_effect=[first_context, server.MailError("offline")]
-        ), mock.patch.object(
+        ) as connect, mock.patch.object(
             server, "_validate_draft_ref", return_value=message
         ), mock.patch.object(
             server, "_fetch_message"
@@ -1919,6 +1945,10 @@ class ICloudMailTests(unittest.TestCase):
             result = server.send_draft({"draft_id": draft_id})
         self.assertEqual(result["status"], "accepted")
         self.assertNotEqual(message["Date"], "Thu, 01 Jan 1970 00:00:00 +0000")
+        self.assertEqual(
+            connect.call_args_list,
+            [mock.call(socket_timeout=10.0), mock.call(socket_timeout=10.0)],
+        )
         fetch.assert_not_called()
 
     def test_tool_errors_do_not_disclose_secret(self) -> None:
