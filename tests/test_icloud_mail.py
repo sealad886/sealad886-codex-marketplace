@@ -293,6 +293,30 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["old_draft_cleanup"]["status"], "failed")
         self.assertFalse(result["old_draft_cleanup"]["retry_update"])
 
+    def test_create_draft_preserves_append_receipt_when_id_recovery_fails(self) -> None:
+        message = EmailMessage()
+        message["Message-ID"] = "<draft@example.com>"
+        message.set_content("draft")
+        client = mock.MagicMock()
+        client.append.return_value = ("OK", [b"APPEND completed"])
+        client.response.side_effect = [
+            ("APPENDUID", None),
+            ("UIDVALIDITY", None),
+        ]
+        client.select.return_value = ("OK", [b"1"])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(
+            server, "_prepare_outgoing", return_value=message
+        ), mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_special_mailbox", return_value="Drafts"
+        ):
+            result = server.create_draft({})
+        self.assertEqual(result["status"], "created_unresolved")
+        self.assertEqual(result["internet_message_id"], "<draft@example.com>")
+        self.assertIsNone(result["draft_id"])
+        self.assertFalse(result["retry_create"])
+
     def test_batch_moves_return_completed_and_failed_receipts(self) -> None:
         client = mock.MagicMock()
         with mock.patch.object(
@@ -307,6 +331,15 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["results"][0]["status"], "moved")
         self.assertEqual(result["results"][1]["status"], "failed")
         self.assertEqual(result["results"][1]["message_id"], "second")
+
+    def test_move_rejects_a_missing_source_uid_even_when_imap_returns_ok(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"0"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [None])
+        with self.assertRaisesRegex(server.MailError, "no longer exists"):
+            server._move(client, message_id, "Archive")
 
     def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
         original = {
@@ -421,6 +454,40 @@ class ICloudMailTests(unittest.TestCase):
             result = server.read_email_thread({"message_id": "anchor"})
         self.assertEqual(result["messages"], [anchor])
         search.assert_not_called()
+
+    def test_truncated_thread_always_includes_requested_anchor(self) -> None:
+        def message(index: int) -> dict[str, object]:
+            return {
+                "id": f"message-{index}",
+                "mailbox": "INBOX",
+                "subject": "Status",
+                "internet_message_id": f"<message-{index}@example.com>",
+                "references": (
+                    [] if index == 0 else [f"<message-{index - 1}@example.com>"]
+                ),
+                "in_reply_to": (
+                    "" if index == 0 else f"<message-{index - 1}@example.com>"
+                ),
+            }
+
+        messages = {item["id"]: item for item in (message(i) for i in range(25))}
+        anchor = messages["message-24"]
+        search_results = [
+            {"id": f"message-{index}"} for index in reversed(range(25))
+        ]
+        with mock.patch.object(
+            server, "read_email", side_effect=lambda args: messages[args["message_id"]]
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={"emails": search_results, "truncated": False},
+        ):
+            result = server.read_email_thread(
+                {"message_id": anchor["id"], "max_results": 20}
+            )
+        self.assertEqual(len(result["messages"]), 20)
+        self.assertIn(anchor, result["messages"])
+        self.assertTrue(result["truncated"])
 
     def test_gui_helpers_open_only_fixed_targets(self) -> None:
         completed = mock.MagicMock(returncode=0)

@@ -920,7 +920,10 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 if message_id:
                     connected_internet_ids.add(message_id)
                 changed = True
-    messages = [item for item in candidates if item["id"] in connected_ids][:maximum]
+    connected = [item for item in candidates if item["id"] in connected_ids]
+    messages = connected[:maximum]
+    if anchor["id"] not in {item["id"] for item in messages}:
+        messages = connected[: maximum - 1] + [anchor]
     return {
         "messages": messages,
         "threading": "RFC Message-ID, References, and In-Reply-To relationships",
@@ -946,6 +949,13 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
     actual = _select(client, mailbox, readonly=False)
     if actual != validity:
         raise MailError("Message identifier is stale because the mailbox changed")
+    exists_status, exists_data = client.uid("FETCH", str(uid), "(UID)")
+    if (
+        exists_status != "OK"
+        or not exists_data
+        or not any(item for item in exists_data if item is not None)
+    ):
+        raise MailError("Message no longer exists in the source mailbox")
     capabilities = {
         value.decode("ascii", errors="ignore") if isinstance(value, bytes) else value
         for value in client.capabilities
@@ -1185,13 +1195,36 @@ def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
         )
         if status != "OK":
             raise MailError("Could not create iCloud Mail draft")
-        validity = _select(client, drafts, readonly=True)
-        search_status, search_data = client.uid(
-            "search", None, "HEADER", "Message-ID", _quoted(message["Message-ID"])
-        )
-        if search_status != "OK" or not search_data or not search_data[0]:
-            raise MailError("Draft was created but its identifier could not be recovered")
-        uid = int(search_data[0].split()[-1])
+        append_uid = client.response("APPENDUID")[1]
+        if (
+            isinstance(append_uid, (list, tuple))
+            and append_uid
+            and isinstance(append_uid[0], bytes)
+        ):
+            match = re.search(rb"(\d+)\s+(\d+)", append_uid[0])
+            if match:
+                validity, uid = map(int, match.groups())
+                return {
+                    "draft_id": _encode_ref(drafts, validity, uid),
+                    "internet_message_id": message["Message-ID"],
+                    "status": "created",
+                }
+        try:
+            validity = _select(client, drafts, readonly=True)
+            search_status, search_data = client.uid(
+                "search", None, "HEADER", "Message-ID", _quoted(message["Message-ID"])
+            )
+            if search_status != "OK" or not search_data or not search_data[0]:
+                raise MailError("Draft identifier recovery failed")
+            uid = int(search_data[0].split()[-1])
+        except (MailError, ValueError, TypeError):
+            return {
+                "draft_id": None,
+                "internet_message_id": message["Message-ID"],
+                "status": "created_unresolved",
+                "retry_create": False,
+                "next_step": "Find the existing draft by its Internet Message-ID.",
+            }
     return {
         "draft_id": _encode_ref(drafts, validity, uid),
         "internet_message_id": message["Message-ID"],
