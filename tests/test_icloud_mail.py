@@ -335,6 +335,13 @@ class ICloudMailTests(unittest.TestCase):
         )
         self.assertFalse(server._bodystructure_has_attachment(metadata))
 
+    def test_bodystructure_inline_disposition_filename_is_attachment(self) -> None:
+        metadata = (
+            b'9 (BODYSTRUCTURE ("IMAGE" "PNG" NIL NIL NIL "BASE64" 10 '
+            b'NIL ("INLINE" ("FILENAME" "image.png"))) FLAGS ())'
+        )
+        self.assertTrue(server._bodystructure_has_attachment(metadata))
+
     def test_search_summary_reads_only_the_flags_response_field(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -1199,7 +1206,7 @@ class ICloudMailTests(unittest.TestCase):
             "subject": "Attached mail",
             "from": [{"name": "", "address": "alice@example.com"}],
             "date": "Thu, 31 Jul 2026 09:00:00 +0000",
-            "body_text": "See attachment",
+            "body_text": "x" * server.MAX_BODY_CHARS,
             "body_html": "",
         }
         nested = EmailMessage()
@@ -1216,7 +1223,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "_read_email_result", return_value=original
         ), mock.patch.object(
             server, "_prepare_outgoing", return_value=outgoing
-        ), mock.patch.object(
+        ) as prepare, mock.patch.object(
             server, "_decode_ref", return_value=("INBOX", 7, 9)
         ), mock.patch.object(
             server, "_imap", return_value=context
@@ -1235,6 +1242,9 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(len(attachments), 1)
         self.assertEqual(attachments[0].get_content_type(), "application/octet-stream")
         self.assertIn(b"Subject: Nested", server._attachment_payload(attachments[0]))
+        self.assertLessEqual(
+            len(prepare.call_args.args[0]["body"]), server.MAX_BODY_CHARS
+        )
 
     def test_html_only_forward_content_is_converted_to_text(self) -> None:
         self.assertEqual(
@@ -1810,6 +1820,7 @@ class ICloudMailTests(unittest.TestCase):
     def test_send_draft_reuses_message_fetched_during_validation(self) -> None:
         draft_id = server._encode_ref("Drafts", 7, 9)
         message = EmailMessage()
+        message["Date"] = "Thu, 01 Jan 1970 00:00:00 +0000"
         first_context = mock.MagicMock()
         first_context.__enter__.return_value = mock.MagicMock()
         with mock.patch.object(
@@ -1823,6 +1834,7 @@ class ICloudMailTests(unittest.TestCase):
         ):
             result = server.send_draft({"draft_id": draft_id})
         self.assertEqual(result["status"], "accepted")
+        self.assertNotEqual(message["Date"], "Thu, 01 Jan 1970 00:00:00 +0000")
         fetch.assert_not_called()
 
     def test_tool_errors_do_not_disclose_secret(self) -> None:

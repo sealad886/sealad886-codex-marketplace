@@ -630,21 +630,27 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
     def contains_attachment(node: Any) -> bool:
         if not isinstance(node, list):
             return False
-        if node and isinstance(node[0], bytes) and node[0].upper() == b"ATTACHMENT":
-            return True
+
+        def has_filename(parameters: Any) -> bool:
+            return isinstance(parameters, list) and any(
+                isinstance(parameters[index], bytes)
+                and parameters[index].upper() in {b"NAME", b"FILENAME"}
+                for index in range(0, len(parameters) - 1, 2)
+            )
+
+        if node and isinstance(node[0], bytes):
+            disposition = node[0].upper()
+            if disposition == b"ATTACHMENT":
+                return True
+            if disposition == b"INLINE" and len(node) > 1 and has_filename(node[1]):
+                return True
         if (
             len(node) > 2
             and isinstance(node[0], bytes)
             and isinstance(node[1], bytes)
-            and isinstance(node[2], list)
+            and has_filename(node[2])
         ):
-            parameters = node[2]
-            if any(
-                isinstance(parameters[index], bytes)
-                and parameters[index].upper() in {b"NAME", b"FILENAME"}
-                for index in range(0, len(parameters) - 1, 2)
-            ):
-                return True
+            return True
         return any(contains_attachment(value) for value in node if isinstance(value, list))
 
     try:
@@ -1846,6 +1852,11 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     draft_id = arguments["draft_id"]
     with _imap() as client:
         message = _validate_draft_ref(client, draft_id)
+    current_date = email.utils.format_datetime(dt.datetime.now(dt.timezone.utc))
+    if "Date" in message:
+        message.replace_header("Date", current_date)
+    else:
+        message["Date"] = current_date
     result = _smtp_send(message)
     result["draft_id"] = draft_id
     if result["status"] != "accepted":
@@ -1916,7 +1927,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                 subject if re.match(r"^fwd?:", subject, re.I) else f"Fwd: {subject}"
             )
             note = _text(arguments.get("note"), "note", limit=20_000)
-            quoted = "\n".join(
+            wrapper = "\n".join(
                 [
                     note,
                     "",
@@ -1925,10 +1936,14 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                     f"Date: {original['date']}",
                     f"Subject: {original['subject']}",
                     "",
-                    original["body_text"]
-                    or _html_to_text(original.get("body_html", "")),
                 ]
-            ).strip()
+            ).lstrip()
+            source_body = original["body_text"] or _html_to_text(
+                original.get("body_html", "")
+            )
+            quoted = (wrapper + source_body[: max(0, MAX_BODY_CHARS - len(wrapper))])[
+                :MAX_BODY_CHARS
+            ].strip()
             outgoing = {
                 "to": arguments.get("to"),
                 "cc": arguments.get("cc"),
