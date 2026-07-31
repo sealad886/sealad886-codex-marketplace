@@ -278,6 +278,25 @@ class ICloudMailTests(unittest.TestCase):
         result = server._fetch_summary(client, "INBOX", 7, 9)
         self.assertFalse(result["has_attachments"])
 
+    def test_search_summary_reads_only_the_flags_response_field(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = b"Subject: Flag-like filename\r\n\r\n"
+        client.uid.return_value = (
+            "OK",
+            [
+                (
+                    b'9 (UID 9 BODYSTRUCTURE ("APPLICATION" "PDF" '
+                    b'("NAME" "\\Seen \\Flagged.pdf") NIL NIL "BASE64" 10) FLAGS ())',
+                    headers,
+                )
+            ],
+        )
+        result = server._fetch_summary(client, "INBOX", 7, 9)
+        self.assertTrue(result["unread"])
+        self.assertFalse(result["flagged"])
+
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
         self.assertEqual(names, set(server.HANDLERS))
@@ -895,6 +914,35 @@ class ICloudMailTests(unittest.TestCase):
             )
         self.assertEqual(result["results"][0]["status"], "updated")
         self.assertEqual(result["results"][1]["status"], "failed")
+
+    def test_flag_batch_caps_socket_timeout_and_public_batch_size(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 1)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"1 (UID 1)"]),
+            ("OK", [b"1 (FLAGS (\\Seen))"]),
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
+        ), mock.patch.object(server, "_imap", return_value=context):
+            server.set_email_flags({"message_ids": [message_id], "read": True})
+        client.sock.settimeout.assert_called_once_with(25.0)
+        tool = next(item for item in server.TOOLS if item["name"] == "set_email_flags")
+        self.assertEqual(
+            tool["inputSchema"]["properties"]["message_ids"]["maxItems"],
+            5,
+        )
+
+    def test_thread_reference_search_rejects_protocol_line_breaks(self) -> None:
+        with self.assertRaisesRegex(ValueError, "invalid"):
+            server._text(
+                "<message@example.com>\r\nA001 EXPUNGE",
+                "_thread_reference_ids",
+            )
 
     def test_flag_batch_preserves_receipts_on_transport_failure(self) -> None:
         first = server._encode_ref("INBOX", 7, 1)

@@ -38,6 +38,7 @@ KEYCHAIN_SERVICE = "codex-icloud-mail"
 CONFIG_VERSION = 1
 MAX_RESULTS = 50
 MAX_MOVE_RESULTS = 5
+MAX_FLAG_RESULTS = 5
 MAX_SEARCH_SCAN = 200
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
@@ -236,6 +237,7 @@ def _text(value: Any, name: str, *, required: bool = False, limit: int = 10_000)
         "after",
         "before",
         "imap_username",
+        "_thread_reference_ids",
     }
     if len(value) > limit or (
         name in protocol_or_header_fields and ("\r" in value or "\n" in value)
@@ -544,7 +546,14 @@ def _fetch_summary(
     if not headers:
         raise MailError("Message no longer exists in this mailbox")
     message = email.message_from_bytes(headers, policy=email.policy.default)
-    flags = metadata.decode("ascii", errors="replace")
+    flag_matches = re.findall(
+        rb"(?:^|\s)FLAGS\s+\(([^)]*)\)", metadata, flags=re.I
+    )
+    flags = (
+        flag_matches[-1].decode("ascii", errors="replace")
+        if flag_matches
+        else ""
+    )
     message_id = _encode_ref(mailbox, expected_validity, uid)
     return {
         "id": message_id,
@@ -1302,7 +1311,11 @@ def trash_emails(arguments: dict[str, Any]) -> dict[str, Any]:
 def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) - {"message_ids", "read", "flagged"}:
         raise ValueError("unsupported set_email_flags fields")
-    ids = _list(arguments.get("message_ids"), "message_ids", limit=50)
+    ids = _list(
+        arguments.get("message_ids"),
+        "message_ids",
+        limit=MAX_FLAG_RESULTS,
+    )
     if not ids or arguments.get("read") is None and arguments.get("flagged") is None:
         raise ValueError("provide message_ids and at least one flag change")
     for key in ("read", "flagged"):
@@ -1310,6 +1323,7 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"{key} must be a boolean")
     results = []
     with _imap() as client:
+        client.sock.settimeout(min(_timeout(), 25.0))
         for message_id in ids:
             changes = {}
             try:
@@ -1900,7 +1914,7 @@ TOOLS = [
     {"name": "read_email_thread", "description": "Read a best-effort conversation reconstructed within the message mailbox.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "required": ["message_id"], "additionalProperties": False}},
     {"name": "read_attachment", "description": "Read one advertised attachment up to 5 MiB as base64.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "attachment_id": {"type": "string"}}, "required": ["message_id", "attachment_id"], "additionalProperties": False}},
     {"name": "list_drafts", "description": "List iCloud Mail drafts.", "inputSchema": {"type": "object", "properties": {"max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "additionalProperties": False}},
-    {"name": "set_email_flags", "description": "Explicitly mark messages read/unread or flagged/unflagged.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 50}, "read": {"type": "boolean"}, "flagged": {"type": "boolean"}}, "required": ["message_ids"], "additionalProperties": False}},
+    {"name": "set_email_flags", "description": "Explicitly mark up to five messages read/unread or flagged/unflagged.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_FLAG_RESULTS}, "read": {"type": "boolean"}, "flagged": {"type": "boolean"}}, "required": ["message_ids"], "additionalProperties": False}},
     {"name": "move_emails", "description": "Explicitly move up to five messages to a named iCloud Mail folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}, "destination": {"type": "string"}}, "required": ["message_ids", "destination"], "additionalProperties": False}},
     {"name": "archive_emails", "description": "Explicitly move up to five messages to the iCloud Archive folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
     {"name": "trash_emails", "description": "Explicitly move up to five messages to iCloud Trash without permanent deletion.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
