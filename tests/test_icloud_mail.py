@@ -515,6 +515,28 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(receipt["changes"]["read"]["status"], "updated")
         self.assertEqual(receipt["changes"]["flagged"]["status"], "failed")
 
+    def test_flag_receipt_preserves_success_before_transport_failure(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 1)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"1 (UID 1)"]),
+            ("OK", [b"1 (FLAGS (\\Seen))"]),
+            OSError("connection reset"),
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.set_email_flags(
+                {"message_ids": [message_id], "read": True, "flagged": True}
+            )
+        receipt = result["results"][0]
+        self.assertEqual(receipt["status"], "partial")
+        self.assertEqual(receipt["changes"]["read"]["status"], "updated")
+        self.assertNotIn("flagged", receipt["changes"])
+        self.assertIn("connection reset", receipt["error"])
+
     def test_flag_update_rejects_non_boolean_values_before_connecting(self) -> None:
         with mock.patch.object(server, "_imap") as connect:
             with self.assertRaisesRegex(ValueError, "read must be a boolean"):
@@ -523,7 +545,7 @@ class ICloudMailTests(unittest.TestCase):
                 )
         connect.assert_not_called()
 
-    def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
+    def test_forward_returns_receipt_and_formats_sender_with_one_fetch(self) -> None:
         original = {
             "subject": "Status",
             "from": [{"name": "Alice", "address": "alice@example.com"}],
@@ -538,7 +560,7 @@ class ICloudMailTests(unittest.TestCase):
         with mock.patch.object(
             server,
             "_read_email_result",
-            side_effect=[original, server.MailError("missing message")],
+            return_value=original,
         ), mock.patch.object(
             server, "_prepare_outgoing", return_value=forwarded
         ) as prepare, mock.patch.object(
@@ -554,19 +576,28 @@ class ICloudMailTests(unittest.TestCase):
         ):
             result = server.forward_emails(
                 {
-                    "message_ids": ["first", "second"],
+                    "message_ids": ["first"],
                     "to": ["recipient@example.com"],
                 }
             )
         self.assertEqual(result["results"][0]["status"], "accepted")
         self.assertEqual(result["results"][0]["source_message_id"], "first")
-        self.assertEqual(result["results"][1]["status"], "failed")
-        self.assertEqual(result["results"][1]["source_message_id"], "second")
         self.assertIn(
             "From: Alice <alice@example.com>",
             prepare.call_args.args[0]["body"],
         )
-        self.assertEqual(fetch.call_count, 2)
+        fetch.assert_called_once()
+
+    def test_forward_rejects_multiple_sources_before_connecting(self) -> None:
+        with mock.patch.object(server, "_imap") as connect:
+            with self.assertRaisesRegex(ValueError, "at most 1"):
+                server.forward_emails(
+                    {
+                        "message_ids": ["first", "second"],
+                        "to": ["recipient@example.com"],
+                    }
+                )
+        connect.assert_not_called()
 
     def test_forwarding_enforces_aggregate_attachment_limit(self) -> None:
         original = {

@@ -1111,6 +1111,7 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
     results = []
     with _imap() as client:
         for message_id in ids:
+            changes = {}
             try:
                 mailbox, validity, uid = _decode_ref(message_id)
                 if _select(client, mailbox, readonly=False) != validity:
@@ -1124,7 +1125,6 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
                     or not any(item for item in exists_data if item is not None)
                 ):
                     raise MailError("Message no longer exists in the source mailbox")
-                changes = {}
                 for key, flag in (("read", "\\Seen"), ("flagged", "\\Flagged")):
                     if arguments.get(key) is not None:
                         operation = (
@@ -1164,10 +1164,14 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
                 TimeoutError,
                 imaplib.IMAP4.error,
             ) as error:
+                successes = [
+                    key for key, value in changes.items() if value["status"] == "updated"
+                ]
                 results.append(
                     {
                         "message_id": message_id,
-                        "status": "failed",
+                        "status": "partial" if successes else "failed",
+                        "changes": changes,
                         "error": str(error),
                     }
                 )
@@ -1485,7 +1489,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     allowed = {"message_ids", "to", "cc", "bcc", "note", "from"}
     if set(arguments) - allowed:
         raise ValueError("unsupported forward_emails fields")
-    ids = _list(arguments.get("message_ids"), "message_ids", limit=20)
+    ids = _list(arguments.get("message_ids"), "message_ids", limit=1)
     if not ids:
         raise ValueError("message_ids must not be empty")
     results = []
@@ -1584,7 +1588,7 @@ TOOLS = [
     {"name": "update_draft", "description": "Replace an existing draft with revised content without sending it.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "required": ["draft_id"], "additionalProperties": False}},
     {"name": "send_email", "description": "Send a new message or reply through iCloud SMTP; use only on explicit send intent.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
     {"name": "send_draft", "description": "Send an existing reviewed draft and move it to Trash; explicit send intent required.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}}, "required": ["draft_id"], "additionalProperties": False}},
-    {"name": "forward_emails", "description": "Forward existing messages with an optional note; explicit send intent required.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 20}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}, "required": ["message_ids", "to"], "additionalProperties": False}},
+    {"name": "forward_emails", "description": "Forward one existing message with an optional note; explicit send intent required. One source per call preserves an unambiguous acceptance receipt within the tool timeout.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 1}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}}, "cc": {"type": "array", "items": {"type": "string"}}, "bcc": {"type": "array", "items": {"type": "string"}}, "note": {"type": "string"}}, "required": ["message_ids", "to"], "additionalProperties": False}},
 ]
 
 HANDLERS = {
