@@ -1396,7 +1396,13 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
 def _smtp_send(message: Message) -> dict[str, Any]:
     username = _username()
     password, _ = _password(username)
-    sender = email.utils.parseaddr(message.get("From", ""))[1]
+    raw_sender = email.utils.parseaddr(message.get("From", ""))[1]
+    try:
+        sender = _email_address(raw_sender, "Draft From")
+    except ValueError:
+        raise MailError(
+            "Draft From address is not allowed by current configuration"
+        ) from None
     config = _load_config(required=True)
     if sender not in {username, *config["allowed_from"]}:
         raise MailError("Draft From address is not allowed by current configuration")
@@ -1416,7 +1422,7 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     client: smtplib.SMTP | None = None
     refused: dict[str, tuple[int, bytes]] | None = None
     acceptance_unconfirmed: str | None = None
-    data_started = False
+    data_accepted = False
     cleanup_warning = None
     try:
         client = smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout())
@@ -1425,23 +1431,37 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         client.ehlo()
         client.login(username, password)
         original_data = client.data
+        original_getreply = client.getreply
+        data_command_active = False
+
+        def tracked_getreply() -> tuple[int, bytes]:
+            nonlocal data_accepted
+            reply = original_getreply()
+            if data_command_active and reply[0] == 354:
+                data_accepted = True
+            return reply
 
         def tracked_data(payload: Any) -> tuple[int, bytes]:
-            nonlocal data_started
-            data_started = True
-            return original_data(payload)
+            nonlocal data_command_active
+            data_command_active = True
+            try:
+                return original_data(payload)
+            finally:
+                data_command_active = False
 
+        client.getreply = tracked_getreply
         client.data = tracked_data
         try:
             refused = client.send_message(
                 wire, from_addr=sender, to_addrs=recipients
             )
         except (smtplib.SMTPServerDisconnected, OSError, TimeoutError) as error:
-            if not data_started:
+            if not data_accepted:
                 raise
             acceptance_unconfirmed = type(error).__name__
         finally:
             client.data = original_data
+            client.getreply = original_getreply
     except smtplib.SMTPException as error:
         raise MailError(f"iCloud SMTP rejected the request: {type(error).__name__}") from None
     except (OSError, TimeoutError) as error:
@@ -1582,14 +1602,15 @@ def create_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _validate_draft_ref(client: imaplib.IMAP4_SSL, draft_id: str) -> None:
+def _validate_draft_ref(client: imaplib.IMAP4_SSL, draft_id: str) -> Message:
     mailbox, validity, uid = _decode_ref(draft_id)
     drafts = _special_mailbox(client, "Drafts", ["Drafts"])
     if mailbox != drafts:
         raise ValueError("draft_id must identify a message in the Drafts mailbox")
-    _, _, flags = _fetch_message(client, mailbox, validity, uid)
+    message, _, flags = _fetch_message(client, mailbox, validity, uid)
     if "\\Draft" not in flags:
         raise ValueError("draft_id must identify a message with the Draft flag")
+    return message
 
 
 def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1646,10 +1667,8 @@ def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"draft_id"}:
         raise ValueError("send_draft requires draft_id")
     draft_id = arguments["draft_id"]
-    mailbox, validity, uid = _decode_ref(draft_id)
     with _imap() as client:
-        _validate_draft_ref(client, draft_id)
-        message, _, _ = _fetch_message(client, mailbox, validity, uid)
+        message = _validate_draft_ref(client, draft_id)
     result = _smtp_send(message)
     result["draft_id"] = draft_id
     if result["status"] != "accepted":

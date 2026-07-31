@@ -1260,9 +1260,13 @@ class ICloudMailTests(unittest.TestCase):
         message["Message-ID"] = "<test@icloud.com>"
         message.set_content("body")
         smtp = mock.MagicMock()
-        smtp.data.side_effect = server.smtplib.SMTPServerDisconnected(
-            "connection reset"
-        )
+        smtp.getreply.return_value = (354, b"continue")
+
+        def lose_final_response(_payload: bytes) -> None:
+            smtp.getreply()
+            raise server.smtplib.SMTPServerDisconnected("connection reset")
+
+        smtp.data.side_effect = lose_final_response
         smtp.send_message.side_effect = lambda *_args, **_kwargs: smtp.data(b"wire")
         with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
             os.environ,
@@ -1277,6 +1281,31 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["status"], "acceptance_unconfirmed")
         self.assertFalse(result["retry_send"])
         self.assertIn("Check Sent Mail", result["next_step"])
+
+    def test_smtp_disconnect_before_data_payload_is_a_definite_failure(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message["Subject"] = "Test"
+        message["Message-ID"] = "<test@icloud.com>"
+        message.set_content("body")
+        smtp = mock.MagicMock()
+        smtp.getreply.side_effect = server.smtplib.SMTPServerDisconnected(
+            "connection reset"
+        )
+        smtp.data.side_effect = lambda _payload: smtp.getreply()
+        smtp.send_message.side_effect = lambda *_args, **_kwargs: smtp.data(b"wire")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            with self.assertRaisesRegex(server.MailError, "rejected"):
+                server._smtp_send(message)
 
     def test_smtp_disconnect_before_data_is_a_definite_failure(self) -> None:
         message = EmailMessage()
@@ -1326,6 +1355,28 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["retry_recipients"], ["refused@example.com"])
         self.assertFalse(result["retry_send"])
 
+    def test_smtp_authorizes_normalized_sender_domain(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@iCloud.com"
+        message["To"] = "to@example.com"
+        message["Subject"] = "Test"
+        message["Message-ID"] = "<test@icloud.com>"
+        message.set_content("body")
+        smtp = mock.MagicMock()
+        smtp.send_message.return_value = {}
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        self.assertEqual(result["status"], "accepted")
+        self.assertEqual(result["from"], "me@icloud.com")
+
     def test_send_draft_preserves_draft_after_partial_smtp_acceptance(self) -> None:
         draft_id = server._encode_ref("Drafts", 7, 9)
         message = EmailMessage()
@@ -1343,6 +1394,24 @@ class ICloudMailTests(unittest.TestCase):
             result = server.send_draft({"draft_id": draft_id})
         self.assertEqual(result["draft_cleanup"]["status"], "preserved")
         move.assert_not_called()
+
+    def test_send_draft_reuses_message_fetched_during_validation(self) -> None:
+        draft_id = server._encode_ref("Drafts", 7, 9)
+        message = EmailMessage()
+        first_context = mock.MagicMock()
+        first_context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", side_effect=[first_context, server.MailError("offline")]
+        ), mock.patch.object(
+            server, "_validate_draft_ref", return_value=message
+        ), mock.patch.object(
+            server, "_fetch_message"
+        ) as fetch, mock.patch.object(
+            server, "_smtp_send", return_value={"status": "accepted"}
+        ):
+            result = server.send_draft({"draft_id": draft_id})
+        self.assertEqual(result["status"], "accepted")
+        fetch.assert_not_called()
 
     def test_tool_errors_do_not_disclose_secret(self) -> None:
         secret = "do-not-leak"
