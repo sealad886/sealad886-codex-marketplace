@@ -316,6 +316,33 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["old_draft_cleanup"]["status"], "failed")
         self.assertFalse(result["old_draft_cleanup"]["retry_update"])
 
+    def test_update_draft_preserves_old_draft_when_replacement_is_unresolved(self) -> None:
+        old_id = server._encode_ref("Drafts", 7, 9)
+        unresolved = {
+            "draft_id": None,
+            "internet_message_id": "<replacement@example.com>",
+            "status": "created_unresolved",
+            "retry_create": False,
+        }
+        validate_context = mock.MagicMock()
+        validate_context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", return_value=validate_context
+        ), mock.patch.object(server, "_validate_draft_ref"), mock.patch.object(
+            server, "create_draft", return_value=unresolved.copy()
+        ), mock.patch.object(server, "_move") as move:
+            result = server.update_draft(
+                {
+                    "draft_id": old_id,
+                    "to": ["recipient@example.com"],
+                    "subject": "Replacement",
+                    "body": "Body",
+                }
+            )
+        self.assertEqual(result["status"], "created_unresolved")
+        self.assertEqual(result["old_draft_cleanup"]["status"], "preserved")
+        move.assert_not_called()
+
     def test_create_draft_preserves_append_receipt_when_id_recovery_fails(self) -> None:
         message = EmailMessage()
         message["Message-ID"] = "<draft@example.com>"
@@ -392,8 +419,31 @@ class ICloudMailTests(unittest.TestCase):
         context = mock.MagicMock()
         context.__enter__.return_value = client
         with mock.patch.object(server, "_imap", return_value=context):
-            with self.assertRaisesRegex(server.MailError, "no longer exists"):
-                server.set_email_flags({"message_ids": [message_id], "read": True})
+            result = server.set_email_flags(
+                {"message_ids": [message_id], "read": True}
+            )
+        self.assertEqual(result["results"][0]["status"], "failed")
+        self.assertIn("no longer exists", result["results"][0]["error"])
+
+    def test_flag_batch_preserves_earlier_success_receipts(self) -> None:
+        first = server._encode_ref("INBOX", 7, 1)
+        second = server._encode_ref("INBOX", 7, 2)
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"2"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b"1 (UID 1)"]),
+            ("OK", [b"1 (FLAGS (\\Seen))"]),
+            ("OK", [None]),
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.set_email_flags(
+                {"message_ids": [first, second], "read": True}
+            )
+        self.assertEqual(result["results"][0]["status"], "updated")
+        self.assertEqual(result["results"][1]["status"], "failed")
 
     def test_batch_forward_returns_receipts_and_formats_sender(self) -> None:
         original = {
@@ -477,11 +527,7 @@ class ICloudMailTests(unittest.TestCase):
             server,
             "search_emails",
             return_value={
-                "emails": [
-                    {"id": "unrelated"},
-                    {"id": "related"},
-                    {"id": "anchor"},
-                ],
+                "emails": [unrelated, related, anchor],
                 "truncated": False,
             },
         ):
@@ -526,9 +572,7 @@ class ICloudMailTests(unittest.TestCase):
 
         messages = {item["id"]: item for item in (message(i) for i in range(25))}
         anchor = messages["message-24"]
-        search_results = [
-            {"id": f"message-{index}"} for index in reversed(range(25))
-        ]
+        search_results = [messages[f"message-{index}"] for index in reversed(range(25))]
         with mock.patch.object(
             server, "read_email", side_effect=lambda args: messages[args["message_id"]]
         ), mock.patch.object(

@@ -463,7 +463,8 @@ def _fetch_summary(
         str(uid),
         (
             "(BODY.PEEK[HEADER.FIELDS "
-            "(MESSAGE-ID SUBJECT FROM TO CC DATE)] BODYSTRUCTURE FLAGS)"
+            "(MESSAGE-ID SUBJECT FROM TO CC DATE REFERENCES IN-REPLY-TO)] "
+            "BODYSTRUCTURE FLAGS)"
         ),
     )
     if status != "OK" or not data:
@@ -496,6 +497,8 @@ def _fetch_summary(
             b"attachment" in lower_metadata or b"filename" in lower_metadata
         ),
         "snippet": "",
+        "references": message.get("References", "").split(),
+        "in_reply_to": message.get("In-Reply-To", ""),
     }
 
 
@@ -927,9 +930,7 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
     result = search_emails(
         {"mailbox": anchor["mailbox"], "subject": subject, "max_results": MAX_RESULTS}
     )
-    candidates = [
-        read_email({"message_id": item["id"]}) for item in reversed(result["emails"])
-    ]
+    candidates = list(reversed(result["emails"]))
     if all(item["id"] != anchor["id"] for item in candidates):
         candidates.append(anchor)
 
@@ -969,9 +970,13 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                     connected_internet_ids.add(message_id)
                 changed = True
     connected = [item for item in candidates if item["id"] in connected_ids]
-    messages = connected[:maximum]
-    if anchor["id"] not in {item["id"] for item in messages}:
-        messages = connected[: maximum - 1] + [anchor]
+    selected = connected[:maximum]
+    if anchor["id"] not in {item["id"] for item in selected}:
+        selected = connected[: maximum - 1] + [anchor]
+    messages = [
+        anchor if item["id"] == anchor["id"] else read_email({"message_id": item["id"]})
+        for item in selected
+    ]
     return {
         "messages": messages,
         "threading": "RFC Message-ID, References, and In-Reply-To relationships",
@@ -1076,23 +1081,40 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
     results = []
     with _imap() as client:
         for message_id in ids:
-            mailbox, validity, uid = _decode_ref(message_id)
-            if _select(client, mailbox, readonly=False) != validity:
-                raise MailError("Message identifier is stale because the mailbox changed")
-            exists_status, exists_data = client.uid("FETCH", str(uid), "(UID)")
-            if (
-                exists_status != "OK"
-                or not exists_data
-                or not any(item for item in exists_data if item is not None)
-            ):
-                raise MailError("Message no longer exists in the source mailbox")
-            for key, flag in (("read", "\\Seen"), ("flagged", "\\Flagged")):
-                if arguments.get(key) is not None:
-                    operation = "+FLAGS.SILENT" if arguments[key] is True else "-FLAGS.SILENT"
-                    status, _ = client.uid("STORE", str(uid), operation, f"({flag})")
-                    if status != "OK":
-                        raise MailError(f"Could not change {key} flag")
-            results.append({"message_id": message_id, "status": "updated"})
+            try:
+                mailbox, validity, uid = _decode_ref(message_id)
+                if _select(client, mailbox, readonly=False) != validity:
+                    raise MailError(
+                        "Message identifier is stale because the mailbox changed"
+                    )
+                exists_status, exists_data = client.uid("FETCH", str(uid), "(UID)")
+                if (
+                    exists_status != "OK"
+                    or not exists_data
+                    or not any(item for item in exists_data if item is not None)
+                ):
+                    raise MailError("Message no longer exists in the source mailbox")
+                for key, flag in (("read", "\\Seen"), ("flagged", "\\Flagged")):
+                    if arguments.get(key) is not None:
+                        operation = (
+                            "+FLAGS.SILENT"
+                            if arguments[key] is True
+                            else "-FLAGS.SILENT"
+                        )
+                        status, _ = client.uid(
+                            "STORE", str(uid), operation, f"({flag})"
+                        )
+                        if status != "OK":
+                            raise MailError(f"Could not change {key} flag")
+                results.append({"message_id": message_id, "status": "updated"})
+            except (MailError, ValueError) as error:
+                results.append(
+                    {
+                        "message_id": message_id,
+                        "status": "failed",
+                        "error": str(error),
+                    }
+                )
     return {"results": results}
 
 
@@ -1314,6 +1336,12 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     del replacement["draft_id"]
     created = create_draft(replacement)
     created["replaced_draft_id"] = draft_id
+    if not created.get("draft_id"):
+        created["old_draft_cleanup"] = {
+            "status": "preserved",
+            "reason": "replacement draft ID is unresolved",
+        }
+        return created
     created["status"] = "updated"
     try:
         with _imap() as client:
