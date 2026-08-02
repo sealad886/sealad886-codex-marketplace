@@ -1,7 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-label="iCloud Mail">
-  <defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#52b6ff"/><stop offset="1" stop-color="#0878ed"/></linearGradient></defs>
-  <rect x="8" y="8" width="80" height="80" rx="20" fill="url(#b)"/>
-  <path d="M25 33h46v31H25z" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
-  <path d="m27 35 21 16 21-16" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="108" y="61" fill="#111827" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif" font-size="37" font-weight="650">iCloud Mail</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 96" role="img" aria-labelledby="title">
+  <title id="title">iCloud Mail</title>
+  <defs>
+    <linearGradient id="panel" x1="12" y1="6" x2="302" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#173E7A"/>
+      <stop offset="1" stop-color="#09285B"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="17" y1="13" x2="84" y2="87" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#63D4FF"/>
+      <stop offset="0.5" stop-color="#199BFF"/>
+      <stop offset="1" stop-color="#0868E8"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="316" height="92" rx="23" fill="url(#panel)"/>
+  <circle cx="292" cy="18" r="24" fill="#FFFFFF" opacity="0.04"/>
+  <rect x="12" y="12" width="72" height="72" rx="18" fill="url(#sky)"/>
+  <path d="M28 57c-5.5 0-10-4.3-10-9.6 0-4.9 3.8-8.9 8.7-9.5C28.9 31.8 34.9 28 41.8 28c8.2 0 15.1 5.3 16.4 13.1 6.7.2 12 5.5 12 12 0 6.6-5.6 12-12.5 12H28V57Z" fill="#FFFFFF"/>
+  <rect x="27" y="47" width="42" height="29" rx="5" fill="#FFFFFF" stroke="#0879E9" stroke-width="4"/>
+  <path d="m30 51 18 14 18-14" fill="none" stroke="#0879E9" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="103" y="57" fill="#FFFFFF" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="32" font-weight="700" letter-spacing="-0.6">iCloud Mail</text>
+  <text x="104" y="74" fill="#A9D9FF" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="11" font-weight="600" letter-spacing="1.35">EMAIL IN CODEX</text>
 </svg>
