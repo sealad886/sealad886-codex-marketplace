@@ -36,6 +36,7 @@ general client-registration and token protocol that this local plugin can use.
 - No tool permanently expunges mail. Trash is recoverable through iCloud Mail.
 - GUI helper tools only open Apple Account or Keychain Access. They do not
   inspect browser state, read credential fields, or automate password entry.
+  Their child process environment explicitly omits `ICLOUD_MAIL_APP_PASSWORD`.
 
 ## Reporting
 

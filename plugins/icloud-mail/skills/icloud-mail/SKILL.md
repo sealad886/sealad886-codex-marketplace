@@ -28,6 +28,9 @@ secrets, change scope, or contact someone.
    - On macOS, use `open_apple_password_page` and `open_keychain_access` only
      after the user agrees to open them.
    - Have the user enter the password directly in Keychain Access, never chat.
+   - On non-macOS hosts, explain that `ICLOUD_MAIL_APP_PASSWORD` must be present
+     in the environment that launches Codex; an export in another shell does
+     not update the running MCP process.
    - Use `validate_account`; it authenticates but sends no mail.
 2. Use `list_mailboxes` for counts and folder discovery. Use `search_emails` for
    a bounded shortlist, then `read_email` or `read_email_thread` for necessary

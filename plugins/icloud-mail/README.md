@@ -17,8 +17,8 @@ provider-specific mailbox API. This creates several honest differences:
 - iCloud has folders and IMAP flags, not Gmail's many-to-many label model.
 - Search uses structured portable fields, not Gmail search syntax or Microsoft
   Graph query syntax.
-- Conversation grouping is reconstructed from RFC 5322 message headers and
-  normalized subjects. It is useful but not equivalent to a provider-issued
+- Conversation grouping is reconstructed from RFC 5322 `Message-ID`,
+  `References`, and `In-Reply-To` headers. It is useful but not equivalent to a provider-issued
   thread identifier.
 - Draft and send operations use IMAP and SMTP. SMTP acceptance proves that
   Apple's server accepted the message, not downstream delivery.
@@ -29,7 +29,9 @@ No shell export is required. In Codex, ask:
 
 > Set up iCloud Mail.
 
-The plugin guides this sequence:
+The Apple Account that owns the mailbox must have two-factor authentication
+enabled before it can create an app-specific password. The plugin guides this
+sequence:
 
 1. `configure_account` saves non-secret account settings in a user-only file.
 2. `open_apple_password_page` opens Apple Account so the user can create an
@@ -76,9 +78,11 @@ an integrated credential store, `ICLOUD_MAIL_APP_PASSWORD` remains a fallback
 in the environment that launches Codex. Avoid shell history, checked-in `.env`
 files, and chat messages.
 
-The IMAP login normally accepts the full iCloud Mail address. If an older
-account requires only the local part, save `imap_username` as an override.
-SMTP always authenticates with the full account address.
+For IMAP, Apple documents the address's local part (for example, `name` for
+`name@icloud.com`) as the usual username and the full iCloud Mail address as
+the fallback. The plugin tries those forms in that order, using a new TLS
+connection for each attempt. Save `imap_username` only when an account needs
+an explicit override. SMTP always authenticates with the full account address.
 
 ## Fixed endpoints and optional settings
 

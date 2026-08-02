@@ -22,7 +22,9 @@ import stat
 import subprocess
 import sys
 import tempfile
-from contextlib import contextmanager
+import time
+from contextlib import contextmanager, nullcontext
+from contextvars import ContextVar
 from email.header import decode_header, make_header
 from email.message import EmailMessage, Message
 from typing import Any, Iterator
@@ -45,10 +47,51 @@ MAX_SEARCH_SCAN = 80
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 REF_PREFIX = "icloud-mail:"
+MCP_OPERATION_BUDGET_SECONDS = 540.0
 
 
 class MailError(RuntimeError):
     """Safe, user-actionable mail error."""
+
+
+class OperationDeadline:
+    """One monotonic budget shared by every phase of a public tool call."""
+
+    def __init__(
+        self,
+        seconds: float = MCP_OPERATION_BUDGET_SECONDS,
+        *,
+        clock: Any = time.monotonic,
+    ) -> None:
+        self._clock = clock
+        self._expires_at = clock() + seconds
+
+    def timeout(self, cap: float) -> float:
+        remaining = self._expires_at - self._clock()
+        if remaining <= 0.1:
+            raise MailError("iCloud Mail operation timed out before completion")
+        return min(cap, remaining)
+
+
+_ACTIVE_DEADLINE: ContextVar[OperationDeadline | None] = ContextVar(
+    "icloud_mail_operation_deadline", default=None
+)
+_IMAP_LOGIN_CACHE: dict[str, str] = {}
+
+
+def _current_deadline() -> OperationDeadline:
+    return _ACTIVE_DEADLINE.get() or OperationDeadline()
+
+
+def _set_socket_timeout(
+    client: Any,
+    cap: float,
+    deadline: OperationDeadline | None = None,
+) -> float:
+    deadline = deadline or _ACTIVE_DEADLINE.get()
+    timeout = deadline.timeout(min(_timeout(), cap)) if deadline else min(_timeout(), cap)
+    client.sock.settimeout(timeout)
+    return timeout
 
 
 def _config_path() -> Path:
@@ -125,8 +168,9 @@ def _validate_config(payload: Any) -> dict[str, Any]:
             _email_address(value, "allowed_from", required=True)
             for value in raw_allowed
         ]
-        display_name = _text(
-            payload.get("display_name"), "display_name", limit=200
+        display_name = _validated_display_name(
+            _text(payload.get("display_name"), "display_name", limit=200),
+            "display_name",
         )
     except ValueError as error:
         raise MailError(f"Saved iCloud Mail configuration is invalid: {error}") from None
@@ -239,6 +283,7 @@ def _text(value: Any, name: str, *, required: bool = False, limit: int = 10_000)
         "after",
         "before",
         "imap_username",
+        "display_name",
         "_thread_reference_ids",
     }
     if len(value) > limit or (
@@ -246,6 +291,35 @@ def _text(value: Any, name: str, *, required: bool = False, limit: int = 10_000)
     ):
         raise ValueError(f"{name} is invalid or too long")
     return value
+
+
+def _body_text(value: Any, name: str, *, limit: int = MAX_BODY_CHARS) -> str:
+    """Validate user-authored content without normalizing its whitespace."""
+
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise ValueError(f"{name} must be a string")
+    if len(value) > limit:
+        raise ValueError(f"{name} is invalid or too long")
+    return value
+
+
+def _decode_urlsafe_token(value: str, name: str) -> bytes:
+    if not value or re.fullmatch(r"[A-Za-z0-9_-]+", value) is None:
+        raise ValueError(f"{name} is malformed")
+    try:
+        decoded = base64.b64decode(
+            value + "=" * (-len(value) % 4),
+            altchars=b"-_",
+            validate=True,
+        )
+    except (binascii.Error, ValueError, UnicodeError) as error:
+        raise ValueError(f"{name} is malformed") from error
+    canonical = base64.urlsafe_b64encode(decoded).decode().rstrip("=")
+    if canonical != value:
+        raise ValueError(f"{name} is malformed")
+    return decoded
 
 
 def _list(value: Any, name: str, *, limit: int = 100) -> list[Any]:
@@ -273,6 +347,13 @@ def _addresses(value: str | None) -> list[dict[str, str]]:
     ]
 
 
+def _validated_display_name(value: str, name: str) -> str:
+    decoded = _decode_header(value)
+    if re.search(r"[\x00-\x08\x0a-\x1f]", decoded):
+        raise ValueError(f"{name} contains an invalid display name")
+    return decoded
+
+
 def _timeout() -> float:
     raw = os.environ.get("ICLOUD_MAIL_TIMEOUT", "30")
     try:
@@ -289,8 +370,21 @@ def _username() -> str:
 
 
 def _imap_username() -> str:
-    config = _load_config(required=True)
-    return config["imap_username"] or config["account_address"]
+    return _imap_login_candidates()[0]
+
+
+def _imap_login_candidates(config: dict[str, Any] | None = None) -> list[str]:
+    config = config or _load_config(required=True)
+    if config["imap_username"]:
+        return [config["imap_username"]]
+    account = config["account_address"]
+    local_part = account.split("@", 1)[0]
+    candidates = list(dict.fromkeys([local_part, account]))
+    cached = _IMAP_LOGIN_CACHE.get(account)
+    if cached in candidates:
+        candidates.remove(cached)
+        candidates.insert(0, cached)
+    return candidates
 
 
 def _password(username: str) -> tuple[str, str]:
@@ -329,24 +423,60 @@ def _password(username: str) -> tuple[str, str]:
 
 
 @contextmanager
-def _imap(*, socket_timeout: float | None = None) -> Iterator[imaplib.IMAP4_SSL]:
-    username = _username()
+def _imap(
+    *,
+    socket_timeout: float | None = None,
+    deadline: OperationDeadline | None = None,
+) -> Iterator[imaplib.IMAP4_SSL]:
+    deadline = deadline or _ACTIVE_DEADLINE.get()
+    config = _load_config(required=True)
+    username = config["account_address"]
     password, _ = _password(username)
-    login = _imap_username()
+    logins = _imap_login_candidates(config)
+    explicit_override = bool(config["imap_username"])
     client: imaplib.IMAP4_SSL | None = None
     try:
-        client = imaplib.IMAP4_SSL(
-            IMAP_HOST,
-            IMAP_PORT,
-            ssl_context=ssl.create_default_context(),
-            timeout=(
-                min(_timeout(), socket_timeout)
-                if socket_timeout is not None
-                else _timeout()
-            ),
-        )
-        client.login(login, password)
+        timeout_cap = min(_timeout(), socket_timeout) if socket_timeout is not None else _timeout()
+        rejected: imaplib.IMAP4.error | None = None
+        for index, login in enumerate(logins):
+            client = imaplib.IMAP4_SSL(
+                IMAP_HOST,
+                IMAP_PORT,
+                ssl_context=ssl.create_default_context(),
+                timeout=deadline.timeout(timeout_cap) if deadline else timeout_cap,
+            )
+            try:
+                if deadline is not None and getattr(client, "sock", None) is not None:
+                    client.sock.settimeout(deadline.timeout(timeout_cap))
+                client.login(login, password)
+                client.__dict__["_codex_imap_username_kind"] = (
+                    "override"
+                    if explicit_override
+                    else "local_part"
+                    if login == username.split("@", 1)[0]
+                    else "full_address"
+                )
+                if not explicit_override:
+                    _IMAP_LOGIN_CACHE[username] = login
+                break
+            except imaplib.IMAP4.abort:
+                raise
+            except imaplib.IMAP4.error as error:
+                rejected = error
+                try:
+                    client.shutdown()
+                except (imaplib.IMAP4.error, OSError):
+                    pass
+                client = None
+        else:
+            if rejected is None:
+                raise MailError("No valid iCloud IMAP login form is configured")
+            raise rejected
         yield client
+    except imaplib.IMAP4.abort as error:
+        raise MailError(
+            f"Could not connect to iCloud IMAP: {type(error).__name__}"
+        ) from None
     except imaplib.IMAP4.error as error:
         raise MailError(f"iCloud IMAP rejected the request: {error}") from None
     except (OSError, TimeoutError) as error:
@@ -357,7 +487,7 @@ def _imap(*, socket_timeout: float | None = None) -> Iterator[imaplib.IMAP4_SSL]
             client.__dict__.pop("_codex_selected_uidvalidity", None)
             try:
                 client.logout()
-            except (imaplib.IMAP4.error, OSError):
+            except (imaplib.IMAP4.error, MailError, OSError):
                 pass
 
 
@@ -365,6 +495,7 @@ def _select(client: imaplib.IMAP4_SSL, mailbox: str, *, readonly: bool) -> int:
     selected = client.__dict__.get("_codex_selected_mailbox")
     if selected == (mailbox, readonly):
         return client.__dict__["_codex_selected_uidvalidity"]
+    _set_socket_timeout(client, 25.0)
     status, data = client.select(_quoted_mailbox(mailbox), readonly=readonly)
     if status != "OK":
         raise MailError(f"Cannot open mailbox {mailbox!r}")
@@ -394,7 +525,7 @@ def _decode_ref(value: Any) -> tuple[str, int, int]:
         raise ValueError("message_id must be an iCloud Mail message identifier")
     try:
         encoded = value[len(REF_PREFIX) :]
-        payload = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+        payload = json.loads(_decode_urlsafe_token(encoded, "message_id"))
     except (ValueError, UnicodeError, json.JSONDecodeError) as error:
         raise ValueError("message_id is malformed") from error
     if (
@@ -531,6 +662,7 @@ def _summary(message: Message, message_id: str, flags: str = "") -> dict[str, An
         "from": _addresses(message.get("From")),
         "to": _addresses(message.get("To")),
         "cc": _addresses(message.get("Cc")),
+        "bcc": _addresses(message.get("Bcc")),
         "date": message.get("Date", ""),
         "unread": "\\Seen" not in flags,
         "flagged": "\\Flagged" in flags,
@@ -553,7 +685,7 @@ def _fetch_summary(
         str(uid),
         (
             "(BODY.PEEK[HEADER.FIELDS "
-            "(MESSAGE-ID SUBJECT FROM TO CC DATE REFERENCES IN-REPLY-TO)] "
+            "(MESSAGE-ID SUBJECT FROM TO CC BCC DATE REFERENCES IN-REPLY-TO)] "
             "BODYSTRUCTURE FLAGS)"
         ),
     )
@@ -586,6 +718,7 @@ def _fetch_summary(
         "from": _addresses(message.get("From")),
         "to": _addresses(message.get("To")),
         "cc": _addresses(message.get("Cc")),
+        "bcc": _addresses(message.get("Bcc")),
         "date": message.get("Date", ""),
         "unread": "\\Seen" not in flags,
         "flagged": "\\Flagged" in flags,
@@ -637,7 +770,7 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
         atom = metadata[position:end]
         return (None if atom.upper() == b"NIL" else atom), end
 
-    def contains_attachment(node: Any) -> bool:
+    def contains_attachment(node: Any, *, is_root: bool = False) -> bool:
         if not isinstance(node, list):
             return False
 
@@ -653,32 +786,60 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
                 for index in range(0, len(parameters) - 1, 2)
             )
 
-        if node and isinstance(node[0], bytes):
-            disposition = node[0].upper()
+        def has_disposition(value: Any) -> bool:
+            if not isinstance(value, list) or not value:
+                return False
+            disposition = value[0].upper() if isinstance(value[0], bytes) else b""
             if disposition == b"ATTACHMENT":
                 return True
-            if disposition == b"INLINE" and len(node) > 1 and has_filename(node[1]):
+            if disposition == b"INLINE" and len(value) > 1 and has_filename(value[1]):
                 return True
-        if (
-            len(node) > 2
-            and isinstance(node[0], bytes)
-            and isinstance(node[1], bytes)
-            and (
-                (
-                    node[0].upper() == b"MESSAGE"
-                    and node[1].upper() == b"RFC822"
-                )
-                or has_filename(node[2])
+            return False
+
+        if node and isinstance(node[0], list):
+            child_count = 0
+            while child_count < len(node) and isinstance(node[child_count], list):
+                if contains_attachment(node[child_count]):
+                    return True
+                child_count += 1
+            disposition_index = child_count + 2
+            return (
+                disposition_index < len(node)
+                and has_disposition(node[disposition_index])
             )
+
+        if len(node) < 2 or not all(
+            isinstance(node[index], bytes) for index in (0, 1)
+        ):
+            return False
+        maintype = node[0].upper()
+        subtype = node[1].upper()
+        if len(node) > 2 and has_filename(node[2]):
+            return True
+        if not is_root and maintype == b"MESSAGE" and subtype == b"RFC822":
+            return True
+        if maintype == b"TEXT":
+            disposition_index = 9
+        elif maintype == b"MESSAGE" and subtype == b"RFC822":
+            disposition_index = 11
+        else:
+            disposition_index = 8
+        if disposition_index < len(node) and has_disposition(
+            node[disposition_index]
         ):
             return True
-        return any(contains_attachment(value) for value in node if isinstance(value, list))
+        return (
+            maintype == b"MESSAGE"
+            and subtype == b"RFC822"
+            and len(node) > 8
+            and contains_attachment(node[8], is_root=True)
+        )
 
     try:
         structure, _ = parse(match.end())
     except ValueError:
         return False
-    return contains_attachment(structure)
+    return contains_attachment(structure, is_root=True)
 
 
 def get_account_status(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -746,8 +907,9 @@ def configure_account(arguments: dict[str, Any]) -> dict[str, Any]:
     )
     if "\r" in imap_username or "\n" in imap_username:
         raise ValueError("imap_username is invalid")
-    display_name = _text(
-        arguments.get("display_name"), "display_name", limit=200
+    display_name = _validated_display_name(
+        _text(arguments.get("display_name"), "display_name", limit=200),
+        "display_name",
     )
     path = _write_config(
         {
@@ -770,6 +932,9 @@ def configure_account(arguments: dict[str, Any]) -> dict[str, Any]:
         "next_step": (
             "Store an Apple app-specific password in macOS Keychain, then call "
             "validate_account."
+            if sys.platform == "darwin"
+            else "Persist ICLOUD_MAIL_APP_PASSWORD in the environment that launches "
+            "Codex, then call validate_account."
         ),
     }
 
@@ -795,18 +960,35 @@ def clear_account_configuration(arguments: dict[str, Any]) -> dict[str, Any]:
 def validate_account(arguments: dict[str, Any]) -> dict[str, Any]:
     if arguments:
         raise ValueError("validate_account takes no arguments")
-    with _imap() as client:
+    deadline = _current_deadline()
+    with _imap(deadline=deadline) as client:
+        _set_socket_timeout(client, _timeout(), deadline)
         status, data = client.status("INBOX", "(MESSAGES)")
         if status != "OK":
             raise MailError("iCloud IMAP login succeeded but INBOX status failed")
         mailbox_status = data[0].decode("ascii", errors="replace") if data else ""
+        imap_login_kind = client.__dict__.get(
+            "_codex_imap_username_kind", "override"
+        )
     username = _username()
     password, _ = _password(username)
     try:
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=_timeout()) as client:
+        with smtplib.SMTP(
+            SMTP_HOST,
+            SMTP_PORT,
+            timeout=deadline.timeout(_timeout()),
+        ) as client:
+            if getattr(client, "sock", None) is not None:
+                _set_socket_timeout(client, _timeout(), deadline)
             client.ehlo()
+            if getattr(client, "sock", None) is not None:
+                _set_socket_timeout(client, _timeout(), deadline)
             client.starttls(context=ssl.create_default_context())
+            if getattr(client, "sock", None) is not None:
+                _set_socket_timeout(client, _timeout(), deadline)
             client.ehlo()
+            if getattr(client, "sock", None) is not None:
+                _set_socket_timeout(client, _timeout(), deadline)
             client.login(username, password)
     except smtplib.SMTPException as error:
         raise MailError(
@@ -821,6 +1003,7 @@ def validate_account(arguments: dict[str, Any]) -> dict[str, Any]:
         "status": "validated",
         "account_address": username,
         "imap_authenticated": True,
+        "imap_username_form": imap_login_kind,
         "smtp_authenticated": True,
         "inbox_messages": int(match.group(1)) if match else None,
         "email_sent": False,
@@ -837,6 +1020,11 @@ def _open_macos(arguments: dict[str, Any], target: str, label: str) -> dict[str,
             ["/usr/bin/open", target],
             check=True,
             capture_output=True,
+            env={
+                key: value
+                for key, value in os.environ.items()
+                if key != "ICLOUD_MAIL_APP_PASSWORD"
+            },
             timeout=10,
         )
     except (OSError, subprocess.SubprocessError):
@@ -898,7 +1086,7 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("list_mailboxes takes no arguments")
     with _imap(socket_timeout=4.0) as client:
         mailboxes = _mailboxes(client)
-        client.sock.settimeout(min(_timeout(), 4.0))
+        _set_socket_timeout(client, 4.0)
         for index, item in enumerate(mailboxes):
             if index >= MAX_MAILBOX_STATUS:
                 item["messages"] = None
@@ -976,7 +1164,11 @@ def _decode_imap_utf7(value: bytes) -> str:
 
 
 def search_emails(
-    arguments: dict[str, Any], *, socket_timeout: float | None = 5.0
+    arguments: dict[str, Any],
+    *,
+    socket_timeout: float | None = 5.0,
+    deadline: OperationDeadline | None = None,
+    client: imaplib.IMAP4_SSL | None = None,
 ) -> dict[str, Any]:
     allowed = {
         "mailbox", "query", "from", "to", "subject", "after", "before",
@@ -1015,7 +1207,11 @@ def search_emails(
         criteria.append("FLAGGED")
     elif arguments.get("flagged") is False:
         criteria.append("UNFLAGGED")
-    with _imap(socket_timeout=socket_timeout) as client:
+    imap_options: dict[str, Any] = {"socket_timeout": socket_timeout}
+    if deadline is not None:
+        imap_options["deadline"] = deadline
+    connection = _imap(**imap_options) if client is None else nullcontext(client)
+    with connection as client:
         validity = _select(client, mailbox, readonly=True)
         thread_reference_ids = _list(
             arguments.get("_thread_reference_ids", []),
@@ -1023,9 +1219,10 @@ def search_emails(
             limit=10,
         )
         if thread_reference_ids:
-            client.sock.settimeout(min(_timeout(), 10.0))
+            _set_socket_timeout(client, 10.0, deadline)
             matched_uids: set[int] = set()
             for reference_id in thread_reference_ids:
+                _set_socket_timeout(client, 10.0, deadline)
                 value = _text(
                     reference_id, "_thread_reference_ids", required=True, limit=500
                 )
@@ -1057,7 +1254,7 @@ def search_emails(
             if arguments.get("has_attachment") is not None
             else len(uids)
         )
-        client.sock.settimeout(min(_timeout(), 5.0))
+        _set_socket_timeout(client, 5.0, deadline)
         for uid in uids[:scan_limit]:
             if len(results) >= maximum:
                 break
@@ -1112,12 +1309,17 @@ def _read_email_result(
     return result
 
 
-def read_email(arguments: dict[str, Any]) -> dict[str, Any]:
+def read_email(
+    arguments: dict[str, Any],
+    *,
+    deadline: OperationDeadline | None = None,
+) -> dict[str, Any]:
     if set(arguments) - {"message_id", "include_raw_mime"}:
         raise ValueError("unsupported read_email fields")
     message_id = arguments.get("message_id")
     mailbox, validity, uid = _decode_ref(message_id)
-    with _imap() as client:
+    deadline = deadline or _current_deadline()
+    with _imap(deadline=deadline) as client:
         message, raw, flags = _fetch_message(client, mailbox, validity, uid)
     return _read_email_result(
         message,
@@ -1129,11 +1331,16 @@ def read_email(arguments: dict[str, Any]) -> dict[str, Any]:
     )
 
 
-def _read_emails_shared(message_ids: list[str]) -> list[dict[str, Any]]:
+def _read_emails_shared(
+    message_ids: list[str],
+    deadline: OperationDeadline | None = None,
+) -> list[dict[str, Any]]:
     results = []
-    with _imap() as client:
-        client.sock.settimeout(min(_timeout(), 8.0))
+    imap_options = {"deadline": deadline} if deadline is not None else {}
+    with _imap(**imap_options) as client:
+        _set_socket_timeout(client, 8.0, deadline)
         for message_id in message_ids:
+            _set_socket_timeout(client, 8.0, deadline)
             mailbox, validity, uid = _decode_ref(message_id)
             try:
                 message, raw, flags = _fetch_message(
@@ -1158,14 +1365,15 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("attachment_id does not belong to message_id")
     try:
         index = int(
-            base64.urlsafe_b64decode(
-                attachment_id.rsplit(".", 1)[1] + "=" * (-len(attachment_id.rsplit(".", 1)[1]) % 4)
+            _decode_urlsafe_token(
+                attachment_id.rsplit(".", 1)[1], "attachment_id"
             )
         )
     except (ValueError, UnicodeError) as error:
         raise ValueError("attachment_id is malformed") from error
     mailbox, validity, uid = _decode_ref(message_id)
-    with _imap() as client:
+    deadline = _current_deadline()
+    with _imap(deadline=deadline) as client:
         message, _, _ = _fetch_message(client, mailbox, validity, uid)
     parts = list(message.walk())
     if not 0 <= index < len(parts):
@@ -1189,7 +1397,10 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
 def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) - {"message_id", "max_results"}:
         raise ValueError("unsupported read_email_thread fields")
-    anchor = read_email({"message_id": arguments.get("message_id")})
+    deadline = _current_deadline()
+    anchor = read_email(
+        {"message_id": arguments.get("message_id")}, deadline=deadline
+    )
     maximum = arguments.get("max_results", 20)
     if isinstance(maximum, bool) or not isinstance(maximum, int) or not 1 <= maximum <= MAX_RESULTS:
         raise ValueError(f"max_results must be between 1 and {MAX_RESULTS}")
@@ -1207,56 +1418,46 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
             if value
         }
 
-    reference_ids = list(
+    initial_reference_ids = list(
         dict.fromkeys(
             value
             for value in [internet_id(anchor), *references(anchor)]
             if value
         )
-    )[:5]
-    if not reference_ids:
-        result = {"emails": [], "truncated": False}
-    else:
-        result = search_emails(
-            {
-                "mailbox": anchor["mailbox"],
-                "_thread_reference_ids": reference_ids,
-                "max_results": MAX_RESULTS,
-            }
-        )
-        second_wave_candidates = list(
-            dict.fromkeys(
-                internet_id(item)
-                for item in result["emails"]
-                if internet_id(item)
-                and internet_id(item) not in reference_ids
-            )
-        )
-        second_wave_budget = 10 - len(reference_ids)
-        second_wave_ids = second_wave_candidates[:second_wave_budget]
-        result["truncated"] = (
-            result["truncated"]
-            or len(second_wave_candidates) > second_wave_budget
-        )
-        if second_wave_ids:
-            expanded = search_emails(
-                {
-                    "mailbox": anchor["mailbox"],
-                    "_thread_reference_ids": second_wave_ids,
-                    "max_results": MAX_RESULTS,
-                }
-            )
-            combined = {
-                item["id"]: item
-                for item in [*result["emails"], *expanded["emails"]]
-            }
-            result = {
-                "emails": list(combined.values()),
-                "truncated": result["truncated"] or expanded["truncated"],
-            }
-    candidates = list(reversed(result["emails"]))
-    if all(item["id"] != anchor["id"] for item in candidates):
-        candidates.append(anchor)
+    )
+    pending = list(initial_reference_ids)
+    queued = set(pending)
+    searched: set[str] = set()
+    candidates_by_id: dict[str, dict[str, Any]] = {anchor["id"]: anchor}
+    discovery_truncated = False
+    if pending:
+        with _imap(deadline=deadline) as discovery_client:
+            while pending and len(searched) < 10:
+                batch = pending[: min(5, 10 - len(searched))]
+                del pending[: len(batch)]
+                searched.update(batch)
+                result = search_emails(
+                    {
+                        "mailbox": anchor["mailbox"],
+                        "_thread_reference_ids": batch,
+                        "max_results": MAX_RESULTS,
+                    },
+                    deadline=deadline,
+                    client=discovery_client,
+                )
+                discovery_truncated = discovery_truncated or result["truncated"]
+                for item in result["emails"]:
+                    candidates_by_id[item["id"]] = item
+                    for value in [internet_id(item), *references(item)]:
+                        if value and value not in queued and value not in searched:
+                            if len(queued | searched) >= 10:
+                                discovery_truncated = True
+                            else:
+                                queued.add(value)
+                                pending.append(value)
+    if pending:
+        discovery_truncated = True
+    candidates = list(candidates_by_id.values())
 
     connected_ids = {anchor["id"]}
     connected_reference_nodes = (
@@ -1279,13 +1480,33 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 connected_reference_nodes.update(message_reference_nodes)
                 changed = True
     connected = [item for item in candidates if item["id"] in connected_ids]
+
+    def chronological_key(message: dict[str, Any]) -> tuple[dt.datetime, int, str]:
+        try:
+            parsed = email.utils.parsedate_to_datetime(message.get("date", ""))
+            if parsed is None:
+                raise ValueError
+            if parsed.tzinfo is None:
+                parsed = parsed.replace(tzinfo=dt.timezone.utc)
+            parsed = parsed.astimezone(dt.timezone.utc)
+        except (TypeError, ValueError, OverflowError):
+            parsed = dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+        try:
+            uid = _decode_ref(message["id"])[2]
+        except (KeyError, ValueError):
+            uid = 0
+        return parsed, uid, message.get("id", "")
+
+    connected.sort(key=chronological_key)
     selected = connected[:maximum]
     if anchor["id"] not in {item["id"] for item in selected}:
-        selected = connected[: maximum - 1] + [anchor]
+        selected = sorted(
+            connected[: maximum - 1] + [anchor], key=chronological_key
+        )
     other_ids = [item["id"] for item in selected if item["id"] != anchor["id"]]
     loaded = {
         item["id"]: item
-        for item in _read_emails_shared(other_ids)
+        for item in _read_emails_shared(other_ids, deadline)
     }
     messages = [
         anchor if item["id"] == anchor["id"] else loaded[item["id"]]
@@ -1296,7 +1517,7 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
         "messages": messages,
         "threading": "RFC Message-ID, References, and In-Reply-To relationships",
         "truncated": (
-            result["truncated"]
+            discovery_truncated
             or len(connected_ids) > maximum
             or len(loaded) < len(other_ids)
         ),
@@ -1392,10 +1613,11 @@ def _move(client: imaplib.IMAP4_SSL, message_id: str, destination: str) -> dict[
 def _move_batch(
     client: imaplib.IMAP4_SSL, message_ids: list[Any], destination: str
 ) -> dict[str, Any]:
-    client.sock.settimeout(min(_timeout(), 25.0))
+    _set_socket_timeout(client, 25.0)
     results = []
     for message_id in message_ids:
         try:
+            _set_socket_timeout(client, 25.0)
             results.append(_move(client, message_id, destination))
         except (
             MailError,
@@ -1459,11 +1681,12 @@ def set_email_flags(arguments: dict[str, Any]) -> dict[str, Any]:
             raise ValueError(f"{key} must be a boolean")
     results = []
     with _imap(socket_timeout=10.0) as client:
-        client.sock.settimeout(min(_timeout(), 25.0))
+        _set_socket_timeout(client, 25.0)
         for message_id in ids:
             changes = {}
             active_change = None
             try:
+                _set_socket_timeout(client, 25.0)
                 mailbox, validity, uid = _decode_ref(message_id)
                 if _select(client, mailbox, readonly=False) != validity:
                     raise MailError(
@@ -1542,13 +1765,61 @@ def _recipients(value: Any, name: str, *, required: bool = False) -> list[str]:
     result = []
     for item in raw:
         address = _text(item, name, required=True, limit=320)
-        parsed = email.utils.parseaddr(address)[1]
+        if "\r" in address or "\n" in address:
+            raise ValueError(f"{name} contains an invalid address")
+        parsed_addresses = email.utils.getaddresses([address])
+        if len(parsed_addresses) != 1:
+            raise ValueError(f"{name} must contain one address per entry")
+        display, parsed = parsed_addresses[0]
         if not parsed or "@" not in parsed:
             raise ValueError(f"{name} contains an invalid address")
-        result.append(address)
+        canonical = _email_address(parsed, name)
+        decoded_display = _validated_display_name(display, name)
+        result.append(
+            email.utils.formataddr((decoded_display, canonical))
+            if display
+            else canonical
+        )
     if required and not result:
         raise ValueError(f"{name} must not be empty")
     return result
+
+
+def _read_outgoing_attachment(path: Path, remaining: int) -> bytes:
+    if not path.is_absolute() or remaining <= 0:
+        raise ValueError("each attachment file must be an absolute regular-file path")
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise ValueError("secure attachment reads are not supported on this platform")
+    flags = os.O_RDONLY | os.O_NOFOLLOW
+    flags |= getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
+    descriptor: int | None = None
+    try:
+        descriptor = os.open(path, flags)
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise ValueError(
+                "each attachment file must be an absolute regular-file path"
+            )
+        limit = min(MAX_ATTACHMENT_BYTES, remaining)
+        if metadata.st_size > limit:
+            raise ValueError(
+                "attachments must be at most 5 MiB each and 10 MiB total"
+            )
+        with os.fdopen(descriptor, "rb", closefd=True) as source:
+            descriptor = None
+            payload = source.read(limit + 1)
+    except ValueError:
+        raise
+    except OSError as error:
+        raise ValueError(
+            "each attachment file must be an absolute regular-file path"
+        ) from error
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+    if len(payload) > min(MAX_ATTACHMENT_BYTES, remaining):
+        raise ValueError("attachments must be at most 5 MiB each and 10 MiB total")
+    return payload
 
 
 def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailMessage:
@@ -1599,9 +1870,9 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
     message["Subject"] = subject
     message["Date"] = email.utils.format_datetime(dt.datetime.now(dt.timezone.utc))
     message["Message-ID"] = email.utils.make_msgid(domain=username.split("@", 1)[1])
-    body = _text(arguments.get("body"), "body", limit=MAX_BODY_CHARS)
-    html = _text(arguments.get("html_body"), "html_body", limit=MAX_BODY_CHARS)
-    if not body and not html:
+    body = _body_text(arguments.get("body"), "body")
+    html = _body_text(arguments.get("html_body"), "html_body")
+    if not body.strip() and not html.strip():
         raise ValueError("body or html_body is required")
     message.set_content(body or "This message contains an HTML part.")
     if html:
@@ -1610,13 +1881,10 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
     for raw_path in _list(arguments.get("attachment_files"), "attachment_files", limit=20):
         path_text = _text(raw_path, "attachment_files", required=True, limit=4096)
         path = Path(path_text)
-        if not path.is_absolute() or not path.is_file() or path.is_symlink():
-            raise ValueError("each attachment file must be an absolute regular-file path")
-        size = path.stat().st_size
-        total_attachment_bytes += size
-        if size > MAX_ATTACHMENT_BYTES or total_attachment_bytes > 10 * 1024 * 1024:
-            raise ValueError("attachments must be at most 5 MiB each and 10 MiB total")
-        payload = path.read_bytes()
+        payload = _read_outgoing_attachment(
+            path, 10 * 1024 * 1024 - total_attachment_bytes
+        )
+        total_attachment_bytes += len(payload)
         import mimetypes
 
         content_type, _ = mimetypes.guess_type(path.name)
@@ -1632,6 +1900,7 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
 
 
 def _smtp_send(message: Message) -> dict[str, Any]:
+    deadline = _current_deadline()
     username = _username()
     password, _ = _password(username)
     raw_sender = email.utils.parseaddr(message.get("From", ""))[1]
@@ -1667,11 +1936,17 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     cleanup_warning = None
     try:
         client = smtplib.SMTP(
-            SMTP_HOST, SMTP_PORT, timeout=min(_timeout(), 15.0)
+            SMTP_HOST,
+            SMTP_PORT,
+            timeout=deadline.timeout(min(_timeout(), 15.0)),
         )
+        _set_socket_timeout(client, 15.0, deadline)
         client.ehlo()
+        _set_socket_timeout(client, 15.0, deadline)
         client.starttls(context=ssl.create_default_context())
+        _set_socket_timeout(client, 15.0, deadline)
         client.ehlo()
+        _set_socket_timeout(client, 15.0, deadline)
         client.login(username, password)
         original_data = client.data
         original_getreply = client.getreply
@@ -1688,9 +1963,9 @@ def _smtp_send(message: Message) -> dict[str, Any]:
 
         def tracked_send(payload: bytes) -> None:
             nonlocal payload_sent
-            original_send(payload)
             if data_command_active and data_command_accepted:
                 payload_sent = True
+            original_send(payload)
 
         def tracked_data(payload: Any) -> tuple[int, bytes]:
             nonlocal data_command_active, final_data_reply
@@ -1705,6 +1980,7 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         client.send = tracked_send
         client.data = tracked_data
         try:
+            _set_socket_timeout(client, 15.0, deadline)
             refused = client.send_message(
                 wire, from_addr=sender, to_addrs=recipients
             )
@@ -1795,6 +2071,7 @@ def create_draft(
     with _imap(socket_timeout=socket_timeout) as client:
         drafts = _special_mailbox(client, "Drafts", ["Drafts"])
         try:
+            _set_socket_timeout(client, 25.0)
             status, data = client.append(
                 _quoted_mailbox(drafts), "(\\Draft \\Seen)", None, raw
             )
@@ -2148,6 +2425,7 @@ def handle(request: dict[str, Any]) -> dict[str, Any] | None:
             return _response(request_id, error={"code": -32602, "message": "Unknown tool"})
         if not isinstance(arguments, dict):
             return _response(request_id, error={"code": -32602, "message": "Tool arguments must be an object"})
+        deadline_token = _ACTIVE_DEADLINE.set(OperationDeadline())
         try:
             result = HANDLERS[name](arguments)
             return _response(
@@ -2175,6 +2453,8 @@ def handle(request: dict[str, Any]) -> dict[str, Any] | None:
                     "isError": True,
                 },
             )
+        finally:
+            _ACTIVE_DEADLINE.reset(deadline_token)
     return _response(request_id, error={"code": -32601, "message": "Method not found"})
 
 

@@ -24,6 +24,18 @@ SPEC.loader.exec_module(server)
 
 
 class ICloudMailTests(unittest.TestCase):
+    def setUp(self) -> None:
+        server._IMAP_LOGIN_CACHE.clear()
+        if "thread" in self._testMethodName:
+            self.thread_imap_context = mock.MagicMock()
+            self.thread_imap_client = mock.MagicMock()
+            self.thread_imap_context.__enter__.return_value = self.thread_imap_client
+            self.thread_imap_patch = mock.patch.object(
+                server, "_imap", return_value=self.thread_imap_context
+            )
+            self.thread_imap_connect = self.thread_imap_patch.start()
+            self.addCleanup(self.thread_imap_patch.stop)
+
     def config_environment(self, root: str) -> mock._patch_dict:
         return mock.patch.dict(
             os.environ,
@@ -165,7 +177,7 @@ class ICloudMailTests(unittest.TestCase):
             )
         self.assertEqual(
             client.sock.settimeout.call_args_list,
-            [mock.call(10.0), mock.call(5.0)],
+            [mock.call(25.0), mock.call(10.0), mock.call(10.0), mock.call(5.0)],
         )
 
     def test_attachment_filter_has_a_bounded_scan_budget(self) -> None:
@@ -200,7 +212,7 @@ class ICloudMailTests(unittest.TestCase):
         client.response.return_value = ("UIDVALIDITY", [b"7"])
 
         def search_before_timeout(*_args: object) -> tuple[str, list[bytes]]:
-            client.sock.settimeout.assert_not_called()
+            client.sock.settimeout.assert_called_once_with(25.0)
             return (
                 "OK",
                 [b" ".join(str(index).encode() for index in range(1, 1001))],
@@ -221,7 +233,10 @@ class ICloudMailTests(unittest.TestCase):
             result = server.search_emails(
                 {"has_attachment": True, "max_results": 50}
             )
-        client.sock.settimeout.assert_called_once_with(5.0)
+        self.assertEqual(
+            client.sock.settimeout.call_args_list,
+            [mock.call(25.0), mock.call(5.0)],
+        )
         self.assertEqual(result["scanned"], 80)
         self.assertEqual(fetch.call_count, 80)
 
@@ -374,12 +389,27 @@ class ICloudMailTests(unittest.TestCase):
             with self.subTest(parameter=parameter):
                 self.assertTrue(server._bodystructure_has_attachment(metadata))
 
-    def test_bodystructure_unnamed_rfc822_part_is_attachment(self) -> None:
+    def test_bodystructure_top_level_rfc822_is_not_an_attachment(self) -> None:
         metadata = (
             b'9 (BODYSTRUCTURE ("MESSAGE" "RFC822" NIL NIL NIL "7BIT" 100 '
             b'NIL ("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1) 1))'
         )
+        self.assertFalse(server._bodystructure_has_attachment(metadata))
+
+    def test_bodystructure_nested_unnamed_rfc822_is_attachment(self) -> None:
+        metadata = (
+            b'9 (BODYSTRUCTURE (("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1) '
+            b'("MESSAGE" "RFC822" NIL NIL NIL "7BIT" 100 NIL '
+            b'("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1) 1) "MIXED"))'
+        )
         self.assertTrue(server._bodystructure_has_attachment(metadata))
+
+    def test_bodystructure_language_metadata_is_not_a_disposition(self) -> None:
+        metadata = (
+            b'1 (BODYSTRUCTURE ("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1 '
+            b'NIL NIL ("ATTACHMENT" "fr")))'
+        )
+        self.assertFalse(server._bodystructure_has_attachment(metadata))
 
     def test_search_summary_reads_only_the_flags_response_field(self) -> None:
         client = mock.MagicMock()
@@ -973,7 +1003,10 @@ class ICloudMailTests(unittest.TestCase):
             return_value={"message_id": "one", "status": "moved"},
         ):
             server._move_batch(client, ["one"], "Archive")
-        client.sock.settimeout.assert_called_once_with(25.0)
+        self.assertEqual(
+            client.sock.settimeout.call_args_list,
+            [mock.call(25.0), mock.call(25.0)],
+        )
         for name in ("move_emails", "archive_emails", "trash_emails"):
             tool = next(item for item in server.TOOLS if item["name"] == name)
             self.assertEqual(
@@ -1136,7 +1169,10 @@ class ICloudMailTests(unittest.TestCase):
         ), mock.patch.object(server, "_imap", return_value=context) as connect:
             server.set_email_flags({"message_ids": [message_id], "read": True})
         connect.assert_called_once_with(socket_timeout=10.0)
-        client.sock.settimeout.assert_called_once_with(25.0)
+        self.assertEqual(
+            client.sock.settimeout.call_args_list,
+            [mock.call(25.0), mock.call(25.0), mock.call(25.0)],
+        )
         tool = next(item for item in server.TOOLS if item["name"] == "set_email_flags")
         self.assertEqual(
             tool["inputSchema"]["properties"]["message_ids"]["maxItems"],
@@ -1467,7 +1503,7 @@ class ICloudMailTests(unittest.TestCase):
         }
         messages = {"anchor": anchor, "related": related, "unrelated": unrelated}
         with mock.patch.object(
-            server, "read_email", side_effect=lambda args: messages[args["message_id"]]
+            server, "read_email", side_effect=lambda args, **_kwargs: messages[args["message_id"]]
         ), mock.patch.object(
             server,
             "search_emails",
@@ -1478,7 +1514,7 @@ class ICloudMailTests(unittest.TestCase):
         ), mock.patch.object(
             server,
             "_read_emails_shared",
-            side_effect=lambda ids: [messages[item] for item in ids],
+            side_effect=lambda ids, *_args: [messages[item] for item in ids],
         ):
             result = server.read_email_thread(
                 {"message_id": "anchor", "max_results": 20}
@@ -1507,7 +1543,7 @@ class ICloudMailTests(unittest.TestCase):
         }
         messages = {"anchor": anchor, "related": related}
         with mock.patch.object(
-            server, "read_email", side_effect=lambda args: messages[args["message_id"]]
+            server, "read_email", side_effect=lambda args, **_kwargs: messages[args["message_id"]]
         ), mock.patch.object(
             server,
             "search_emails",
@@ -1515,7 +1551,7 @@ class ICloudMailTests(unittest.TestCase):
         ), mock.patch.object(
             server,
             "_read_emails_shared",
-            side_effect=lambda ids: [messages[item] for item in ids],
+            side_effect=lambda ids, *_args: [messages[item] for item in ids],
         ):
             result = server.read_email_thread({"message_id": "anchor"})
         self.assertEqual(
@@ -1645,10 +1681,13 @@ class ICloudMailTests(unittest.TestCase):
         ), mock.patch.object(
             server,
             "search_emails",
-            side_effect=[
-                {"emails": [anchor, reply_b], "truncated": False},
-                {"emails": [reply_b, reply_c], "truncated": False},
-            ],
+            side_effect=lambda args, **_kwargs: (
+                {"emails": [anchor, reply_b], "truncated": False}
+                if args["_thread_reference_ids"] == ["<a@example.com>"]
+                else {"emails": [reply_b, reply_c], "truncated": False}
+                if args["_thread_reference_ids"] == ["<b@example.com>"]
+                else {"emails": [], "truncated": False}
+            ),
         ) as search, mock.patch.object(
             server, "_read_emails_shared", return_value=[reply_b, reply_c]
         ):
@@ -1716,7 +1755,7 @@ class ICloudMailTests(unittest.TestCase):
         anchor = messages["message-24"]
         search_results = [messages[f"message-{index}"] for index in reversed(range(25))]
         with mock.patch.object(
-            server, "read_email", side_effect=lambda args: messages[args["message_id"]]
+            server, "read_email", side_effect=lambda args, **_kwargs: messages[args["message_id"]]
         ), mock.patch.object(
             server,
             "search_emails",
@@ -1724,7 +1763,7 @@ class ICloudMailTests(unittest.TestCase):
         ), mock.patch.object(
             server,
             "_read_emails_shared",
-            side_effect=lambda ids: [messages[item] for item in ids],
+            side_effect=lambda ids, *_args: [messages[item] for item in ids],
         ):
             result = server.read_email_thread(
                 {"message_id": anchor["id"], "max_results": 20}
@@ -1753,7 +1792,10 @@ class ICloudMailTests(unittest.TestCase):
             result = server._read_emails_shared(["first", "second"])
         self.assertEqual(result, [{"id": "first"}, {"id": "second"}])
         connect.assert_called_once_with()
-        client.sock.settimeout.assert_called_once_with(8.0)
+        self.assertEqual(
+            client.sock.settimeout.call_args_list,
+            [mock.call(8.0), mock.call(8.0), mock.call(8.0)],
+        )
 
     def test_shared_thread_fetch_skips_vanished_non_anchor_message(self) -> None:
         context = mock.MagicMock()
@@ -1922,7 +1964,7 @@ class ICloudMailTests(unittest.TestCase):
         self.assertFalse(result["retry_send"])
         self.assertIn("Check Sent Mail", result["next_step"])
 
-    def test_smtp_partial_payload_write_is_a_definite_failure(self) -> None:
+    def test_smtp_partial_payload_write_is_acceptance_unconfirmed(self) -> None:
         message = EmailMessage()
         message["From"] = "me@icloud.com"
         message["To"] = "to@example.com"
@@ -1945,10 +1987,10 @@ class ICloudMailTests(unittest.TestCase):
                 "ICLOUD_MAIL_APP_PASSWORD": "secret",
             },
             clear=True,
-        ), mock.patch.object(
-            server.smtplib, "SMTP", return_value=smtp
-        ), self.assertRaisesRegex(server.MailError, "SMTPServerDisconnected"):
-            server._smtp_send(message)
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        self.assertEqual(result["status"], "acceptance_unconfirmed")
+        self.assertFalse(result["retry_send"])
 
     def test_smtp_rejection_survives_rset_disconnect(self) -> None:
         message = EmailMessage()
@@ -2146,6 +2188,343 @@ class ICloudMailTests(unittest.TestCase):
         rendered = json.dumps(response)
         self.assertNotIn(secret, rendered)
         self.assertIn("SMTPAuthenticationError", rendered)
+
+    def test_imap_login_reconnects_for_full_address_fallback(self) -> None:
+        first = mock.MagicMock()
+        first.login.side_effect = server.imaplib.IMAP4.error("rejected")
+        second = mock.MagicMock()
+        cached = mock.MagicMock()
+        with mock.patch.object(
+            server,
+            "_load_config",
+            return_value={
+                "account_address": "person@icloud.com",
+                "imap_username": "",
+            },
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "test")
+        ), mock.patch.object(
+            server.imaplib, "IMAP4_SSL", side_effect=[first, second, cached]
+        ) as connect:
+            with server._imap() as client:
+                self.assertIs(client, second)
+                self.assertEqual(
+                    client.__dict__["_codex_imap_username_kind"],
+                    "full_address",
+                )
+            with server._imap() as client:
+                self.assertIs(client, cached)
+        self.assertEqual(connect.call_count, 3)
+        first.login.assert_called_once_with("person", "secret")
+        first.shutdown.assert_called_once_with()
+        second.login.assert_called_once_with("person@icloud.com", "secret")
+        cached.login.assert_called_once_with("person@icloud.com", "secret")
+
+    def test_explicit_imap_username_disables_fallback(self) -> None:
+        client = mock.MagicMock()
+        with mock.patch.object(
+            server,
+            "_load_config",
+            return_value={
+                "account_address": "person@icloud.com",
+                "imap_username": "legacy-login",
+            },
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "test")
+        ), mock.patch.object(
+            server.imaplib, "IMAP4_SSL", return_value=client
+        ) as connect:
+            with server._imap() as connected:
+                self.assertEqual(
+                    connected.__dict__["_codex_imap_username_kind"], "override"
+                )
+        connect.assert_called_once()
+        client.login.assert_called_once_with("legacy-login", "secret")
+
+    def test_imap_login_abort_does_not_fallback_or_cache(self) -> None:
+        client = mock.MagicMock()
+        client.login.side_effect = server.imaplib.IMAP4.abort("disconnected")
+        config = {
+            "account_address": "person@icloud.com",
+            "imap_username": "",
+        }
+        with mock.patch.object(
+            server, "_load_config", return_value=config
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "test")
+        ), mock.patch.object(
+            server.imaplib, "IMAP4_SSL", return_value=client
+        ) as connect, self.assertRaisesRegex(server.MailError, "Could not connect"):
+            with server._imap():
+                pass
+        connect.assert_called_once()
+        self.assertNotIn("person@icloud.com", server._IMAP_LOGIN_CACHE)
+
+    def test_two_imap_login_rejections_remain_authentication_failure(self) -> None:
+        first = mock.MagicMock()
+        second = mock.MagicMock()
+        first.login.side_effect = server.imaplib.IMAP4.error("rejected local")
+        second.login.side_effect = server.imaplib.IMAP4.error("rejected full")
+        config = {
+            "account_address": "person@icloud.com",
+            "imap_username": "",
+        }
+        with mock.patch.object(
+            server, "_load_config", return_value=config
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "test")
+        ), mock.patch.object(
+            server.imaplib, "IMAP4_SSL", side_effect=[first, second]
+        ) as connect, self.assertRaisesRegex(server.MailError, "IMAP rejected"):
+            with server._imap():
+                pass
+        self.assertEqual(connect.call_count, 2)
+
+    def test_shared_imap_session_abort_is_normalized_as_connectivity(self) -> None:
+        client = mock.MagicMock()
+        config = {
+            "account_address": "person@icloud.com",
+            "imap_username": "person",
+        }
+        with mock.patch.object(
+            server, "_load_config", return_value=config
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "test")
+        ), mock.patch.object(
+            server.imaplib, "IMAP4_SSL", return_value=client
+        ), self.assertRaisesRegex(server.MailError, "Could not connect"):
+            with server._imap():
+                raise server.imaplib.IMAP4.abort("session lost")
+        client.logout.assert_called_once_with()
+
+    def test_identifiers_reject_noncanonical_base64_junk(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        with self.assertRaisesRegex(ValueError, "malformed"):
+            server._decode_ref(message_id + "!!!!")
+        token = base64.urlsafe_b64encode(b"0").decode().rstrip("=")
+        with self.assertRaisesRegex(ValueError, "malformed"):
+            server._decode_urlsafe_token(token + "!!!!", "attachment_id")
+
+    def test_body_content_preserves_authored_whitespace(self) -> None:
+        config = {
+            "account_address": "me@icloud.com",
+            "default_from": "me@icloud.com",
+            "allowed_from": [],
+            "display_name": "",
+        }
+        with mock.patch.object(server, "_load_config", return_value=config):
+            message = server._outgoing(
+                {
+                    "to": ["you@example.com"],
+                    "subject": "Whitespace",
+                    "body": "  indented\n\ntrailing  ",
+                }
+            )
+        self.assertEqual(message.get_content(), "  indented\n\ntrailing  \n")
+
+    def test_outgoing_attachment_read_rejects_symlink_substitution(self) -> None:
+        if not hasattr(os, "O_NOFOLLOW"):
+            self.skipTest("platform has no O_NOFOLLOW")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            target = root / "target.txt"
+            target.write_text("secret", encoding="utf-8")
+            substituted = root / "attachment.txt"
+            substituted.symlink_to(target)
+            with self.assertRaisesRegex(ValueError, "regular-file"):
+                server._read_outgoing_attachment(
+                    substituted, 10 * 1024 * 1024
+                )
+
+    def test_outgoing_attachment_read_enforces_actual_byte_limit(self) -> None:
+        if not hasattr(os, "O_NOFOLLOW"):
+            self.skipTest("platform has no O_NOFOLLOW")
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "growing.bin"
+            path.write_bytes(b"x" * (server.MAX_ATTACHMENT_BYTES + 1))
+            real_fstat = os.fstat
+
+            def stale_fstat(descriptor: int) -> os.stat_result:
+                metadata = real_fstat(descriptor)
+                values = list(metadata)
+                values[6] = 1
+                return os.stat_result(values)
+
+            with mock.patch.object(server.os, "fstat", side_effect=stale_fstat):
+                with self.assertRaisesRegex(ValueError, "5 MiB"):
+                    server._read_outgoing_attachment(
+                        path, 10 * 1024 * 1024
+                    )
+
+    def test_recipient_and_display_name_line_breaks_fail_early(self) -> None:
+        with self.assertRaisesRegex(ValueError, "invalid"):
+            server._recipients(["safe@example.com\r\nBcc: hidden@example.com"], "cc")
+        with self.assertRaisesRegex(ValueError, "invalid display name"):
+            server._recipients(["Bad\x01Name <safe@example.com>"], "cc")
+        with self.assertRaisesRegex(ValueError, "invalid display name"):
+            server._recipients(
+                ["=?utf-8?b?QmFkCk5hbWU=?= <safe@example.com>"], "cc"
+            )
+        payload = {
+            "version": server.CONFIG_VERSION,
+            "account_address": "me@icloud.com",
+            "imap_username": "",
+            "default_from": "me@icloud.com",
+            "allowed_from": [],
+            "display_name": "Sender\nBcc: hidden@example.com",
+        }
+        with self.assertRaisesRegex(server.MailError, "invalid"):
+            server._validate_config(payload)
+
+    def test_gui_helper_removes_environment_password(self) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {"ICLOUD_MAIL_APP_PASSWORD": "secret", "LANG": "en_IE"},
+            clear=True,
+        ), mock.patch.object(server.sys, "platform", "darwin"), mock.patch.object(
+            server.subprocess, "run"
+        ) as run:
+            server.open_apple_password_page({})
+        child_environment = run.call_args.kwargs["env"]
+        self.assertNotIn("ICLOUD_MAIL_APP_PASSWORD", child_environment)
+        self.assertEqual(child_environment["LANG"], "en_IE")
+
+    def test_bcc_is_visible_in_full_and_header_only_results(self) -> None:
+        message = EmailMessage()
+        message.set_content("body")
+        message["Bcc"] = "Hidden Recipient <hidden@example.com>"
+        full = server._summary(message, "message")
+        self.assertEqual(full["bcc"][0]["address"], "hidden@example.com")
+
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = (
+            "OK",
+            [
+                (
+                    b'9 (UID 9 BODYSTRUCTURE ("TEXT" "PLAIN" NIL NIL NIL '
+                    b'"7BIT" 10 1) FLAGS ())',
+                    b"Bcc: Hidden Recipient <hidden@example.com>\r\n\r\n",
+                )
+            ],
+        )
+        header_only = server._fetch_summary(client, "INBOX", 7, 9)
+        self.assertEqual(
+            header_only["bcc"][0]["address"], "hidden@example.com"
+        )
+        self.assertIn("BCC", client.uid.call_args.args[2])
+
+    def test_configuration_guidance_is_platform_specific(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ), mock.patch.object(server.sys, "platform", "linux"):
+            result = server.configure_account(
+                {"account_address": "me@icloud.com"}
+            )
+        self.assertIn("environment that launches Codex", result["next_step"])
+
+    def test_operation_deadline_consumes_one_monotonic_budget(self) -> None:
+        clock_values = iter([100.0, 101.0, 105.5, 105.95])
+        deadline = server.OperationDeadline(6.0, clock=lambda: next(clock_values))
+        self.assertEqual(deadline.timeout(10.0), 5.0)
+        self.assertEqual(deadline.timeout(10.0), 0.5)
+        with self.assertRaisesRegex(server.MailError, "timed out"):
+            deadline.timeout(10.0)
+
+    def test_tool_call_installs_and_clears_shared_deadline(self) -> None:
+        observed = []
+
+        def inspect_deadline(_arguments: dict[str, object]) -> dict[str, bool]:
+            observed.append(server._ACTIVE_DEADLINE.get())
+            return {"active": observed[-1] is not None}
+
+        with mock.patch.dict(server.HANDLERS, {"deadline_probe": inspect_deadline}):
+            response = server.handle(
+                {
+                    "id": 1,
+                    "method": "tools/call",
+                    "params": {"name": "deadline_probe", "arguments": {}},
+                }
+            )
+        self.assertTrue(json.loads(response["result"]["content"][0]["text"])["active"])
+        self.assertIsNone(server._ACTIVE_DEADLINE.get())
+
+    def test_tool_call_clears_shared_deadline_after_handler_error(self) -> None:
+        def failing_handler(_arguments: dict[str, object]) -> dict[str, object]:
+            raise server.MailError("handler failed")
+
+        with mock.patch.dict(server.HANDLERS, {"deadline_probe": failing_handler}):
+            response = server.handle(
+                {
+                    "id": 1,
+                    "method": "tools/call",
+                    "params": {"name": "deadline_probe", "arguments": {}},
+                }
+            )
+        self.assertIn("handler failed", json.dumps(response))
+        self.assertIsNone(server._ACTIVE_DEADLINE.get())
+
+    def test_thread_discovery_crosses_four_generations_and_sorts_dates(self) -> None:
+        messages = []
+        for index in range(4):
+            message_id = server._encode_ref("INBOX", 7, index + 1)
+            messages.append(
+                {
+                    "id": message_id,
+                    "mailbox": "INBOX",
+                    "internet_message_id": f"<m{index}@example.com>",
+                    "references": [] if index == 0 else [f"<m{index - 1}@example.com>"],
+                    "in_reply_to": "" if index == 0 else f"<m{index - 1}@example.com>",
+                    "date": f"Mon, 01 Jan 2024 0{index}:00:00 +0000",
+                }
+            )
+
+        def search(args: dict[str, object], **_kwargs: object) -> dict[str, object]:
+            searched = args["_thread_reference_ids"]
+            for index in range(3):
+                if f"<m{index}@example.com>" in searched:
+                    return {
+                        "emails": list(reversed(messages[index : index + 2])),
+                        "truncated": False,
+                    }
+            return {"emails": [], "truncated": False}
+
+        with mock.patch.object(server, "read_email", return_value=messages[0]), mock.patch.object(
+            server, "search_emails", side_effect=search
+        ), mock.patch.object(
+            server,
+            "_read_emails_shared",
+            side_effect=lambda ids, *_args: [
+                next(item for item in messages if item["id"] == message_id)
+                for message_id in ids
+            ],
+        ):
+            result = server.read_email_thread({"message_id": messages[0]["id"]})
+        self.assertEqual([item["id"] for item in result["messages"]], [
+            item["id"] for item in messages
+        ])
+        self.assertFalse(result["truncated"])
+
+    def test_thread_discovery_reuses_one_imap_session(self) -> None:
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "internet_message_id": "<anchor@example.com>",
+            "references": [],
+            "in_reply_to": "",
+            "date": "Mon, 01 Jan 2024 00:00:00 +0000",
+        }
+        with mock.patch.object(server, "read_email", return_value=anchor), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={"emails": [anchor], "truncated": False},
+        ) as search, mock.patch.object(server, "_read_emails_shared", return_value=[]):
+            server.read_email_thread({"message_id": "anchor"})
+        self.thread_imap_connect.assert_called_once()
+        self.assertIs(
+            search.call_args.kwargs["client"], self.thread_imap_client
+        )
 
 
 if __name__ == "__main__":
