@@ -94,6 +94,52 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(entries[0]["size"], 4)
         self.assertTrue(entries[0]["read_supported"])
 
+    def test_attachment_entries_include_named_single_part_root(self) -> None:
+        source = (
+            b"Content-Type: application/pdf; name=\"report.pdf\"\r\n"
+            b"Content-Transfer-Encoding: base64\r\n\r\n"
+            b"ZGF0YQ=="
+        )
+        message = email.message_from_bytes(source, policy=email.policy.default)
+        message_id = server._encode_ref("INBOX", 7, 9)
+        entries = server._attachment_entries(message, message_id)
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["filename"], "report.pdf")
+        self.assertEqual(entries[0]["size"], 4)
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(message, source, "")
+        ):
+            attachment = server.read_attachment(
+                {
+                    "message_id": message_id,
+                    "attachment_id": entries[0]["attachment_id"],
+                }
+            )
+        self.assertEqual(base64.b64decode(attachment["content_base64"]), b"data")
+
+    def test_attachment_entries_include_disposition_only_root(self) -> None:
+        source = (
+            b"Content-Type: application/octet-stream\r\n"
+            b"Content-Disposition: attachment\r\n\r\n"
+            b"data"
+        )
+        message = email.message_from_bytes(source, policy=email.policy.default)
+        entries = server._attachment_entries(message, "message")
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["filename"], "attachment-0")
+
+    def test_attachment_entries_exclude_unnamed_single_part_rfc822_root(self) -> None:
+        source = (
+            b"Content-Type: message/rfc822\r\n\r\n"
+            b"Subject: nested\r\n\r\nbody"
+        )
+        message = email.message_from_bytes(source, policy=email.policy.default)
+        self.assertEqual(server._attachment_entries(message, "message"), [])
+
     def test_attachment_size_matches_supported_payload_encodings(self) -> None:
         quoted = EmailMessage()
         quoted["Content-Disposition"] = 'attachment; filename="notes.txt"'
@@ -278,12 +324,16 @@ class ICloudMailTests(unittest.TestCase):
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"0"])
         client.response.return_value = ("UIDVALIDITY", [b"7"])
-        client.uid.return_value = ("OK", [b""])
+        client.uid.return_value = ("OK", [b"9"])
         context = mock.MagicMock()
         context.__enter__.return_value = client
         with mock.patch.dict(
             os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
-        ), mock.patch.object(server, "_imap", return_value=context):
+        ), mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server,
+            "_fetch_summary",
+            return_value={"id": "message", "has_attachments": False},
+        ):
             server.search_emails(
                 {"_thread_reference_ids": ["<a@example.com>"]}
             )
@@ -345,12 +395,31 @@ class ICloudMailTests(unittest.TestCase):
             result = server.search_emails(
                 {"has_attachment": True, "max_results": 50}
             )
+        self.assertEqual(client.sock.settimeout.call_args_list[0], mock.call(25.0))
         self.assertEqual(
-            client.sock.settimeout.call_args_list,
-            [mock.call(25.0), mock.call(5.0)],
+            client.sock.settimeout.call_args_list[1:],
+            [mock.call(5.0)] * 80,
         )
         self.assertEqual(result["scanned"], 80)
         self.assertEqual(fetch.call_count, 80)
+
+    def test_search_refreshes_deadline_before_every_summary_fetch(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"2"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [b"1 2"])
+        deadline = mock.MagicMock()
+        deadline.timeout.side_effect = [5.0, server.MailError("timed out")]
+        with mock.patch.object(
+            server,
+            "_fetch_summary",
+            return_value={"id": "message", "has_attachments": False},
+        ) as fetch:
+            with self.assertRaisesRegex(server.MailError, "timed out"):
+                server.search_emails(
+                    {"max_results": 2}, deadline=deadline, client=client
+                )
+        fetch.assert_called_once()
 
     def test_search_skips_a_message_that_vanishes_during_summary_fetch(self) -> None:
         client = mock.MagicMock()
@@ -590,6 +659,20 @@ class ICloudMailTests(unittest.TestCase):
         with self.assertRaisesRegex(server.MailError, "determine message size"):
             server._fetch_message(client, "INBOX", 7, 9)
         self.assertEqual(client.uid.call_count, 1)
+
+    def test_full_message_fetch_translates_parser_recursion_failure(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        raw = b"Subject: Deep\r\n\r\nbody"
+        client.uid.side_effect = [
+            ("OK", [b"9 (UID 9 RFC822.SIZE 21)"]),
+            ("OK", [(b"9 (UID 9 BODY[] {21}", raw)]),
+        ]
+        with mock.patch.object(
+            server.email, "message_from_bytes", side_effect=RecursionError
+        ), self.assertRaisesRegex(server.MailError, "MIME structure"):
+            server._fetch_message(client, "INBOX", 7, 9)
 
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
@@ -1505,8 +1588,51 @@ class ICloudMailTests(unittest.TestCase):
             "From: Alice <alice@example.com>",
             prepare.call_args.args[0]["body"],
         )
+        self.assertTrue(
+            prepare.call_args.args[0]["body"].startswith(
+                "---------- Forwarded message ----------"
+            )
+        )
         fetch.assert_called_once()
         connect.assert_called_once_with(socket_timeout=10.0)
+
+    def test_forward_preserves_authored_note_whitespace(self) -> None:
+        original = {
+            "subject": "Status",
+            "from": [{"name": "Alice", "address": "alice@example.com"}],
+            "date": "Thu, 31 Jul 2026 09:00:00 +0000",
+            "body_text": "Original body  \n",
+            "body_html": "",
+        }
+        note = "  indented note  \n"
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_read_email_result", return_value=original
+        ), mock.patch.object(
+            server, "_prepare_outgoing", return_value=EmailMessage()
+        ) as prepare, mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(EmailMessage(), b"", "")
+        ), mock.patch.object(
+            server, "_smtp_send", return_value={"status": "accepted"}
+        ):
+            server.forward_emails(
+                {
+                    "message_ids": ["source"],
+                    "to": ["recipient@example.com"],
+                    "note": note,
+                }
+            )
+        body = prepare.call_args.args[0]["body"]
+        self.assertTrue(
+            body.startswith(note + "\n\n---------- Forwarded message ----------")
+        )
+        self.assertTrue(body.endswith(original["body_text"]))
+        self.assertLessEqual(len(body), server.MAX_BODY_CHARS)
 
     def test_forward_rejects_multiple_sources_before_connecting(self) -> None:
         with mock.patch.object(server, "_imap") as connect:
@@ -2115,6 +2241,47 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["status"], "accepted")
         self.assertFalse(result["retry_send"])
         self.assertIn("cleanup failed", result["cleanup_warning"])
+
+    def test_smtp_acceptance_survives_expired_cleanup_deadline(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message["Subject"] = "Test"
+        message["Message-ID"] = "<test@icloud.com>"
+        message.set_content("body")
+        expired = False
+        deadline = mock.MagicMock()
+
+        def timeout(cap: float) -> float:
+            if expired:
+                raise server.MailError("timed out")
+            return cap
+
+        deadline.timeout.side_effect = timeout
+        smtp = mock.MagicMock()
+
+        def accept(_message: object, **_kwargs: object) -> dict[str, object]:
+            nonlocal expired
+            expired = True
+            return {}
+
+        smtp.send_message.side_effect = accept
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(
+            server, "_current_deadline", return_value=deadline
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        self.assertEqual(result["status"], "accepted")
+        self.assertIn("cleanup failed", result["cleanup_warning"])
+        smtp.quit.assert_not_called()
+        smtp.close.assert_called_once_with()
 
     def test_smtp_data_disconnect_returns_unconfirmed_without_retry(self) -> None:
         message = EmailMessage()

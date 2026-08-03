@@ -630,7 +630,12 @@ def _fetch_message(
         if flag_matches
         else ""
     )
-    message = email.message_from_bytes(raw, policy=email.policy.default)
+    try:
+        message = email.message_from_bytes(raw, policy=email.policy.default)
+    except RecursionError:
+        raise MailError(
+            "Message MIME structure exceeds the supported depth"
+        ) from None
     _validate_mime_depth(message)
     return message, raw, flags_text
 
@@ -822,10 +827,7 @@ def _validate_mime_depth(message: Message) -> None:
 
 
 def _attachment_parts(message: Message) -> Iterator[Message]:
-    pending = [
-        (part, 1)
-        for part in reversed(list(message.iter_parts()))
-    ] if message.is_multipart() else []
+    pending = [(message, 0)]
     while pending:
         part, depth = pending.pop()
         if depth > MAX_MIME_DEPTH:
@@ -834,7 +836,7 @@ def _attachment_parts(message: Message) -> Iterator[Message]:
         if (
             filename
             or part.get_content_disposition() == "attachment"
-            or part.get_content_type() == "message/rfc822"
+            or (depth > 0 and part.get_content_type() == "message/rfc822")
         ):
             yield part
         elif part.is_multipart():
@@ -1483,12 +1485,12 @@ def search_emails(
             if arguments.get("has_attachment") is not None
             else len(uids)
         )
-        _set_socket_timeout(client, 5.0, deadline)
         for uid in uids[:scan_limit]:
             if len(results) >= maximum:
                 break
             scanned += 1
             try:
+                _set_socket_timeout(client, 5.0, deadline)
                 item = _fetch_summary(client, mailbox, validity, uid)
             except MailError as error:
                 if str(error) == "Message no longer exists in this mailbox":
@@ -2236,8 +2238,19 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     finally:
         if client is not None:
             try:
+                _set_socket_timeout(client, 15.0, deadline)
                 client.quit()
-            except (smtplib.SMTPException, OSError, TimeoutError) as error:
+            except (
+                smtplib.SMTPException,
+                MailError,
+                OSError,
+                TimeoutError,
+                ValueError,
+            ) as error:
+                try:
+                    client.close()
+                except (smtplib.SMTPException, OSError, TimeoutError):
+                    pass
                 if refused is not None:
                     cleanup_warning = (
                         "SMTP accepted the message, but connection cleanup failed: "
@@ -2515,24 +2528,23 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
             subject = (
                 subject if re.match(r"^fwd?:", subject, re.I) else f"Fwd: {subject}"
             )
-            note = _text(arguments.get("note"), "note", limit=20_000)
-            wrapper = "\n".join(
+            note = _body_text(arguments.get("note"), "note", limit=20_000)
+            forwarded_header = "\n".join(
                 [
-                    note,
-                    "",
                     "---------- Forwarded message ----------",
                     f"From: {_format_addresses(original['from'])}",
                     f"Date: {original['date']}",
                     f"Subject: {original['subject']}",
                     "",
                 ]
-            ).lstrip()
+            )
+            wrapper = f"{note}\n\n{forwarded_header}" if note else forwarded_header
             source_body = original["body_text"] or _html_to_text(
                 original.get("body_html", "")
             )
             quoted = (wrapper + source_body[: max(0, MAX_BODY_CHARS - len(wrapper))])[
                 :MAX_BODY_CHARS
-            ].strip()
+            ]
             outgoing = {
                 "to": arguments.get("to"),
                 "cc": arguments.get("cc"),
