@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.util
 import base64
 import email
+import email.policy
 import json
 import os
 import subprocess
@@ -26,15 +27,15 @@ SPEC.loader.exec_module(server)
 class ICloudMailTests(unittest.TestCase):
     def setUp(self) -> None:
         server._IMAP_LOGIN_CACHE.clear()
-        if "thread" in self._testMethodName:
-            self.thread_imap_context = mock.MagicMock()
-            self.thread_imap_client = mock.MagicMock()
-            self.thread_imap_context.__enter__.return_value = self.thread_imap_client
-            self.thread_imap_patch = mock.patch.object(
-                server, "_imap", return_value=self.thread_imap_context
-            )
-            self.thread_imap_connect = self.thread_imap_patch.start()
-            self.addCleanup(self.thread_imap_patch.stop)
+
+    def install_shared_imap_session(self) -> tuple[mock.MagicMock, mock.MagicMock]:
+        context = mock.MagicMock()
+        client = mock.MagicMock()
+        context.__enter__.return_value = client
+        patcher = mock.patch.object(server, "_imap", return_value=context)
+        connect = patcher.start()
+        self.addCleanup(patcher.stop)
+        return connect, client
 
     def config_environment(self, root: str) -> mock._patch_dict:
         return mock.patch.dict(
@@ -78,6 +79,117 @@ class ICloudMailTests(unittest.TestCase):
         entries = server._attachment_entries(outer, "message")
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["filename"], "attached.eml")
+
+    def test_attachment_entries_measure_without_decoding_payload(self) -> None:
+        message = EmailMessage()
+        message.set_content("body")
+        message.add_attachment(
+            b"data",
+            maintype="application",
+            subtype="octet-stream",
+            filename="data.bin",
+        )
+        with mock.patch.object(server, "_attachment_payload", return_value=b"wrong-size"):
+            entries = server._attachment_entries(message, "message")
+        self.assertEqual(entries[0]["size"], 4)
+        self.assertTrue(entries[0]["read_supported"])
+
+    def test_attachment_size_matches_supported_payload_encodings(self) -> None:
+        quoted = EmailMessage()
+        quoted["Content-Disposition"] = 'attachment; filename="notes.txt"'
+        quoted["Content-Transfer-Encoding"] = "quoted-printable"
+        quoted.set_payload("one=20two=\r\nthree")
+
+        raw = EmailMessage()
+        raw["Content-Disposition"] = 'attachment; filename="raw.bin"'
+        raw.set_payload("raw payload")
+
+        nested = EmailMessage()
+        nested["Subject"] = "Nested"
+        nested.set_content("nested body")
+        attached_message = EmailMessage()
+        attached_message.set_content("outer")
+        attached_message.add_attachment(nested, filename="nested.eml")
+        rfc822 = list(attached_message.iter_attachments())[0]
+
+        for part in (quoted, raw, rfc822):
+            with self.subTest(content_type=part.get_content_type()):
+                self.assertEqual(
+                    server._attachment_payload_size(part),
+                    len(server._attachment_payload(part)),
+                )
+
+    def test_attachment_size_accepts_decodable_unpadded_base64(self) -> None:
+        for encoded, decoded_size in (("ZGF0YQ", 4), ("TQ", 1)):
+            part = EmailMessage()
+            part["Content-Disposition"] = 'attachment; filename="data.bin"'
+            part["Content-Transfer-Encoding"] = "base64"
+            part.set_payload(encoded)
+            with self.subTest(encoded=encoded):
+                self.assertEqual(
+                    server._attachment_payload_size(part), decoded_size
+                )
+
+    def test_attachment_size_preserves_raw_eight_bit_octets(self) -> None:
+        source = (
+            b"Content-Type: application/octet-stream\r\n"
+            b"Content-Disposition: attachment; filename=\"raw.bin\"\r\n"
+            b"Content-Transfer-Encoding: 8bit\r\n\r\n"
+            + b"\x80" * 900
+        )
+        part = email.message_from_bytes(source, policy=email.policy.default)
+        self.assertEqual(server._attachment_payload_size(part), 900)
+        self.assertEqual(len(server._attachment_payload(part)), 900)
+
+    def test_attachment_size_conservatively_counts_malformed_quoted_printable(self) -> None:
+        part = EmailMessage()
+        part["Content-Disposition"] = 'attachment; filename="data.bin"'
+        part["Content-Transfer-Encoding"] = "quoted-printable"
+        part.set_payload("==41")
+        self.assertEqual(server._attachment_payload_size(part), 4)
+        self.assertEqual(server._attachment_payload(part), b"=41")
+
+    def test_attachment_size_handles_high_bit_malformed_transfer_encodings(self) -> None:
+        for encoding, payload, encoded_size in (
+            ("quoted-printable", b"=\x80x", 3),
+            ("base64", b"AA\x80A", 4),
+        ):
+            source = (
+                b"Content-Type: application/octet-stream\r\n"
+                b"Content-Disposition: attachment; filename=\"raw.bin\"\r\n"
+                + f"Content-Transfer-Encoding: {encoding}\r\n\r\n".encode()
+                + payload
+            )
+            part = email.message_from_bytes(source, policy=email.policy.default)
+            with self.subTest(encoding=encoding):
+                self.assertEqual(
+                    server._attachment_payload_size(part), encoded_size
+                )
+                self.assertGreaterEqual(
+                    server._attachment_payload_size(part),
+                    len(server._attachment_payload(part)),
+                )
+
+    def test_attachment_listing_rejects_excessive_full_mime_depth(self) -> None:
+        root = EmailMessage()
+        root.make_mixed()
+        parent = root
+        for _ in range(1100):
+            child = EmailMessage()
+            child.make_mixed()
+            parent.attach(child)
+            parent = child
+        parent.add_attachment(
+            b"data",
+            maintype="application",
+            subtype="octet-stream",
+            filename="deep.bin",
+        )
+        try:
+            with self.assertRaisesRegex(server.MailError, "MIME structure"):
+                server._attachment_entries(root, "message")
+        except RecursionError:
+            self.fail("deep full MIME tree escaped depth guard")
 
     def test_self_test_is_offline_and_passes(self) -> None:
         result = subprocess.run(
@@ -411,6 +523,14 @@ class ICloudMailTests(unittest.TestCase):
         )
         self.assertFalse(server._bodystructure_has_attachment(metadata))
 
+    def test_bodystructure_excessive_nesting_is_treated_as_malformed(self) -> None:
+        metadata = b"1 (BODYSTRUCTURE " + (b"(" * 1500) + (b")" * 1500) + b")"
+        try:
+            result = server._bodystructure_has_attachment(metadata)
+        except RecursionError:
+            self.fail("excessively nested BODYSTRUCTURE escaped parser guard")
+        self.assertFalse(result)
+
     def test_search_summary_reads_only_the_flags_response_field(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -435,16 +555,41 @@ class ICloudMailTests(unittest.TestCase):
         client.select.return_value = ("OK", [b"1"])
         client.response.return_value = ("UIDVALIDITY", [b"7"])
         raw = b"Subject: Draft\r\n\r\nbody"
-        client.uid.return_value = (
-            "OK",
-            [(b"9 (UID 9 BODY[] {24}", raw), b" FLAGS (\\Draft))"],
-        )
+        client.uid.side_effect = [
+            ("OK", [b"9 (UID 9 RFC822.SIZE 24)"]),
+            ("OK", [(b"9 (UID 9 BODY[] {24}", raw), b" FLAGS (\\Draft))"]),
+        ]
         message, returned_raw, flags = server._fetch_message(
             client, "Drafts", 7, 9
         )
         self.assertEqual(message["Subject"], "Draft")
         self.assertEqual(returned_raw, raw)
         self.assertEqual(flags, "\\Draft")
+
+    def test_full_message_fetch_rejects_oversized_message_before_body(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = (
+            "OK",
+            [b"9 (UID 9 RFC822.SIZE 20971521)"],
+        )
+        with self.assertRaisesRegex(server.MailError, "20 MiB"):
+            server._fetch_message(client, "INBOX", 7, 9)
+        self.assertEqual(client.uid.call_count, 1)
+        self.assertNotIn("BODY.PEEK[]", client.uid.call_args.args[2])
+
+    def test_full_message_fetch_rejects_ambiguous_size_before_body(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = (
+            "OK",
+            [b"9 (UID 9 RFC822.SIZE 1 RFC822.SIZE 2)"],
+        )
+        with self.assertRaisesRegex(server.MailError, "determine message size"):
+            server._fetch_message(client, "INBOX", 7, 9)
+        self.assertEqual(client.uid.call_count, 1)
 
     def test_tools_match_handlers_and_mutations_are_explicit(self) -> None:
         names = {tool["name"] for tool in server.TOOLS}
@@ -692,6 +837,32 @@ class ICloudMailTests(unittest.TestCase):
                     "message_id": message_id,
                     "attachment_id": f"{message_id}.{body_token}",
                 }
+            )
+
+    def test_read_attachment_rejects_advertised_oversize_before_decoding(self) -> None:
+        outer = EmailMessage()
+        outer.set_content("body")
+        outer.add_attachment(
+            b"small fixture",
+            maintype="application",
+            subtype="octet-stream",
+            filename="large.bin",
+        )
+        message_id = server._encode_ref("INBOX", 7, 9)
+        attachment_id = server._attachment_entries(outer, message_id)[0][
+            "attachment_id"
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_fetch_message", return_value=(outer, b"", "")
+        ), mock.patch.object(
+            server, "_attachment_payload_size", return_value=5 * 1024 * 1024 + 1
+        ), mock.patch.object(
+            server, "_attachment_payload", return_value=b"small fixture"
+        ), self.assertRaisesRegex(server.MailError, "5 MiB"):
+            server.read_attachment(
+                {"message_id": message_id, "attachment_id": attachment_id}
             )
 
     def test_clear_configuration_preserves_keychain_contract(self) -> None:
@@ -1360,7 +1531,7 @@ class ICloudMailTests(unittest.TestCase):
         source.set_content("body")
         for index in range(3):
             source.add_attachment(
-                b"x" * (4 * 1024 * 1024),
+                b"x",
                 maintype="application",
                 subtype="octet-stream",
                 filename=f"file-{index}.bin",
@@ -1373,6 +1544,10 @@ class ICloudMailTests(unittest.TestCase):
             server, "_decode_ref", return_value=("INBOX", 7, 9)
         ), mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
             server, "_fetch_message", return_value=(source, b"", "")
+        ), mock.patch.object(
+            server, "_attachment_payload_size", return_value=4 * 1024 * 1024
+        ), mock.patch.object(
+            server, "_attachment_payload", side_effect=AssertionError("decoded too soon")
         ), mock.patch.object(server, "_smtp_send") as send:
             result = server.forward_emails(
                 {"message_ids": ["source"], "to": ["recipient@example.com"]}
@@ -1477,6 +1652,7 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIn(b"nested payload", server._attachment_payload(attachments[0]))
 
     def test_thread_read_filters_same_subject_messages_by_reference_headers(self) -> None:
+        self.install_shared_imap_session()
         anchor = {
             "id": "anchor",
             "mailbox": "INBOX",
@@ -1525,6 +1701,7 @@ class ICloudMailTests(unittest.TestCase):
         )
 
     def test_thread_read_splits_multiple_in_reply_to_message_ids(self) -> None:
+        self.install_shared_imap_session()
         anchor = {
             "id": "anchor",
             "mailbox": "INBOX",
@@ -1560,6 +1737,7 @@ class ICloudMailTests(unittest.TestCase):
         )
 
     def test_thread_read_connects_siblings_through_missing_parent(self) -> None:
+        self.install_shared_imap_session()
         anchor = {
             "id": "anchor",
             "mailbox": "INBOX",
@@ -1592,6 +1770,7 @@ class ICloudMailTests(unittest.TestCase):
         )
 
     def test_empty_subject_thread_returns_only_anchor(self) -> None:
+        self.install_shared_imap_session()
         anchor = {
             "id": "anchor",
             "mailbox": "INBOX",
@@ -1619,6 +1798,7 @@ class ICloudMailTests(unittest.TestCase):
         self.assertNotIn("subject", search.call_args.args[0])
 
     def test_thread_read_finds_linked_reply_with_changed_subject(self) -> None:
+        self.install_shared_imap_session()
         anchor = {
             "id": "anchor",
             "mailbox": "INBOX",
@@ -1656,6 +1836,7 @@ class ICloudMailTests(unittest.TestCase):
         )
 
     def test_thread_discovery_expands_one_in_reply_to_generation(self) -> None:
+        self.install_shared_imap_session()
         anchor = {
             "id": "a",
             "mailbox": "INBOX",
@@ -1701,6 +1882,7 @@ class ICloudMailTests(unittest.TestCase):
         )
 
     def test_thread_reports_truncation_when_second_wave_seeds_are_capped(self) -> None:
+        self.install_shared_imap_session()
         anchor = {
             "id": "anchor",
             "mailbox": "INBOX",
@@ -1737,6 +1919,7 @@ class ICloudMailTests(unittest.TestCase):
         )
 
     def test_truncated_thread_always_includes_requested_anchor(self) -> None:
+        self.install_shared_imap_session()
         def message(index: int) -> dict[str, object]:
             return {
                 "id": f"message-{index}",
@@ -2260,6 +2443,48 @@ class ICloudMailTests(unittest.TestCase):
         connect.assert_called_once()
         self.assertNotIn("person@icloud.com", server._IMAP_LOGIN_CACHE)
 
+    def test_imap_login_deadline_expiry_shuts_down_without_logout(self) -> None:
+        client = mock.MagicMock()
+        client.sock = mock.MagicMock()
+        deadline = mock.MagicMock()
+        deadline.timeout.side_effect = [5.0, server.MailError("timed out")]
+        config = {
+            "account_address": "person@icloud.com",
+            "imap_username": "person",
+        }
+        with mock.patch.object(
+            server, "_load_config", return_value=config
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "test")
+        ), mock.patch.object(
+            server.imaplib, "IMAP4_SSL", return_value=client
+        ), self.assertRaisesRegex(server.MailError, "timed out"):
+            with server._imap(deadline=deadline):
+                pass
+        client.shutdown.assert_called_once_with()
+        client.logout.assert_not_called()
+
+    def test_imap_deadline_error_survives_shutdown_failure(self) -> None:
+        client = mock.MagicMock()
+        client.sock = mock.MagicMock()
+        client.shutdown.side_effect = RuntimeError("cleanup failed")
+        deadline = mock.MagicMock()
+        deadline.timeout.side_effect = [5.0, server.MailError("timed out")]
+        config = {
+            "account_address": "person@icloud.com",
+            "imap_username": "person",
+        }
+        with mock.patch.object(
+            server, "_load_config", return_value=config
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "test")
+        ), mock.patch.object(
+            server.imaplib, "IMAP4_SSL", return_value=client
+        ), self.assertRaisesRegex(server.MailError, "timed out"):
+            with server._imap(deadline=deadline):
+                pass
+        client.logout.assert_not_called()
+
     def test_two_imap_login_rejections_remain_authentication_failure(self) -> None:
         first = mock.MagicMock()
         second = mock.MagicMock()
@@ -2295,7 +2520,8 @@ class ICloudMailTests(unittest.TestCase):
         ), self.assertRaisesRegex(server.MailError, "Could not connect"):
             with server._imap():
                 raise server.imaplib.IMAP4.abort("session lost")
-        client.logout.assert_called_once_with()
+        client.shutdown.assert_called_once_with()
+        client.logout.assert_not_called()
 
     def test_identifiers_reject_noncanonical_base64_junk(self) -> None:
         message_id = server._encode_ref("INBOX", 7, 9)
@@ -2355,6 +2581,27 @@ class ICloudMailTests(unittest.TestCase):
                     server._read_outgoing_attachment(
                         path, 10 * 1024 * 1024
                     )
+
+    def test_outgoing_attachment_reports_exhausted_total_budget(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / "attachment.bin"
+            path.write_bytes(b"x")
+            with self.assertRaisesRegex(ValueError, "10 MiB total"):
+                server._read_outgoing_attachment(path, 0)
+
+    def test_socket_timeout_tolerates_disconnected_client(self) -> None:
+        client = mock.MagicMock()
+        client.sock = None
+        with mock.patch.object(server, "_timeout", return_value=30.0):
+            self.assertEqual(server._set_socket_timeout(client, 10.0), 10.0)
+
+    def test_socket_timeout_preserves_connection_scope_cap(self) -> None:
+        client = mock.MagicMock()
+        client.sock = mock.MagicMock()
+        client.__dict__["_codex_socket_timeout_cap"] = 8.0
+        with mock.patch.object(server, "_timeout", return_value=30.0):
+            self.assertEqual(server._set_socket_timeout(client, 120.0), 8.0)
+        client.sock.settimeout.assert_called_once_with(8.0)
 
     def test_recipient_and_display_name_line_breaks_fail_early(self) -> None:
         with self.assertRaisesRegex(ValueError, "invalid"):
@@ -2466,6 +2713,7 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIsNone(server._ACTIVE_DEADLINE.get())
 
     def test_thread_discovery_crosses_four_generations_and_sorts_dates(self) -> None:
+        self.install_shared_imap_session()
         messages = []
         for index in range(4):
             message_id = server._encode_ref("INBOX", 7, index + 1)
@@ -2507,6 +2755,7 @@ class ICloudMailTests(unittest.TestCase):
         self.assertFalse(result["truncated"])
 
     def test_thread_discovery_reuses_one_imap_session(self) -> None:
+        thread_imap_connect, thread_imap_client = self.install_shared_imap_session()
         anchor = {
             "id": "anchor",
             "mailbox": "INBOX",
@@ -2521,9 +2770,9 @@ class ICloudMailTests(unittest.TestCase):
             return_value={"emails": [anchor], "truncated": False},
         ) as search, mock.patch.object(server, "_read_emails_shared", return_value=[]):
             server.read_email_thread({"message_id": "anchor"})
-        self.thread_imap_connect.assert_called_once()
+        thread_imap_connect.assert_called_once()
         self.assertIs(
-            search.call_args.kwargs["client"], self.thread_imap_client
+            search.call_args.kwargs["client"], thread_imap_client
         )
 
 

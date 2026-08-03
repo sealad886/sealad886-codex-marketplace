@@ -30,6 +30,7 @@ general client-registration and token protocol that this local plugin can use.
   configured alias and are revalidated immediately before SMTP submission.
 - Logs and errors redact authentication material.
 - Attachment reads are capped at 5 MiB of decoded data.
+- Full-message downloads are rejected above a 20 MiB MIME processing limit.
 - Tool results cap message bodies and result counts.
 - Outgoing local-file attachments require explicit absolute paths, reject
   symbolic links, and are capped at 5 MiB each and 10 MiB total.

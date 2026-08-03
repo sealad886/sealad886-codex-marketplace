@@ -8,6 +8,7 @@ import base64
 import binascii
 import datetime as dt
 import email
+import email.generator
 import email.policy
 import email.utils
 import html
@@ -46,6 +47,9 @@ MAX_RECIPIENTS = 20
 MAX_SEARCH_SCAN = 80
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
+MAX_MESSAGE_BYTES = 20 * 1024 * 1024
+MAX_BODYSTRUCTURE_DEPTH = 50
+MAX_MIME_DEPTH = 50
 REF_PREFIX = "icloud-mail:"
 MCP_OPERATION_BUDGET_SECONDS = 540.0
 
@@ -89,8 +93,14 @@ def _set_socket_timeout(
     deadline: OperationDeadline | None = None,
 ) -> float:
     deadline = deadline or _ACTIVE_DEADLINE.get()
-    timeout = deadline.timeout(min(_timeout(), cap)) if deadline else min(_timeout(), cap)
-    client.sock.settimeout(timeout)
+    connection_cap = client.__dict__.get("_codex_socket_timeout_cap")
+    effective_cap = min(_timeout(), cap)
+    if isinstance(connection_cap, (int, float)) and connection_cap > 0:
+        effective_cap = min(effective_cap, float(connection_cap))
+    timeout = deadline.timeout(effective_cap) if deadline else effective_cap
+    socket = getattr(client, "sock", None)
+    if socket is not None:
+        socket.settimeout(timeout)
     return timeout
 
 
@@ -422,6 +432,13 @@ def _password(username: str) -> tuple[str, str]:
     )
 
 
+def _shutdown_imap(client: imaplib.IMAP4_SSL) -> None:
+    try:
+        client.shutdown()
+    except Exception:
+        pass
+
+
 @contextmanager
 def _imap(
     *,
@@ -435,10 +452,12 @@ def _imap(
     logins = _imap_login_candidates(config)
     explicit_override = bool(config["imap_username"])
     client: imaplib.IMAP4_SSL | None = None
+    authenticated = False
     try:
         timeout_cap = min(_timeout(), socket_timeout) if socket_timeout is not None else _timeout()
         rejected: imaplib.IMAP4.error | None = None
         for index, login in enumerate(logins):
+            authenticated = False
             client = imaplib.IMAP4_SSL(
                 IMAP_HOST,
                 IMAP_PORT,
@@ -449,6 +468,8 @@ def _imap(
                 if deadline is not None and getattr(client, "sock", None) is not None:
                     client.sock.settimeout(deadline.timeout(timeout_cap))
                 client.login(login, password)
+                authenticated = True
+                client.__dict__["_codex_socket_timeout_cap"] = timeout_cap
                 client.__dict__["_codex_imap_username_kind"] = (
                     "override"
                     if explicit_override
@@ -460,35 +481,54 @@ def _imap(
                     _IMAP_LOGIN_CACHE[username] = login
                 break
             except imaplib.IMAP4.abort:
+                _shutdown_imap(client)
+                client = None
+                raise
+            except MailError:
+                _shutdown_imap(client)
+                client = None
                 raise
             except imaplib.IMAP4.error as error:
                 rejected = error
-                try:
-                    client.shutdown()
-                except (imaplib.IMAP4.error, OSError):
-                    pass
+                _shutdown_imap(client)
                 client = None
+            except (OSError, TimeoutError):
+                _shutdown_imap(client)
+                client = None
+                raise
         else:
             if rejected is None:
                 raise MailError("No valid iCloud IMAP login form is configured")
             raise rejected
         yield client
     except imaplib.IMAP4.abort as error:
+        if client is not None:
+            _shutdown_imap(client)
+            client = None
         raise MailError(
             f"Could not connect to iCloud IMAP: {type(error).__name__}"
         ) from None
     except imaplib.IMAP4.error as error:
         raise MailError(f"iCloud IMAP rejected the request: {error}") from None
     except (OSError, TimeoutError) as error:
+        if client is not None:
+            _shutdown_imap(client)
+            client = None
         raise MailError(f"Could not connect to iCloud IMAP: {type(error).__name__}") from None
     finally:
         if client is not None:
             client.__dict__.pop("_codex_selected_mailbox", None)
             client.__dict__.pop("_codex_selected_uidvalidity", None)
-            try:
-                client.logout()
-            except (imaplib.IMAP4.error, MailError, OSError):
-                pass
+            if not authenticated:
+                _shutdown_imap(client)
+            else:
+                try:
+                    _set_socket_timeout(client, timeout_cap, deadline)
+                    client.logout()
+                except (imaplib.IMAP4.error, MailError, OSError, ValueError):
+                    _shutdown_imap(client)
+                finally:
+                    client.__dict__.pop("_codex_socket_timeout_cap", None)
 
 
 def _select(client: imaplib.IMAP4_SSL, mailbox: str, *, readonly: bool) -> int:
@@ -550,10 +590,32 @@ def _fetch_message(
     actual = _select(client, mailbox, readonly=True)
     if actual != expected_validity:
         raise MailError("Message identifier is stale because the mailbox changed")
+    _set_socket_timeout(client, 120.0)
+    status, size_data = client.uid("fetch", str(uid), "(RFC822.SIZE)")
+    if status != "OK" or not size_data:
+        raise MailError("Message no longer exists in this mailbox")
+    size_metadata = b""
+    for item in size_data:
+        if isinstance(item, bytes):
+            size_metadata += item + b" "
+        elif isinstance(item, tuple) and item and isinstance(item[0], bytes):
+            size_metadata += item[0] + b" "
+    size_matches = re.findall(
+        rb"\bRFC822\.SIZE\s+(\d+)\b", size_metadata, flags=re.I
+    )
+    if len(size_matches) != 1:
+        raise MailError("Could not determine message size before downloading it")
+    if int(size_matches[0]) > MAX_MESSAGE_BYTES:
+        raise MailError("Message exceeds the 20 MiB processing limit")
+    _set_socket_timeout(client, 120.0)
     status, data = client.uid("fetch", str(uid), "(BODY.PEEK[] FLAGS)")
     if status != "OK" or not data or not isinstance(data[0], tuple):
         raise MailError("Message no longer exists in this mailbox")
     raw = data[0][1]
+    if not isinstance(raw, bytes):
+        raise MailError("Message body response was malformed")
+    if len(raw) > MAX_MESSAGE_BYTES:
+        raise MailError("Message exceeds the 20 MiB processing limit")
     metadata = b""
     for item in data:
         if isinstance(item, tuple):
@@ -568,7 +630,9 @@ def _fetch_message(
         if flag_matches
         else ""
     )
-    return email.message_from_bytes(raw, policy=email.policy.default), raw, flags_text
+    message = email.message_from_bytes(raw, policy=email.policy.default)
+    _validate_mime_depth(message)
+    return message, raw, flags_text
 
 
 def _body(message: Message) -> tuple[str, str]:
@@ -620,8 +684,152 @@ def _attachment_payload(part: Message) -> bytes:
     return b""
 
 
+class _ByteCounter:
+    def __init__(self) -> None:
+        self.count = 0
+
+    def write(self, value: bytes) -> int:
+        self.count += len(value)
+        return len(value)
+
+    def flush(self) -> None:
+        return None
+
+
+def _serialized_size(message: Message) -> int:
+    _validate_mime_depth(message)
+    counter = _ByteCounter()
+    email.generator.BytesGenerator(
+        counter, policy=email.policy.default
+    ).flatten(message)
+    return counter.count
+
+
+def _raw_payload_size(payload: str | bytes) -> int:
+    if isinstance(payload, bytes):
+        return len(payload)
+    return sum(
+        1
+        if ord(character) <= 0xFF or 0xDC80 <= ord(character) <= 0xDCFF
+        else 6
+        if ord(character) <= 0xFFFF
+        else 10
+        for character in payload
+    )
+
+
+def _quoted_printable_size(payload: str | bytes) -> int:
+    size = 0
+    position = 0
+    while position < len(payload):
+        character = payload[position : position + 1]
+        if character in ("=", b"="):
+            following = payload[position + 1 : position + 3]
+            if following in ("\r\n", b"\r\n"):
+                position += 3
+                continue
+            if payload[position + 1 : position + 2] in ("\n", b"\n"):
+                position += 2
+                continue
+            if len(following) == 2 and all(
+                ord("0") <= (item if isinstance(item, int) else ord(item)) <= ord("9")
+                or ord("A") <= (item if isinstance(item, int) else ord(item)) <= ord("F")
+                or ord("a") <= (item if isinstance(item, int) else ord(item)) <= ord("f")
+                for item in following
+            ):
+                size += 1
+                position += 3
+                continue
+            return _raw_payload_size(payload)
+        size += _raw_payload_size(character)
+        position += 1
+    return size
+
+
+def _attachment_payload_size(part: Message) -> int:
+    if part.is_multipart() and part.get_content_type() != "message/rfc822":
+        return _serialized_size(part)
+    if part.get_content_type() == "message/rfc822":
+        nested = part.get_payload()
+        if isinstance(nested, list):
+            return sum(
+                _serialized_size(item) for item in nested if isinstance(item, Message)
+            )
+        if isinstance(nested, Message):
+            return _serialized_size(nested)
+        return 0
+    # Message.get_payload() applies policy replacement to raw 8-bit text.
+    # The parser-owned payload retains surrogateescaped source octets for counting.
+    payload = getattr(part, "_payload", None)
+    if not isinstance(payload, (str, bytes)):
+        payload = part.get_payload()
+    if not isinstance(payload, (str, bytes)):
+        return 0
+    encoding = (part.get("Content-Transfer-Encoding") or "").lower()
+    if encoding == "base64":
+        symbols = 0
+        padding = 0
+        seen_padding = False
+        malformed = False
+        for character in payload:
+            codepoint = character if isinstance(character, int) else ord(character)
+            if codepoint in (ord(" "), ord("\t"), ord("\r"), ord("\n")):
+                continue
+            if (
+                ord("A") <= codepoint <= ord("Z")
+                or ord("a") <= codepoint <= ord("z")
+                or ord("0") <= codepoint <= ord("9")
+                or codepoint in (ord("+"), ord("/"))
+            ):
+                if seen_padding:
+                    malformed = True
+                symbols += 1
+            elif codepoint == ord("="):
+                seen_padding = True
+                padding += 1
+            else:
+                malformed = True
+        invalid_shape = (
+            padding > 2
+            or padding > 0
+            and (symbols + padding) % 4 != 0
+            or padding == 0
+            and symbols % 4 == 1
+        )
+        if invalid_shape or malformed:
+            return _raw_payload_size(payload)
+        return symbols * 6 // 8
+    if encoding == "quoted-printable":
+        return _quoted_printable_size(payload)
+    return _raw_payload_size(payload)
+
+
+def _iter_message_parts(message: Message) -> Iterator[tuple[Message, int]]:
+    pending = [(message, 0)]
+    while pending:
+        part, depth = pending.pop()
+        if depth > MAX_MIME_DEPTH:
+            raise MailError("Message MIME structure exceeds the supported depth")
+        yield part, depth
+        if part.is_multipart():
+            children = list(part.iter_parts())
+            pending.extend((child, depth + 1) for child in reversed(children))
+
+
+def _validate_mime_depth(message: Message) -> None:
+    for _part, _depth in _iter_message_parts(message):
+        pass
+
+
 def _attachment_parts(message: Message) -> Iterator[Message]:
-    for part in message.iter_parts() if message.is_multipart() else ():
+    pending = [
+        (part, 1)
+        for part in reversed(list(message.iter_parts()))
+    ] if message.is_multipart() else []
+    while pending:
+        part, depth = pending.pop()
+        if depth > MAX_MIME_DEPTH:
+            raise MailError("Message MIME structure exceeds the supported depth")
         filename = _decode_header(part.get_filename())
         if (
             filename
@@ -630,31 +838,46 @@ def _attachment_parts(message: Message) -> Iterator[Message]:
         ):
             yield part
         elif part.is_multipart():
-            yield from _attachment_parts(part)
+            children = list(part.iter_parts())
+            pending.extend((child, depth + 1) for child in reversed(children))
 
 
 def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any]]:
     entries = []
-    walk_indices = {id(part): index for index, part in enumerate(message.walk())}
+    walk_indices = {
+        id(part): index
+        for index, (part, _depth) in enumerate(_iter_message_parts(message))
+    }
     for part in _attachment_parts(message):
         index = walk_indices[id(part)]
         filename = _decode_header(part.get_filename())
-        payload = _attachment_payload(part)
+        size = _attachment_payload_size(part)
         token = base64.urlsafe_b64encode(str(index).encode()).decode().rstrip("=")
         entries.append(
             {
                 "attachment_id": f"{message_id}.{token}",
                 "filename": filename or f"attachment-{index}",
                 "content_type": part.get_content_type(),
-                "size": len(payload),
-                "read_supported": len(payload) <= MAX_ATTACHMENT_BYTES,
+                "size": size,
+                "read_supported": size <= MAX_ATTACHMENT_BYTES,
             }
         )
     return entries
 
 
-def _summary(message: Message, message_id: str, flags: str = "") -> dict[str, Any]:
+def _summary(
+    message: Message,
+    message_id: str,
+    flags: str = "",
+    *,
+    attachments: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
     plain, _ = _body(message)
+    attachments = (
+        _attachment_entries(message, message_id)
+        if attachments is None
+        else attachments
+    )
     return {
         "id": message_id,
         "internet_message_id": message.get("Message-ID", ""),
@@ -666,7 +889,7 @@ def _summary(message: Message, message_id: str, flags: str = "") -> dict[str, An
         "date": message.get("Date", ""),
         "unread": "\\Seen" not in flags,
         "flagged": "\\Flagged" in flags,
-        "has_attachments": bool(_attachment_entries(message, message_id)),
+        "has_attachments": bool(attachments),
         "snippet": re.sub(r"\s+", " ", plain).strip()[:300],
     }
 
@@ -734,7 +957,9 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
     if not match:
         return False
 
-    def parse(position: int) -> tuple[Any, int]:
+    def parse(position: int, depth: int = 0) -> tuple[Any, int]:
+        if depth > MAX_BODYSTRUCTURE_DEPTH:
+            raise ValueError
         while position < len(metadata) and metadata[position:position + 1].isspace():
             position += 1
         if position >= len(metadata):
@@ -749,7 +974,7 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
                     raise ValueError
                 if metadata[position:position + 1] == b")":
                     return values, position + 1
-                value, position = parse(position)
+                value, position = parse(position, depth + 1)
                 values.append(value)
         if metadata[position:position + 1] == b'"':
             position += 1
@@ -770,7 +995,11 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
         atom = metadata[position:end]
         return (None if atom.upper() == b"NIL" else atom), end
 
-    def contains_attachment(node: Any, *, is_root: bool = False) -> bool:
+    def contains_attachment(
+        node: Any, *, is_root: bool = False, depth: int = 0
+    ) -> bool:
+        if depth > MAX_BODYSTRUCTURE_DEPTH:
+            raise ValueError
         if not isinstance(node, list):
             return False
 
@@ -799,7 +1028,7 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
         if node and isinstance(node[0], list):
             child_count = 0
             while child_count < len(node) and isinstance(node[child_count], list):
-                if contains_attachment(node[child_count]):
+                if contains_attachment(node[child_count], depth=depth + 1):
                     return True
                 child_count += 1
             disposition_index = child_count + 2
@@ -832,14 +1061,14 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
             maintype == b"MESSAGE"
             and subtype == b"RFC822"
             and len(node) > 8
-            and contains_attachment(node[8], is_root=True)
+            and contains_attachment(node[8], is_root=True, depth=depth + 1)
         )
 
     try:
         structure, _ = parse(match.end())
-    except ValueError:
+        return contains_attachment(structure, is_root=True)
+    except (RecursionError, ValueError):
         return False
-    return contains_attachment(structure, is_root=True)
 
 
 def get_account_status(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1290,14 +1519,15 @@ def _read_email_result(
     include_raw_mime: bool = False,
 ) -> dict[str, Any]:
     plain, html = _body(message)
-    result = _summary(message, message_id, flags)
+    attachments = _attachment_entries(message, message_id)
+    result = _summary(message, message_id, flags, attachments=attachments)
     result.update(
         {
             "mailbox": mailbox,
             "body_text": plain,
             "body_html": html,
             "reply_to": _addresses(message.get("Reply-To")),
-            "attachments": _attachment_entries(message, message_id),
+            "attachments": attachments,
             "references": message.get("References", "").split(),
             "in_reply_to": message.get("In-Reply-To", ""),
         }
@@ -1375,13 +1605,16 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
     deadline = _current_deadline()
     with _imap(deadline=deadline) as client:
         message, _, _ = _fetch_message(client, mailbox, validity, uid)
-    parts = list(message.walk())
+    parts = [part for part, _depth in _iter_message_parts(message)]
     if not 0 <= index < len(parts):
         raise MailError("Attachment no longer exists")
     part = parts[index]
     advertised_parts = {id(item) for item in _attachment_parts(message)}
     if id(part) not in advertised_parts:
         raise MailError("Attachment identifier is not an advertised attachment")
+    advertised_size = _attachment_payload_size(part)
+    if advertised_size > MAX_ATTACHMENT_BYTES:
+        raise MailError("Attachment exceeds the 5 MiB result limit")
     payload = _attachment_payload(part)
     if len(payload) > MAX_ATTACHMENT_BYTES:
         raise MailError("Attachment exceeds the 5 MiB result limit")
@@ -1786,8 +2019,10 @@ def _recipients(value: Any, name: str, *, required: bool = False) -> list[str]:
 
 
 def _read_outgoing_attachment(path: Path, remaining: int) -> bytes:
-    if not path.is_absolute() or remaining <= 0:
+    if not path.is_absolute():
         raise ValueError("each attachment file must be an absolute regular-file path")
+    if remaining <= 0:
+        raise ValueError("attachments must be at most 5 MiB each and 10 MiB total")
     if not hasattr(os, "O_NOFOLLOW"):
         raise ValueError("secure attachment reads are not supported on this platform")
     flags = os.O_RDONLY | os.O_NOFOLLOW
@@ -2307,17 +2542,31 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                 "body": quoted,
             }
             forwarded = _prepare_outgoing(outgoing)
+            attachment_parts: list[Message] = []
             attachment_count = 0
             attachment_bytes = 0
             for part in _attachment_parts(source):
-                filename = _decode_header(part.get_filename())
-                payload = _attachment_payload(part)
+                size = _attachment_payload_size(part)
                 attachment_count += 1
-                attachment_bytes += len(payload)
+                attachment_bytes += size
                 if (
-                    len(payload) > MAX_ATTACHMENT_BYTES
+                    size > MAX_ATTACHMENT_BYTES
                     or attachment_count > 20
                     or attachment_bytes > 10 * 1024 * 1024
+                ):
+                    raise MailError(
+                        "Cannot forward attachments: limit is 20 files, 5 MiB each, "
+                        "and 10 MiB total"
+                    )
+                attachment_parts.append(part)
+            decoded_attachment_bytes = 0
+            for part in attachment_parts:
+                filename = _decode_header(part.get_filename())
+                payload = _attachment_payload(part)
+                decoded_attachment_bytes += len(payload)
+                if (
+                    len(payload) > MAX_ATTACHMENT_BYTES
+                    or decoded_attachment_bytes > 10 * 1024 * 1024
                 ):
                     raise MailError(
                         "Cannot forward attachments: limit is 20 files, 5 MiB each, "
