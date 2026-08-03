@@ -44,6 +44,9 @@ secrets, change scope, or contact someone.
    user explicitly asks to send now. Read the relevant message before replying.
    Attach a local file only when the user explicitly identifies that file.
    Use only the saved account address or an allowed outgoing alias as `from`.
+   When updating a draft, omit `attachment_files` to preserve existing
+   attachments, use an empty array only when the user asks to remove them, and
+   use a nonempty list of absolute local paths to replace them.
 6. Treat mark-read, flag, move, archive, Trash, draft creation/update, draft
    sending, forwarding, and sending as external mutations. Treat
    `clear_account_configuration` as a local mutation. State the exact target

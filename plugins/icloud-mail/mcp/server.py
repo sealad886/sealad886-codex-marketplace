@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import binascii
+import copy
 import datetime as dt
 import email
 import email.generator
@@ -28,6 +29,7 @@ from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from email.header import decode_header, make_header
 from email.message import EmailMessage, Message
+from email.parser import BytesHeaderParser
 from typing import Any, Iterator
 
 
@@ -48,6 +50,13 @@ MAX_SEARCH_SCAN = 80
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 MAX_MESSAGE_BYTES = 20 * 1024 * 1024
+MAX_SUMMARY_HEADER_BYTES = 64 * 1024
+MAX_SUMMARY_METADATA_BYTES = 1024 * 1024
+MAX_SUMMARY_ADDRESS_CHARS = 8 * 1024
+MAX_SUMMARY_ADDRESSES = 100
+MAX_SUMMARY_REFERENCE_CHARS = 8 * 1024
+MAX_SUMMARY_REFERENCES = 100
+MAX_SUMMARY_SCALAR_CHARS = 4 * 1024
 MAX_BODYSTRUCTURE_DEPTH = 50
 MAX_MIME_DEPTH = 50
 REF_PREFIX = "icloud-mail:"
@@ -56,6 +65,10 @@ MCP_OPERATION_BUDGET_SECONDS = 540.0
 
 class MailError(RuntimeError):
     """Safe, user-actionable mail error."""
+
+
+class SummaryTooLarge(MailError):
+    """A search result cannot be represented within the summary limits."""
 
 
 class OperationDeadline:
@@ -925,25 +938,37 @@ def _fetch_summary(
         str(uid),
         (
             "(BODY.PEEK[HEADER.FIELDS "
-            "(MESSAGE-ID SUBJECT FROM TO CC BCC DATE REFERENCES IN-REPLY-TO)] "
+            "(MESSAGE-ID SUBJECT FROM TO CC BCC DATE REFERENCES IN-REPLY-TO)]"
+            f"<0.{MAX_SUMMARY_HEADER_BYTES + 1}> "
             "BODYSTRUCTURE FLAGS)"
         ),
     )
     if status != "OK" or not data:
         raise MailError("Message no longer exists in this mailbox")
-    headers = b""
-    metadata = b""
+    headers = bytearray()
+    metadata = bytearray()
+
+    def append_checked(target: bytearray, fragment: Any, limit: int) -> None:
+        if not isinstance(fragment, bytes):
+            return
+        if len(target) + len(fragment) > limit:
+            raise SummaryTooLarge("Message summary exceeds the processing limit")
+        target.extend(fragment)
+
     for item in data:
         if isinstance(item, tuple):
-            metadata += item[0] if isinstance(item[0], bytes) else b""
-            headers += item[1] if isinstance(item[1], bytes) else b""
+            append_checked(metadata, item[0], MAX_SUMMARY_METADATA_BYTES)
+            append_checked(headers, item[1], MAX_SUMMARY_HEADER_BYTES)
         elif isinstance(item, bytes):
-            metadata += item
+            append_checked(metadata, item, MAX_SUMMARY_METADATA_BYTES)
     if not headers:
         raise MailError("Message no longer exists in this mailbox")
-    message = email.message_from_bytes(headers, policy=email.policy.default)
+    header_bytes = bytes(headers)
+    metadata_bytes = bytes(metadata)
+    _validate_summary_header_fields(header_bytes)
+    message = email.message_from_bytes(header_bytes, policy=email.policy.default)
     flag_matches = re.findall(
-        rb"(?:^|\s)FLAGS\s+\(([^)]*)\)", metadata, flags=re.I
+        rb"(?:^|\s)FLAGS\s+\(([^)]*)\)", metadata_bytes, flags=re.I
     )
     flags = (
         flag_matches[-1].decode("ascii", errors="replace")
@@ -951,22 +976,72 @@ def _fetch_summary(
         else ""
     )
     message_id = _encode_ref(mailbox, expected_validity, uid)
+    address_fields = {
+        name: _addresses(message.get(name.title()))
+        for name in ("from", "to", "cc", "bcc")
+    }
+    if sum(len(values) for values in address_fields.values()) > MAX_SUMMARY_ADDRESSES:
+        raise SummaryTooLarge("Message summary exceeds the processing limit")
+    scalar_fields = {
+        "internet_message_id": str(message.get("Message-ID", "")),
+        "subject": _decode_header(message.get("Subject")),
+        "date": str(message.get("Date", "")),
+        "in_reply_to": str(message.get("In-Reply-To", "")),
+    }
+    if any(len(value) > MAX_SUMMARY_SCALAR_CHARS for value in scalar_fields.values()):
+        raise SummaryTooLarge("Message summary exceeds the processing limit")
+    references = str(message.get("References", "")).split()
+    if len(references) > MAX_SUMMARY_REFERENCES:
+        raise SummaryTooLarge("Message summary exceeds the processing limit")
     return {
         "id": message_id,
-        "internet_message_id": message.get("Message-ID", ""),
-        "subject": _decode_header(message.get("Subject")),
-        "from": _addresses(message.get("From")),
-        "to": _addresses(message.get("To")),
-        "cc": _addresses(message.get("Cc")),
-        "bcc": _addresses(message.get("Bcc")),
-        "date": message.get("Date", ""),
+        **scalar_fields,
+        **address_fields,
         "unread": "\\Seen" not in flags,
         "flagged": "\\Flagged" in flags,
-        "has_attachments": _bodystructure_has_attachment(metadata),
+        "has_attachments": _bodystructure_has_attachment(metadata_bytes),
         "snippet": "",
-        "references": message.get("References", "").split(),
-        "in_reply_to": message.get("In-Reply-To", ""),
+        "references": references,
     }
+
+
+def _validate_summary_header_fields(headers: bytes) -> None:
+    """Reject compact headers that expand into unbounded summary objects."""
+    parsed = BytesHeaderParser(policy=email.policy.compat32).parsebytes(headers)
+    address_chars = 0
+    address_count = 0
+    reference_chars = 0
+    reference_count = 0
+    scalar_chars: dict[str, int] = {}
+    address_names = {"from", "to", "cc", "bcc"}
+    reference_names = {"references", "in-reply-to"}
+    scalar_names = {"message-id", "subject", "date"}
+    for raw_name, raw_value in parsed.raw_items():
+        name = raw_name.lower()
+        value = str(raw_value)
+        if name in address_names:
+            address_chars += len(value)
+            if value.strip():
+                address_count += 1 + value.count(",") + value.count(";")
+        elif name in reference_names:
+            reference_chars += len(value)
+            in_token = False
+            for character in value:
+                if character.isspace():
+                    in_token = False
+                elif not in_token:
+                    reference_count += 1
+                    in_token = True
+        elif name in scalar_names:
+            scalar_chars[name] = scalar_chars.get(name, 0) + len(value)
+    if (
+        address_chars > MAX_SUMMARY_ADDRESS_CHARS
+        or address_count > MAX_SUMMARY_ADDRESSES
+        or reference_chars > MAX_SUMMARY_REFERENCE_CHARS
+        or reference_count > MAX_SUMMARY_REFERENCES
+        or any(value > MAX_SUMMARY_SCALAR_CHARS for value in scalar_chars.values())
+    ):
+        raise SummaryTooLarge("Message summary exceeds the processing limit")
 
 
 def _bodystructure_has_attachment(metadata: bytes) -> bool:
@@ -1499,6 +1574,7 @@ def search_emails(
         uids.reverse()
         results = []
         scanned = 0
+        skipped_oversized = 0
         scan_limit = (
             min(len(uids), MAX_SEARCH_SCAN, max(maximum * 5, MAX_RESULTS))
             if arguments.get("has_attachment") is not None
@@ -1511,6 +1587,9 @@ def search_emails(
             try:
                 _set_socket_timeout(client, 5.0, deadline)
                 item = _fetch_summary(client, mailbox, validity, uid)
+            except SummaryTooLarge:
+                skipped_oversized += 1
+                continue
             except MailError as error:
                 if str(error) == "Message no longer exists in this mailbox":
                     continue
@@ -1520,14 +1599,17 @@ def search_emails(
             ):
                 continue
             results.append(item)
-        return {
+        result = {
             "emails": results,
             "mailbox": mailbox,
             "returned": len(results),
             "matched_before_attachment_filter": len(uids),
             "scanned": scanned,
-            "truncated": scanned < len(uids),
+            "truncated": scanned < len(uids) or skipped_oversized > 0,
         }
+        if skipped_oversized:
+            result["skipped_oversized_summaries"] = skipped_oversized
+        return result
 
 
 def _read_email_result(
@@ -2318,10 +2400,34 @@ def send_email(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def create_draft(
-    arguments: dict[str, Any], *, socket_timeout: float | None = 10.0
+    arguments: dict[str, Any],
+    *,
+    socket_timeout: float | None = 10.0,
+    preserved_attachments: list[Message] | None = None,
 ) -> dict[str, Any]:
     message = _prepare_outgoing(arguments)
+    if preserved_attachments:
+        if len(preserved_attachments) > 20:
+            raise MailError("Draft contains more than 20 attachments")
+        total_attachment_bytes = 0
+        for part in preserved_attachments:
+            size = _attachment_payload_size(part)
+            if size > MAX_ATTACHMENT_BYTES:
+                raise MailError(
+                    "Draft attachments must be at most 5 MiB each and 10 MiB total"
+                )
+            total_attachment_bytes += size
+            if total_attachment_bytes > 10 * 1024 * 1024:
+                raise MailError(
+                    "Draft attachments must be at most 5 MiB each and 10 MiB total"
+                )
+        if message.get_content_type() != "multipart/mixed":
+            message.make_mixed()
+        for part in preserved_attachments:
+            message.attach(copy.deepcopy(part))
     raw = message.as_bytes(policy=email.policy.SMTP)
+    if len(raw) > MAX_MESSAGE_BYTES:
+        raise MailError("Draft exceeds the 20 MiB message processing limit")
     with _imap(socket_timeout=socket_timeout) as client:
         drafts = _special_mailbox(client, "Drafts", ["Drafts"])
         try:
@@ -2406,11 +2512,19 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     draft_id = arguments.get("draft_id")
     if not draft_id:
         raise ValueError("update_draft requires draft_id")
+    if "attachment_files" in arguments and arguments["attachment_files"] is None:
+        raise ValueError("attachment_files must be an array")
     with _imap(socket_timeout=10.0) as client:
-        _validate_draft_ref(client, draft_id)
+        existing = _validate_draft_ref(client, draft_id)
     replacement = dict(arguments)
     del replacement["draft_id"]
-    created = create_draft(replacement, socket_timeout=10.0)
+    preserved_attachments = None
+    if "attachment_files" not in arguments and isinstance(existing, Message):
+        preserved_attachments = list(_attachment_parts(existing))
+    create_options: dict[str, Any] = {"socket_timeout": 10.0}
+    if preserved_attachments:
+        create_options["preserved_attachments"] = preserved_attachments
+    created = create_draft(replacement, **create_options)
     created["replaced_draft_id"] = draft_id
     if not created.get("draft_id"):
         created["old_draft_cleanup"] = {
@@ -2631,7 +2745,7 @@ TOOLS = [
     {"name": "archive_emails", "description": "Explicitly move up to five messages to the iCloud Archive folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
     {"name": "trash_emails", "description": "Explicitly move up to five messages to iCloud Trash without permanent deletion.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
     {"name": "create_draft", "description": "Create an iCloud Mail draft without sending it.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
-    {"name": "update_draft", "description": "Replace an existing draft with revised content without sending it.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "required": ["draft_id"], "additionalProperties": False}},
+    {"name": "update_draft", "description": "Replace an existing draft with revised content without sending it. Existing attachments are preserved when attachment_files is omitted.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20, "description": "Omit to preserve existing attachments, use an empty array to remove them, or provide paths to replace them."}}, "required": ["draft_id"], "additionalProperties": False}},
     {"name": "send_email", "description": "Send a new message or reply through iCloud SMTP; use only on explicit send intent.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
     {"name": "send_draft", "description": "Send an existing reviewed draft and move it to Trash; explicit send intent required.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}}, "required": ["draft_id"], "additionalProperties": False}},
     {"name": "forward_emails", "description": "Forward one existing message with an optional note; explicit send intent required. One source per call preserves an unambiguous acceptance receipt within the tool timeout.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 1}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "note": {"type": "string"}}, "required": ["message_ids"], "additionalProperties": False}},

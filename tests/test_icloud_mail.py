@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import base64
+import copy
 import email
 import email.policy
 import json
@@ -462,7 +463,90 @@ class ICloudMailTests(unittest.TestCase):
         self.assertFalse(result["has_attachments"])
         fetch_arguments = client.uid.call_args.args[2]
         self.assertIn("HEADER.FIELDS", fetch_arguments)
+        self.assertIn("<0.65537>", fetch_arguments)
         self.assertNotIn("BODY.PEEK[]", fetch_arguments)
+
+    def test_search_summary_rejects_oversized_headers_before_parsing(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = b"Subject: " + b"x" * (64 * 1024)
+        client.uid.return_value = (
+            "OK",
+            [(b'9 (UID 9 BODYSTRUCTURE ("TEXT" "PLAIN"))', headers)],
+        )
+        with mock.patch.object(server.email, "message_from_bytes") as parse:
+            with self.assertRaisesRegex(server.MailError, "summary exceeds"):
+                server._fetch_summary(client, "INBOX", 7, 9)
+        parse.assert_not_called()
+
+    def test_search_summary_rejects_oversized_metadata_before_parsing(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = b"Subject: bounded\r\n\r\n"
+        client.uid.return_value = (
+            "OK",
+            [((b"9 (UID 9 BODYSTRUCTURE " + b"x" * (1024 * 1024)), headers)],
+        )
+        with mock.patch.object(server, "_bodystructure_has_attachment") as parse:
+            with self.assertRaisesRegex(server.MailError, "summary exceeds"):
+                server._fetch_summary(client, "INBOX", 7, 9)
+        parse.assert_not_called()
+
+    def test_search_skips_oversized_summary_and_reports_omission(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"2"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [b"1 2"])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        surviving = {
+            "id": server._encode_ref("INBOX", 7, 1),
+            "has_attachments": False,
+        }
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server,
+            "_fetch_summary",
+            side_effect=[
+                server.SummaryTooLarge("Message summary exceeds the processing limit"),
+                surviving,
+            ],
+        ):
+            result = server.search_emails({"max_results": 2})
+        self.assertEqual(result["emails"], [surviving])
+        self.assertEqual(result["skipped_oversized_summaries"], 1)
+        self.assertTrue(result["truncated"])
+
+    def test_search_summary_rejects_address_amplification_before_parsing(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = b"To: " + b"a@b," * 13_000 + b"\r\n\r\n"
+        client.uid.return_value = (
+            "OK",
+            [(b'9 (UID 9 BODYSTRUCTURE ("TEXT" "PLAIN"))', headers)],
+        )
+        with mock.patch.object(server.email, "message_from_bytes") as parse:
+            with self.assertRaisesRegex(server.SummaryTooLarge, "summary exceeds"):
+                server._fetch_summary(client, "INBOX", 7, 9)
+        parse.assert_not_called()
+
+    def test_search_summary_rejects_reference_amplification_before_parsing(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        headers = b"References: " + b"<x@y> " * 101 + b"\r\n\r\n"
+        client.uid.return_value = (
+            "OK",
+            [(b'9 (UID 9 BODYSTRUCTURE ("TEXT" "PLAIN"))', headers)],
+        )
+        with mock.patch.object(server.email, "message_from_bytes") as parse:
+            with self.assertRaisesRegex(server.SummaryTooLarge, "summary exceeds"):
+                server._fetch_summary(client, "INBOX", 7, 9)
+        parse.assert_not_called()
 
     def test_mailbox_list_parses_nil_delimiter_and_literal_name(self) -> None:
         client = mock.MagicMock()
@@ -1126,6 +1210,198 @@ class ICloudMailTests(unittest.TestCase):
             connect.call_args_list,
             [mock.call(socket_timeout=10.0), mock.call(socket_timeout=10.0)],
         )
+
+    def test_update_draft_preserves_existing_attachments_when_omitted(self) -> None:
+        old_id = server._encode_ref("Drafts", 7, 9)
+        existing = EmailMessage()
+        existing.set_content("old body")
+        existing.add_attachment(
+            b"binary payload",
+            maintype="application",
+            subtype="octet-stream",
+            filename="important.bin",
+        )
+        nested = EmailMessage()
+        nested["Subject"] = "Nested"
+        nested.set_content("nested payload")
+        existing.add_attachment(nested, filename="attached.eml")
+        replacement = EmailMessage()
+        replacement["Message-ID"] = "<replacement@example.com>"
+        replacement.set_content("new body")
+        validate_context = mock.MagicMock()
+        validate_context.__enter__.return_value = mock.MagicMock()
+        create_client = mock.MagicMock()
+        create_client.append.return_value = ("OK", [b"APPEND completed"])
+        create_client.response.return_value = ("APPENDUID", [b"7 10"])
+        create_context = mock.MagicMock()
+        create_context.__enter__.return_value = create_client
+        cleanup_context = mock.MagicMock()
+        cleanup_context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server,
+            "_imap",
+            side_effect=[validate_context, create_context, cleanup_context],
+        ), mock.patch.object(
+            server, "_validate_draft_ref", return_value=existing
+        ), mock.patch.object(
+            server, "_prepare_outgoing", return_value=replacement
+        ), mock.patch.object(
+            server, "_special_mailbox", side_effect=["Drafts", "Trash"]
+        ), mock.patch.object(
+            server,
+            "_move",
+            return_value={"status": "moved", "message_id": old_id},
+        ):
+            result = server.update_draft(
+                {
+                    "draft_id": old_id,
+                    "to": ["recipient@example.com"],
+                    "subject": "Replacement",
+                    "body": "new body",
+                }
+            )
+        raw = create_client.append.call_args.args[3]
+        appended = email.message_from_bytes(raw, policy=email.policy.default)
+        attachments = list(server._attachment_parts(appended))
+        self.assertEqual(result["status"], "updated")
+        self.assertEqual(
+            [_decode.get_filename() for _decode in attachments],
+            ["important.bin", "attached.eml"],
+        )
+        self.assertEqual(server._attachment_payload(attachments[0]), b"binary payload")
+        self.assertIn(b"nested payload", server._attachment_payload(attachments[1]))
+
+    def test_update_draft_explicit_empty_attachments_removes_existing(self) -> None:
+        old_id = server._encode_ref("Drafts", 7, 9)
+        existing = EmailMessage()
+        existing.set_content("body")
+        existing.add_attachment(
+            b"data",
+            maintype="application",
+            subtype="octet-stream",
+            filename="old.bin",
+        )
+        replacement = {"draft_id": "replacement", "status": "created"}
+        validate_context = mock.MagicMock()
+        validate_context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", side_effect=[validate_context, server.MailError("offline")]
+        ), mock.patch.object(
+            server, "_validate_draft_ref", return_value=existing
+        ), mock.patch.object(
+            server, "create_draft", return_value=replacement.copy()
+        ) as create:
+            server.update_draft(
+                {
+                    "draft_id": old_id,
+                    "to": ["recipient@example.com"],
+                    "subject": "Replacement",
+                    "body": "Body",
+                    "attachment_files": [],
+                }
+            )
+        create.assert_called_once_with(
+            {
+                "to": ["recipient@example.com"],
+                "subject": "Replacement",
+                "body": "Body",
+                "attachment_files": [],
+            },
+            socket_timeout=10.0,
+        )
+
+    def test_update_draft_rejects_null_attachments_before_mutation(self) -> None:
+        old_id = server._encode_ref("Drafts", 7, 9)
+        with mock.patch.object(server, "_imap") as connect, mock.patch.object(
+            server, "create_draft"
+        ) as create, mock.patch.object(server, "_move") as move:
+            with self.assertRaisesRegex(ValueError, "must be an array"):
+                server.update_draft(
+                    {
+                        "draft_id": old_id,
+                        "body": "Revised body",
+                        "attachment_files": None,
+                    }
+                )
+        connect.assert_not_called()
+        create.assert_not_called()
+        move.assert_not_called()
+
+    def test_update_draft_nonempty_attachments_replace_existing(self) -> None:
+        old_id = server._encode_ref("Drafts", 7, 9)
+        existing = EmailMessage()
+        existing.set_content("body")
+        existing.add_attachment(
+            b"old",
+            maintype="application",
+            subtype="octet-stream",
+            filename="old.bin",
+        )
+        replacement = {"draft_id": None, "status": "created_unresolved"}
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        new_paths = ["/tmp/new.bin"]
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_validate_draft_ref", return_value=existing
+        ), mock.patch.object(
+            server, "create_draft", return_value=replacement.copy()
+        ) as create, mock.patch.object(server, "_move") as move:
+            result = server.update_draft(
+                {
+                    "draft_id": old_id,
+                    "to": ["recipient@example.com"],
+                    "subject": "Replacement",
+                    "body": "Body",
+                    "attachment_files": new_paths,
+                }
+            )
+        create.assert_called_once_with(
+            {
+                "to": ["recipient@example.com"],
+                "subject": "Replacement",
+                "body": "Body",
+                "attachment_files": new_paths,
+            },
+            socket_timeout=10.0,
+        )
+        self.assertEqual(result["old_draft_cleanup"]["status"], "preserved")
+        move.assert_not_called()
+
+    def test_preserved_draft_attachment_limits_fail_before_append(self) -> None:
+        attachment = EmailMessage()
+        attachment.set_content("payload")
+        attachment["Content-Disposition"] = 'attachment; filename="item.txt"'
+        prepared = EmailMessage()
+        prepared["Message-ID"] = "<replacement@example.com>"
+        prepared.set_content("body")
+        cases = (
+            ("count", [attachment] * 21, [1] * 21, "more than 20"),
+            (
+                "individual size",
+                [attachment],
+                [server.MAX_ATTACHMENT_BYTES + 1],
+                "5 MiB",
+            ),
+            (
+                "aggregate size",
+                [attachment, attachment, attachment],
+                [4 * 1024 * 1024] * 3,
+                "10 MiB",
+            ),
+        )
+        for name, attachments, sizes, error_pattern in cases:
+            with self.subTest(name=name), mock.patch.object(
+                server, "_prepare_outgoing", return_value=copy.deepcopy(prepared)
+            ), mock.patch.object(
+                server, "_attachment_payload_size", side_effect=sizes
+            ), mock.patch.object(server, "_imap") as connect:
+                with self.assertRaisesRegex(server.MailError, error_pattern):
+                    server.create_draft(
+                        {"body": "body"}, preserved_attachments=attachments
+                    )
+            connect.assert_not_called()
 
     def test_reply_preparation_caps_imap_phase(self) -> None:
         context = mock.MagicMock()

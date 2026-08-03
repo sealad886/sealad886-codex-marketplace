@@ -140,6 +140,11 @@ Mutation tools:
 
 No tool permanently deletes or expunges messages.
 
+When updating a draft, omit `attachment_files` to preserve its existing
+attachments, pass an empty array to remove them, or pass absolute local file
+paths to replace them. A JSON `null` value is rejected so it cannot
+accidentally remove attachments.
+
 Opening Apple Account or Keychain Access requires explicit user intent.
 Clearing configuration requires `confirm=true` and deliberately leaves the
 Keychain credential untouched.
