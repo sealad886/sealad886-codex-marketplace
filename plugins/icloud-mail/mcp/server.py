@@ -26,6 +26,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 from contextlib import contextmanager, nullcontext
 from contextvars import ContextVar
 from email.header import decode_header, make_header
@@ -718,7 +719,7 @@ def _body(message: Message) -> tuple[str, str]:
         part = pending.pop(0)
         if (
             part.get_content_disposition() == "attachment"
-            or part.get_filename() is not None
+            or bool(_decode_header(part.get_filename()))
         ):
             continue
         if part.get_content_type() == "message/rfc822":
@@ -1202,16 +1203,35 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
             return False
 
         def has_filename(parameters: Any) -> bool:
-            return isinstance(parameters, list) and any(
-                isinstance(parameters[index], bytes)
-                and re.fullmatch(
-                    rb"(?:NAME|FILENAME)(?:\*|\*\d+\*?)?",
-                    parameters[index],
-                    flags=re.I,
+            if not isinstance(parameters, list):
+                return False
+            for index in range(0, len(parameters) - 1, 2):
+                name = parameters[index]
+                value = parameters[index + 1]
+                if not isinstance(name, bytes) or not isinstance(value, bytes):
+                    continue
+                match = re.fullmatch(
+                    rb"(?:NAME|FILENAME)(\*|\*\d+\*?)?", name, flags=re.I
                 )
-                is not None
-                for index in range(0, len(parameters) - 1, 2)
-            )
+                if match is None:
+                    continue
+                decoded = value.decode("utf-8", errors="replace")
+                suffix = match.group(1) or b""
+                if suffix.endswith(b"*"):
+                    charset = "utf-8"
+                    if suffix in {b"*", b"*0*"}:
+                        extended = decoded.split("'", 2)
+                        if len(extended) == 3:
+                            charset = extended[0] or charset
+                            decoded = extended[2]
+                    raw = urllib.parse.unquote_to_bytes(decoded)
+                    try:
+                        decoded = raw.decode(charset, errors="replace")
+                    except LookupError:
+                        decoded = raw.decode("utf-8", errors="replace")
+                if _decode_header(decoded).strip():
+                    return True
+            return False
 
         def has_disposition(value: Any) -> bool:
             if not isinstance(value, list) or not value:

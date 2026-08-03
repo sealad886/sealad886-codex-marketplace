@@ -977,6 +977,33 @@ class ICloudMailTests(unittest.TestCase):
         )
         self.assertTrue(server._bodystructure_has_attachment(metadata))
 
+    def test_bodystructure_empty_filename_parameters_are_not_attachments(self) -> None:
+        cases = {
+            b"FILENAME": (b"", b" ", b"=?utf-8?b??="),
+            b"NAME": (b"", b" ", b"=?utf-8?b??="),
+            b"FILENAME*": (b"", b" ", b"UTF-8''", b"UTF-8''%20"),
+            b"NAME*0*": (b"", b" ", b"UTF-8''", b"UTF-8''%20"),
+        }
+        for parameter, values in cases.items():
+            for value in values:
+                metadata = (
+                    b'9 (BODYSTRUCTURE ("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1 '
+                    b'NIL ("INLINE" ("'
+                    + parameter
+                    + b'" "'
+                    + value
+                    + b'"))))'
+                )
+                with self.subTest(parameter=parameter, value=value):
+                    self.assertFalse(server._bodystructure_has_attachment(metadata))
+
+    def test_bodystructure_attachment_disposition_wins_with_empty_filename(self) -> None:
+        metadata = (
+            b'9 (BODYSTRUCTURE ("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1 '
+            b'NIL ("ATTACHMENT" ("FILENAME" ""))))'
+        )
+        self.assertTrue(server._bodystructure_has_attachment(metadata))
+
     def test_bodystructure_extended_filename_parameter_is_attachment(self) -> None:
         for parameter in (b"FILENAME*", b"FILENAME*0*", b"NAME*0"):
             metadata = (
@@ -1333,6 +1360,18 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(plain, "")
         self.assertIn("outer html", html_body)
         self.assertNotIn("attached plain text", html_body)
+
+    def test_empty_filename_text_part_remains_readable_body(self) -> None:
+        source = (
+            b'Content-Type: text/plain; charset="utf-8"; name=""\r\n'
+            b'Content-Disposition: inline; filename=""\r\n\r\n'
+            b"readable body"
+        )
+        message = email.message_from_bytes(source, policy=email.policy.default)
+        plain, html_body = server._body(message)
+        self.assertEqual(plain, "readable body")
+        self.assertEqual(html_body, "")
+        self.assertEqual(server._attachment_entries(message, "message"), [])
 
     def test_read_attachment_serializes_attached_email(self) -> None:
         nested = EmailMessage()
