@@ -141,6 +141,16 @@ class ICloudMailTests(unittest.TestCase):
         message = email.message_from_bytes(source, policy=email.policy.default)
         self.assertEqual(server._attachment_entries(message, "message"), [])
 
+    def test_body_reads_content_inside_top_level_rfc822_wrapper(self) -> None:
+        source = (
+            b"Content-Type: message/rfc822\r\n\r\n"
+            b"Subject: nested\r\n"
+            b"Content-Type: text/plain; charset=utf-8\r\n\r\n"
+            b"wrapped body"
+        )
+        message = email.message_from_bytes(source, policy=email.policy.default)
+        self.assertEqual(server._body(message), ("wrapped body", ""))
+
     def test_attachment_size_matches_supported_payload_encodings(self) -> None:
         quoted = EmailMessage()
         quoted["Content-Disposition"] = 'attachment; filename="notes.txt"'
@@ -568,6 +578,31 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["skipped_oversized_summaries"], 1)
         self.assertTrue(result["truncated"])
 
+    def test_search_caps_oversized_summary_scans_without_attachment_filter(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"81"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = (
+            "OK",
+            [b" ".join(str(uid).encode() for uid in range(1, 82))],
+        )
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server,
+            "_fetch_summary",
+            side_effect=server.SummaryTooLarge(
+                "Message summary exceeds the processing limit"
+            ),
+        ) as fetch:
+            result = server.search_emails({"max_results": 50})
+        self.assertEqual(fetch.call_count, 80)
+        self.assertEqual(result["scanned"], 80)
+        self.assertEqual(result["skipped_oversized_summaries"], 80)
+        self.assertTrue(result["truncated"])
+
     def test_search_summary_rejects_address_amplification_before_parsing(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -712,6 +747,17 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIsNone(result["mailboxes"][0]["messages"])
         self.assertIsNone(result["mailboxes"][0]["unread"])
         self.assertFalse(result["truncated"])
+
+    def test_mailbox_counts_remain_unknown_when_status_element_is_none(self) -> None:
+        client = mock.MagicMock()
+        client.list.return_value = ("OK", [b'(\\HasNoChildren) "/" "INBOX"'])
+        client.status.return_value = ("OK", [None])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.list_mailboxes({})
+        self.assertIsNone(result["mailboxes"][0]["messages"])
+        self.assertIsNone(result["mailboxes"][0]["unread"])
 
     def test_mailbox_status_enumeration_has_time_and_count_bounds(self) -> None:
         client = mock.MagicMock()
@@ -906,6 +952,15 @@ class ICloudMailTests(unittest.TestCase):
             server._fetch_message(client, "INBOX", 7, 9)
         self.assertEqual(client.uid.call_count, 1)
         self.assertNotIn("BODY.PEEK[]", client.uid.call_args.args[2])
+
+    def test_full_message_fetch_treats_none_size_element_as_vanished(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [None])
+        with self.assertRaisesRegex(server.MailError, "no longer exists"):
+            server._fetch_message(client, "INBOX", 7, 9)
+        self.assertEqual(client.uid.call_count, 1)
 
     def test_full_message_fetch_rejects_ambiguous_size_before_body(self) -> None:
         client = mock.MagicMock()
@@ -1256,6 +1311,22 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["inbox_messages"], 12)
         smtp.login.assert_called_once_with("primary@icloud.com", "secret")
         smtp.send_message.assert_not_called()
+
+    def test_validate_account_accepts_none_inbox_status_element(self) -> None:
+        imap = mock.MagicMock()
+        imap.status.return_value = ("OK", [None])
+        imap_context = mock.MagicMock()
+        imap_context.__enter__.return_value = imap
+        smtp = mock.MagicMock()
+        with mock.patch.object(
+            server, "_imap", return_value=imap_context
+        ), mock.patch.object(
+            server, "_username", return_value="primary@icloud.com"
+        ), mock.patch.object(
+            server, "_password", return_value=("secret", "environment")
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server.validate_account({})
+        self.assertIsNone(result["inbox_messages"])
 
     def test_validate_account_closes_when_cleanup_deadline_expires(self) -> None:
         imap = mock.MagicMock()

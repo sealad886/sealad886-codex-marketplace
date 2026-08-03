@@ -634,7 +634,7 @@ def _fetch_message(
         raise MailError("Message identifier is stale because the mailbox changed")
     _set_socket_timeout(client, 120.0)
     status, size_data = client.uid("fetch", str(uid), "(RFC822.SIZE)")
-    if status != "OK" or not size_data:
+    if status != "OK" or not any(item is not None for item in (size_data or [])):
         raise MailError("Message no longer exists in this mailbox")
     size_metadata = b""
     for item in size_data:
@@ -710,8 +710,11 @@ def _body(message: Message) -> tuple[str, str]:
         if (
             part.get_content_disposition() == "attachment"
             or part.get_filename() is not None
-            or part.get_content_type() == "message/rfc822"
         ):
+            continue
+        if part.get_content_type() == "message/rfc822":
+            if part is message:
+                pending[0:0] = list(part.iter_parts())
             continue
         if part.is_multipart():
             pending[0:0] = list(part.iter_parts())
@@ -1362,7 +1365,12 @@ def validate_account(arguments: dict[str, Any]) -> dict[str, Any]:
         status, data = client.status("INBOX", "(MESSAGES)")
         if status != "OK":
             raise MailError("iCloud IMAP login succeeded but INBOX status failed")
-        mailbox_status = data[0].decode("ascii", errors="replace") if data else ""
+        first = data[0] if data else None
+        mailbox_status = (
+            first.decode("ascii", errors="replace")
+            if isinstance(first, bytes)
+            else ""
+        )
         imap_login_kind = client.__dict__.get(
             "_codex_imap_username_kind", "override"
         )
@@ -1540,7 +1548,12 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
             status, data = client.status(
                 _quoted_mailbox(item["name"]), "(MESSAGES UNSEEN)"
             )
-            text = data[0].decode("ascii", errors="replace") if status == "OK" and data else ""
+            first = data[0] if status == "OK" and data else None
+            text = (
+                first.decode("ascii", errors="replace")
+                if isinstance(first, bytes)
+                else ""
+            )
             counts = dict(re.findall(r"(MESSAGES|UNSEEN) (\d+)", text))
             item["messages"] = (
                 int(counts["MESSAGES"]) if "MESSAGES" in counts else None
@@ -1706,10 +1719,8 @@ def search_emails(
         results = []
         scanned = 0
         skipped_oversized = 0
-        scan_limit = (
-            min(len(uids), MAX_SEARCH_SCAN, max(maximum * 5, MAX_RESULTS))
-            if arguments.get("has_attachment") is not None
-            else len(uids)
+        scan_limit = min(
+            len(uids), MAX_SEARCH_SCAN, max(maximum * 5, MAX_RESULTS)
         )
         for uid in uids[:scan_limit]:
             if len(results) >= maximum:
