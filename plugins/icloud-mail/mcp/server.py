@@ -577,6 +577,8 @@ def _select(client: imaplib.IMAP4_SSL, mailbox: str, *, readonly: bool) -> int:
     selected = client.__dict__.get("_codex_selected_mailbox")
     if selected == (mailbox, readonly):
         return client.__dict__["_codex_selected_uidvalidity"]
+    client.__dict__.pop("_codex_selected_mailbox", None)
+    client.__dict__.pop("_codex_selected_uidvalidity", None)
     _set_socket_timeout(client, 25.0)
     status, data = client.select(_quoted_mailbox(mailbox), readonly=readonly)
     if status != "OK":

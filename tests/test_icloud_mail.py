@@ -363,6 +363,22 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(server._select(client, "INBOX", readonly=True), 7)
         client.select.assert_called_once()
 
+    def test_select_clears_cached_mailbox_before_ambiguous_switch(self) -> None:
+        client = mock.MagicMock()
+        client.__dict__["_codex_selected_mailbox"] = ("Mailbox A", False)
+        client.__dict__["_codex_selected_uidvalidity"] = 7
+        client.select.return_value = ("OK", [b"1"])
+        client.response.side_effect = [
+            ("UIDVALIDITY", None),
+            ("UIDVALIDITY", [b"7"]),
+        ]
+        with self.assertRaisesRegex(server.MailError, "UIDVALIDITY"):
+            server._select(client, "Mailbox B", readonly=False)
+        self.assertNotIn("_codex_selected_mailbox", client.__dict__)
+        self.assertNotIn("_codex_selected_uidvalidity", client.__dict__)
+        self.assertEqual(server._select(client, "Mailbox A", readonly=False), 7)
+        self.assertEqual(client.select.call_count, 2)
+
     def test_non_ascii_search_uses_utf8_charset_and_bytes(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"0"])
