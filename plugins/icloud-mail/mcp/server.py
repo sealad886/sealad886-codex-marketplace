@@ -2267,18 +2267,48 @@ def _recipients(value: Any, name: str, *, required: bool = False) -> list[str]:
     return result
 
 
+def _open_attachment_without_symlinks(path: Path) -> int:
+    if (
+        not hasattr(os, "O_NOFOLLOW")
+        or not hasattr(os, "O_DIRECTORY")
+        or os.open not in getattr(os, "supports_dir_fd", set())
+    ):
+        raise ValueError("secure attachment reads are not supported on this platform")
+    components = path.parts[1:]
+    if not components or any(part in {"", ".", ".."} for part in components):
+        raise ValueError("each attachment file must be an absolute regular-file path")
+    close_on_exec = getattr(os, "O_CLOEXEC", 0)
+    directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | close_on_exec
+    file_flags = (
+        os.O_RDONLY
+        | os.O_NOFOLLOW
+        | close_on_exec
+        | getattr(os, "O_NONBLOCK", 0)
+    )
+    directory_descriptor: int | None = os.open("/", directory_flags)
+    try:
+        for component in components[:-1]:
+            next_descriptor = os.open(
+                component, directory_flags, dir_fd=directory_descriptor
+            )
+            os.close(directory_descriptor)
+            directory_descriptor = next_descriptor
+        return os.open(
+            components[-1], file_flags, dir_fd=directory_descriptor
+        )
+    finally:
+        if directory_descriptor is not None:
+            os.close(directory_descriptor)
+
+
 def _read_outgoing_attachment(path: Path, remaining: int) -> bytes:
     if not path.is_absolute():
         raise ValueError("each attachment file must be an absolute regular-file path")
     if remaining <= 0:
         raise ValueError("attachments must be at most 5 MiB each and 10 MiB total")
-    if not hasattr(os, "O_NOFOLLOW"):
-        raise ValueError("secure attachment reads are not supported on this platform")
-    flags = os.O_RDONLY | os.O_NOFOLLOW
-    flags |= getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
     descriptor: int | None = None
     try:
-        descriptor = os.open(path, flags)
+        descriptor = _open_attachment_without_symlinks(path)
         metadata = os.fstat(descriptor)
         if not stat.S_ISREG(metadata.st_mode):
             raise ValueError(

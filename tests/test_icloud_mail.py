@@ -3364,7 +3364,7 @@ class ICloudMailTests(unittest.TestCase):
         if not hasattr(os, "O_NOFOLLOW"):
             self.skipTest("platform has no O_NOFOLLOW")
         with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
+            root = Path(temporary).resolve()
             target = root / "target.txt"
             target.write_text("secret", encoding="utf-8")
             substituted = root / "attachment.txt"
@@ -3374,11 +3374,28 @@ class ICloudMailTests(unittest.TestCase):
                     substituted, 10 * 1024 * 1024
                 )
 
+    def test_outgoing_attachment_read_rejects_symlinked_ancestor(self) -> None:
+        if not hasattr(os, "O_NOFOLLOW"):
+            self.skipTest("platform has no O_NOFOLLOW")
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            real_directory = root / "real"
+            real_directory.mkdir()
+            (real_directory / "attachment.txt").write_text(
+                "secret", encoding="utf-8"
+            )
+            linked_directory = root / "linked"
+            linked_directory.symlink_to(real_directory, target_is_directory=True)
+            with self.assertRaisesRegex(ValueError, "regular-file"):
+                server._read_outgoing_attachment(
+                    linked_directory / "attachment.txt", 10 * 1024 * 1024
+                )
+
     def test_outgoing_attachment_read_enforces_actual_byte_limit(self) -> None:
         if not hasattr(os, "O_NOFOLLOW"):
             self.skipTest("platform has no O_NOFOLLOW")
         with tempfile.TemporaryDirectory() as temporary:
-            path = Path(temporary) / "growing.bin"
+            path = Path(temporary).resolve() / "growing.bin"
             path.write_bytes(b"x" * (server.MAX_ATTACHMENT_BYTES + 1))
             real_fstat = os.fstat
 
