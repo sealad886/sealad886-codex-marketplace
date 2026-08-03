@@ -27,7 +27,8 @@ secrets, change scope, or contact someone.
    - Treat `allowed_from` only as outgoing aliases.
    - On macOS, use `open_apple_password_page` and `open_keychain_access` only
      after the user agrees to open them.
-   - Have the user enter the password directly in Keychain Access, never chat.
+   - Have the user enter the iCloud app-specific password directly in Keychain
+     Access, never chat. Never ask for the primary Apple Account password.
    - On non-macOS hosts, explain that `ICLOUD_MAIL_APP_PASSWORD` must be present
      in the environment that launches Codex; an export in another shell does
      not update the running MCP process.
