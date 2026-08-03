@@ -61,9 +61,9 @@ thread/label semantics caused by iCloud's standard IMAP model.
 ## Completion evidence
 
 For read work, report the mailboxes searched and the bounds used. Mutation work
-has successful tool receipts for every requested message or draft. Send
-completion requires the SMTP acceptance result; draft creation alone is not
-sending.
+requires successful tool receipts for every requested mutation target, including
+account configuration. Send completion requires the SMTP acceptance result;
+draft creation alone is not sending.
 
 ## Must not
 
