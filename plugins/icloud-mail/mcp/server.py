@@ -161,15 +161,46 @@ def _email_address(value: Any, name: str, *, required: bool = True) -> str:
     text = _text(value, name, required=required, limit=320)
     if not text:
         return ""
+    if any(ord(character) < 32 or ord(character) == 127 for character in text):
+        raise ValueError(f"{name} must be one valid email address")
     display, address = email.utils.parseaddr(text)
     if display or not address or address != text or "@" not in address:
         raise ValueError(f"{name} must be one plain email address")
     local, domain = address.rsplit("@", 1)
-    if not local or not domain or "." not in domain or any(
-        character.isspace() for character in address
+    local_parts = local.split(".")
+    dot_atom_local = all(local_parts) and all(
+        re.fullmatch(r"[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+", part)
+        for part in local_parts
+    )
+    quoted_local = (
+        len(local) >= 2
+        and local.startswith('"')
+        and local.endswith('"')
+        and re.fullmatch(r'"(?:[ !#-\[\]-~]|\\[ -~])*"', local)
+    )
+    if (
+        not local
+        or len(local) > 64
+        or not (dot_atom_local or quoted_local)
     ):
         raise ValueError(f"{name} must be one valid email address")
-    return f"{local}@{domain.lower()}"
+    try:
+        ascii_domain = domain.encode("ascii").decode("ascii").lower()
+    except UnicodeEncodeError as error:
+        raise ValueError(f"{name} must be one valid email address") from error
+    labels = ascii_domain.split(".")
+    if (
+        len(labels) < 2
+        or len(ascii_domain) > 253
+        or not all(
+            len(label) <= 63
+            and re.fullmatch(r"[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label)
+            for label in labels
+        )
+        or len(local) + len(ascii_domain) + 1 > 254
+    ):
+        raise ValueError(f"{name} must be one valid email address")
+    return f"{local}@{ascii_domain}"
 
 
 def _default_config() -> dict[str, Any]:
@@ -2263,6 +2294,8 @@ def archive_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"message_ids"}:
         raise ValueError("archive_emails requires message_ids")
     ids = _list(arguments["message_ids"], "message_ids", limit=MAX_MOVE_RESULTS)
+    if not ids:
+        raise ValueError("message_ids must not be empty")
     with _imap(socket_timeout=10.0) as client:
         destination = _special_mailbox(client, "Archive", ["Archive"])
         return _move_batch(client, ids, destination)
@@ -2272,6 +2305,8 @@ def trash_emails(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"message_ids"}:
         raise ValueError("trash_emails requires message_ids")
     ids = _list(arguments["message_ids"], "message_ids", limit=MAX_MOVE_RESULTS)
+    if not ids:
+        raise ValueError("message_ids must not be empty")
     with _imap(socket_timeout=10.0) as client:
         destination = _special_mailbox(client, "Trash", ["Deleted Messages", "Trash"])
         return _move_batch(client, ids, destination)
@@ -3147,9 +3182,9 @@ TOOLS = [
     {"name": "read_attachment", "description": "Read one advertised attachment up to 5 MiB as base64.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "attachment_id": {"type": "string"}}, "required": ["message_id", "attachment_id"], "additionalProperties": False}},
     {"name": "list_drafts", "description": "List iCloud Mail drafts.", "inputSchema": {"type": "object", "properties": {"max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "additionalProperties": False}},
     {"name": "set_email_flags", "description": "Explicitly mark up to five messages read/unread or flagged/unflagged.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_FLAG_RESULTS}, "read": {"type": "boolean"}, "flagged": {"type": "boolean"}}, "required": ["message_ids"], "additionalProperties": False}},
-    {"name": "move_emails", "description": "Explicitly move up to five messages to a named iCloud Mail folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}, "destination": {"type": "string"}}, "required": ["message_ids", "destination"], "additionalProperties": False}},
-    {"name": "archive_emails", "description": "Explicitly move up to five messages to the iCloud Archive folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
-    {"name": "trash_emails", "description": "Explicitly move up to five messages to iCloud Trash without permanent deletion.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
+    {"name": "move_emails", "description": "Explicitly move up to five messages to a named iCloud Mail folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": MAX_MOVE_RESULTS}, "destination": {"type": "string"}}, "required": ["message_ids", "destination"], "additionalProperties": False}},
+    {"name": "archive_emails", "description": "Explicitly move up to five messages to the iCloud Archive folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
+    {"name": "trash_emails", "description": "Explicitly move up to five messages to iCloud Trash without permanent deletion.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},
     {"name": "create_draft", "description": "Create an iCloud Mail draft without sending it.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},
     {"name": "update_draft", "description": "Replace an existing draft with revised content without sending it. Existing attachments are preserved when attachment_files is omitted.", "inputSchema": {"type": "object", "properties": {"draft_id": {"type": "string"}, "from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20, "description": "Omit to preserve existing attachments, use an empty array to remove them, or provide paths to replace them."}}, "required": ["draft_id"], "additionalProperties": False}},
     {"name": "send_email", "description": "Send a new message or reply through iCloud SMTP; use only on explicit send intent.", "inputSchema": {"type": "object", "properties": {"from": {"type": "string", "description": "Configured account address or allowed sender alias."}, "to": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "cc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "bcc": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_RECIPIENTS}, "subject": {"type": "string"}, "body": {"type": "string"}, "html_body": {"type": "string"}, "reply_message_id": {"type": "string"}, "attachment_files": {"type": "array", "items": {"type": "string"}, "maxItems": 20}}, "additionalProperties": False}},

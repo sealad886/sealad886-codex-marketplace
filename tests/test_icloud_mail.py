@@ -1211,6 +1211,41 @@ class ICloudMailTests(unittest.TestCase):
             server.configure_account({"account_address": "primary@icloud.com"})
             self.assertEqual(Path(temporary).stat().st_mode & 0o777, 0o755)
 
+    def test_email_address_rejects_malformed_mailboxes(self) -> None:
+        for address in (
+            "a@.com",
+            "a@example..com",
+            "a@-example.com",
+            "a@example-.com",
+            "a@exa_mple.com",
+            ".a@example.com",
+            "a..b@example.com",
+            "a@example.com\x00",
+            "a@example.com\x7f",
+            "victim@faß.de",
+            "victim@exam\u200dple.com",
+        ):
+            with self.subTest(address=address), self.assertRaisesRegex(
+                ValueError, "valid email address"
+            ):
+                server._email_address(address, "address")
+        self.assertEqual(
+            server._email_address("first.last+tag@Example.COM", "address"),
+            "first.last+tag@example.com",
+        )
+        for address in (
+            '"john..doe"@example.com',
+            '"john doe"@example.com',
+            '"john@home"@example.com',
+            '"john\\"doe"@example.com',
+        ):
+            with self.subTest(quoted_address=address):
+                self.assertEqual(server._email_address(address, "address"), address)
+        self.assertEqual(
+            server._email_address("recipient@XN--FA-HIA.DE", "address"),
+            "recipient@xn--fa-hia.de",
+        )
+
     def test_blank_xdg_config_home_uses_default_config_directory(self) -> None:
         with mock.patch.object(server.sys, "platform", "linux"), mock.patch.dict(
             os.environ, {"XDG_CONFIG_HOME": "   "}, clear=True
@@ -2058,6 +2093,20 @@ class ICloudMailTests(unittest.TestCase):
                 tool["inputSchema"]["properties"]["message_ids"]["maxItems"],
                 5,
             )
+            self.assertEqual(
+                tool["inputSchema"]["properties"]["message_ids"]["minItems"],
+                1,
+            )
+
+    def test_archive_and_trash_reject_empty_batches_before_connecting(self) -> None:
+        for name in ("archive_emails", "trash_emails"):
+            with self.subTest(name=name), mock.patch.object(
+                server, "_imap"
+            ) as connect, self.assertRaisesRegex(
+                ValueError, "message_ids must not be empty"
+            ):
+                getattr(server, name)({"message_ids": []})
+            connect.assert_not_called()
 
     def test_move_workflows_bound_imap_session_setup(self) -> None:
         for name, arguments in (
