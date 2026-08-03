@@ -3143,6 +3143,128 @@ class ICloudMailTests(unittest.TestCase):
             server.SMTP_HOST, server.SMTP_PORT, timeout=15.0
         )
 
+    def test_smtp_rejects_ambiguous_duplicate_from_headers(self) -> None:
+        message = email.message_from_bytes(
+            b"From: me@icloud.com\r\n"
+            b"From: unauthorized@example.com\r\n"
+            b"To: to@example.com\r\n"
+            b"Subject: Test\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
+            server.MailError, "Draft From"
+        ):
+            server._smtp_send(message)
+        smtp.assert_not_called()
+
+    def test_smtp_rejects_defective_or_grouped_from_header(self) -> None:
+        for from_value in (
+            b"me@icloud.com (unclosed",
+            b"Friends: me@icloud.com;",
+        ):
+            message = email.message_from_bytes(
+                b"From: "
+                + from_value
+                + b"\r\nTo: to@example.com\r\nSubject: Test\r\n\r\nbody",
+                policy=email.policy.default,
+            )
+            with self.subTest(from_value=from_value), tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+                os.environ,
+                {
+                    "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                    "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                    "ICLOUD_MAIL_APP_PASSWORD": "secret",
+                },
+                clear=True,
+            ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
+                server.MailError, "Draft From"
+            ):
+                server._smtp_send(message)
+            smtp.assert_not_called()
+
+    def test_smtp_envelope_includes_all_repeated_recipient_headers(self) -> None:
+        message = email.message_from_bytes(
+            b"From: me@icloud.com\r\n"
+            b"To: first@example.com\r\n"
+            b"To: second@example.com\r\n"
+            b"Cc: third@example.com\r\n"
+            b"Bcc: hidden@example.com\r\n"
+            b"Subject: Test\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        smtp = mock.MagicMock()
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        recipients = [
+            "first@example.com",
+            "second@example.com",
+            "third@example.com",
+            "hidden@example.com",
+        ]
+        self.assertEqual(smtp.send_message.call_args.kwargs["to_addrs"], recipients)
+        self.assertEqual(result["recipients"], recipients)
+        sent = smtp.send_message.call_args.args[0]
+        self.assertEqual(sent.get_all("To"), ["first@example.com", "second@example.com"])
+        self.assertIsNone(sent.get("Bcc"))
+
+    def test_smtp_rejects_malformed_draft_recipient_before_connecting(self) -> None:
+        message = email.message_from_bytes(
+            b"From: me@icloud.com\r\n"
+            b"To: good@example.com, not-an-address\r\n"
+            b"Subject: Test\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
+            server.MailError, "Draft recipient"
+        ):
+            server._smtp_send(message)
+        smtp.assert_not_called()
+
+    def test_smtp_rejects_defective_recipient_header_before_connecting(self) -> None:
+        message = email.message_from_bytes(
+            b"From: me@icloud.com\r\n"
+            b"To: good@example.com (unclosed\r\n"
+            b"Subject: Test\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
+            server.MailError, "Draft recipient"
+        ):
+            server._smtp_send(message)
+        smtp.assert_not_called()
+
     def test_smtp_rejects_more_than_twenty_recipients(self) -> None:
         message = EmailMessage()
         message["From"] = "me@icloud.com"

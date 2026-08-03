@@ -2546,7 +2546,17 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     deadline = _current_deadline()
     username = _username()
     password, _ = _password(username)
-    raw_sender = email.utils.parseaddr(message.get("From", ""))[1]
+    from_headers = message.get_all("From", [])
+    if any(getattr(header, "defects", ()) for header in from_headers) or any(
+        getattr(group, "display_name", None) is not None
+        for header in from_headers
+        for group in getattr(header, "groups", ())
+    ):
+        raise MailError("Draft From address is not allowed by current configuration")
+    parsed_senders = email.utils.getaddresses(from_headers)
+    if len(from_headers) != 1 or len(parsed_senders) != 1:
+        raise MailError("Draft From address is not allowed by current configuration")
+    raw_sender = parsed_senders[0][1]
     try:
         sender = _email_address(raw_sender, "Draft From")
     except ValueError:
@@ -2556,12 +2566,25 @@ def _smtp_send(message: Message) -> dict[str, Any]:
     config = _load_config(required=True)
     if sender not in {username, *config["allowed_from"]}:
         raise MailError("Draft From address is not allowed by current configuration")
-    recipients = [
-        address
+    recipient_headers = [
+        header_value
         for header in ("To", "Cc", "Bcc")
-        for _, address in email.utils.getaddresses([message.get(header, "")])
+        for header_value in message.get_all(header, [])
+    ]
+    if any(getattr(header, "defects", ()) for header in recipient_headers):
+        raise MailError("Draft recipient address is invalid")
+    parsed_recipients = [
+        address
+        for _, address in email.utils.getaddresses(recipient_headers)
         if address
     ]
+    try:
+        recipients = [
+            _email_address(address, "Draft recipient")
+            for address in parsed_recipients
+        ]
+    except ValueError:
+        raise MailError("Draft recipient address is invalid") from None
     if not recipients:
         raise ValueError("message has no recipients")
     if len(recipients) > MAX_RECIPIENTS:
