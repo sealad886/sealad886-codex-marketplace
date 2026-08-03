@@ -439,6 +439,21 @@ def _shutdown_imap(client: imaplib.IMAP4_SSL) -> None:
         pass
 
 
+def _cleanup_smtp(
+    client: smtplib.SMTP, deadline: OperationDeadline
+) -> Exception | None:
+    try:
+        _set_socket_timeout(client, 15.0, deadline)
+        client.quit()
+    except Exception as error:
+        try:
+            client.close()
+        except Exception:
+            pass
+        return error
+    return None
+
+
 @contextmanager
 def _imap(
     *,
@@ -1203,24 +1218,25 @@ def validate_account(arguments: dict[str, Any]) -> dict[str, Any]:
         )
     username = _username()
     password, _ = _password(username)
+    client: smtplib.SMTP | None = None
     try:
-        with smtplib.SMTP(
+        client = smtplib.SMTP(
             SMTP_HOST,
             SMTP_PORT,
             timeout=deadline.timeout(_timeout()),
-        ) as client:
-            if getattr(client, "sock", None) is not None:
-                _set_socket_timeout(client, _timeout(), deadline)
-            client.ehlo()
-            if getattr(client, "sock", None) is not None:
-                _set_socket_timeout(client, _timeout(), deadline)
-            client.starttls(context=ssl.create_default_context())
-            if getattr(client, "sock", None) is not None:
-                _set_socket_timeout(client, _timeout(), deadline)
-            client.ehlo()
-            if getattr(client, "sock", None) is not None:
-                _set_socket_timeout(client, _timeout(), deadline)
-            client.login(username, password)
+        )
+        if getattr(client, "sock", None) is not None:
+            _set_socket_timeout(client, _timeout(), deadline)
+        client.ehlo()
+        if getattr(client, "sock", None) is not None:
+            _set_socket_timeout(client, _timeout(), deadline)
+        client.starttls(context=ssl.create_default_context())
+        if getattr(client, "sock", None) is not None:
+            _set_socket_timeout(client, _timeout(), deadline)
+        client.ehlo()
+        if getattr(client, "sock", None) is not None:
+            _set_socket_timeout(client, _timeout(), deadline)
+        client.login(username, password)
     except smtplib.SMTPException as error:
         raise MailError(
             f"iCloud SMTP authentication failed: {type(error).__name__}"
@@ -1229,6 +1245,9 @@ def validate_account(arguments: dict[str, Any]) -> dict[str, Any]:
         raise MailError(
             f"Could not connect to iCloud SMTP: {type(error).__name__}"
         ) from None
+    finally:
+        if client is not None:
+            _cleanup_smtp(client, deadline)
     match = re.search(r"MESSAGES (\d+)", mailbox_status)
     return {
         "status": "validated",
@@ -2237,25 +2256,12 @@ def _smtp_send(message: Message) -> dict[str, Any]:
         raise MailError(f"Could not connect to iCloud SMTP: {type(error).__name__}") from None
     finally:
         if client is not None:
-            try:
-                _set_socket_timeout(client, 15.0, deadline)
-                client.quit()
-            except (
-                smtplib.SMTPException,
-                MailError,
-                OSError,
-                TimeoutError,
-                ValueError,
-            ) as error:
-                try:
-                    client.close()
-                except (smtplib.SMTPException, OSError, TimeoutError):
-                    pass
-                if refused is not None:
-                    cleanup_warning = (
-                        "SMTP accepted the message, but connection cleanup failed: "
-                        f"{type(error).__name__}"
-                    )
+            cleanup_error = _cleanup_smtp(client, deadline)
+            if cleanup_error is not None and refused is not None:
+                cleanup_warning = (
+                    "SMTP accepted the message, but connection cleanup failed: "
+                    f"{type(cleanup_error).__name__}"
+                )
     result = {
         "status": (
             "acceptance_unconfirmed"

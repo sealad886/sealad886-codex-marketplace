@@ -984,6 +984,69 @@ class ICloudMailTests(unittest.TestCase):
         smtp.login.assert_called_once_with("primary@icloud.com", "secret")
         smtp.send_message.assert_not_called()
 
+    def test_validate_account_closes_when_cleanup_deadline_expires(self) -> None:
+        imap = mock.MagicMock()
+        imap.status.return_value = ("OK", [b"INBOX (MESSAGES 12)"])
+        imap_context = mock.MagicMock()
+        imap_context.__enter__.return_value = imap
+        expired = False
+        deadline = mock.MagicMock()
+
+        def timeout(cap: float) -> float:
+            if expired:
+                raise server.MailError("timed out")
+            return cap
+
+        deadline.timeout.side_effect = timeout
+        smtp = mock.MagicMock()
+        smtp.__enter__.return_value = smtp
+        smtp.__exit__.side_effect = lambda *_args: smtp.quit()
+
+        def authenticate(_username: str, _password: str) -> None:
+            nonlocal expired
+            expired = True
+
+        smtp.login.side_effect = authenticate
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ), mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_APP_PASSWORD": "secret"}, clear=False
+        ), mock.patch.object(
+            server, "_current_deadline", return_value=deadline
+        ), mock.patch.object(
+            server, "_imap", return_value=imap_context
+        ), mock.patch.object(
+            server.smtplib, "SMTP", return_value=smtp
+        ):
+            server.configure_account({"account_address": "primary@icloud.com"})
+            result = server.validate_account({})
+
+        self.assertEqual(result["status"], "validated")
+        smtp.quit.assert_not_called()
+        smtp.close.assert_called_once_with()
+
+    def test_validate_account_preserves_auth_failure_when_cleanup_breaks(self) -> None:
+        imap = mock.MagicMock()
+        imap.status.return_value = ("OK", [b"INBOX (MESSAGES 12)"])
+        imap_context = mock.MagicMock()
+        imap_context.__enter__.return_value = imap
+        smtp = mock.MagicMock()
+        smtp.login.side_effect = server.smtplib.SMTPAuthenticationError(535, b"bad")
+        smtp.quit.side_effect = RuntimeError("quit cleanup failed")
+        smtp.close.side_effect = RuntimeError("close cleanup failed")
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ), mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_APP_PASSWORD": "secret"}, clear=False
+        ), mock.patch.object(
+            server, "_imap", return_value=imap_context
+        ), mock.patch.object(
+            server.smtplib, "SMTP", return_value=smtp
+        ):
+            server.configure_account({"account_address": "primary@icloud.com"})
+            with self.assertRaisesRegex(server.MailError, "authentication failed"):
+                server.validate_account({})
+
     def test_draft_mutations_reject_an_ordinary_message_reference(self) -> None:
         ordinary_id = server._encode_ref("Sent Messages", 7, 9)
         client = mock.MagicMock()
@@ -2241,6 +2304,31 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["status"], "accepted")
         self.assertFalse(result["retry_send"])
         self.assertIn("cleanup failed", result["cleanup_warning"])
+
+    def test_smtp_acceptance_survives_unexpected_cleanup_failures(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message["Subject"] = "Test"
+        message["Message-ID"] = "<test@icloud.com>"
+        message.set_content("body")
+        smtp = mock.MagicMock()
+        smtp.send_message.return_value = {}
+        smtp.quit.side_effect = RuntimeError("quit cleanup failed")
+        smtp.close.side_effect = RuntimeError("close cleanup failed")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        self.assertEqual(result["status"], "accepted")
+        self.assertFalse(result["retry_send"])
+        self.assertIn("RuntimeError", result["cleanup_warning"])
 
     def test_smtp_acceptance_survives_expired_cleanup_deadline(self) -> None:
         message = EmailMessage()
