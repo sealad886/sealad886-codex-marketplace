@@ -95,6 +95,65 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(entries[0]["size"], 4)
         self.assertTrue(entries[0]["read_supported"])
 
+    def test_attachment_entries_bound_decoded_filename(self) -> None:
+        message = EmailMessage()
+        message.set_content("body")
+        message.add_attachment(
+            b"data",
+            maintype="application",
+            subtype="octet-stream",
+            filename="📄" * (server.MAX_ATTACHMENT_FILENAME_CHARS + 1),
+        )
+        entry = server._attachment_entries(message, "message")[0]
+        self.assertLessEqual(
+            len(entry["filename"]), server.MAX_ATTACHMENT_FILENAME_CHARS
+        )
+        self.assertLessEqual(
+            len(entry["filename"].encode()), server.MAX_ATTACHMENT_FILENAME_BYTES
+        )
+        self.assertTrue(entry["filename_truncated"])
+
+    def test_attachment_entries_reject_excess_aggregate_filename_metadata(self) -> None:
+        message = EmailMessage()
+        message.set_content("body")
+        count = (
+            server.MAX_ATTACHMENT_METADATA_BYTES
+            // server.MAX_ATTACHMENT_FILENAME_BYTES
+            + 2
+        )
+        for index in range(count):
+            message.add_attachment(
+                b"data",
+                maintype="application",
+                subtype="octet-stream",
+                filename=f"{index}-" + "📄" * 1024,
+            )
+        with self.assertRaisesRegex(server.MailError, "attachment metadata"):
+            server._attachment_entries(message, "message")
+
+    def test_attachment_entries_reject_oversized_content_type_metadata(self) -> None:
+        source = (
+            b"Content-Type: application/"
+            + b"x" * (server.MAX_ATTACHMENT_CONTENT_TYPE_CHARS + 1)
+            + b"; name=report.bin\r\n\r\ndata"
+        )
+        message = email.message_from_bytes(source, policy=email.policy.default)
+        with self.assertRaisesRegex(server.MailError, "attachment metadata"):
+            server._attachment_entries(message, "message")
+
+    def test_attachment_entries_budget_json_escaped_filename_metadata(self) -> None:
+        message = EmailMessage()
+        message.set_content("body")
+        for _index in range(server.MAX_INCOMING_ATTACHMENTS):
+            message.add_attachment(
+                b"data",
+                maintype="application",
+                subtype="octet-stream",
+                filename="\0" * server.MAX_ATTACHMENT_FILENAME_CHARS,
+            )
+        with self.assertRaisesRegex(server.MailError, "attachment metadata"):
+            server._attachment_entries(message, "message")
+
     def test_attachment_entries_include_named_single_part_root(self) -> None:
         source = (
             b"Content-Type: application/pdf; name=\"report.pdf\"\r\n"
@@ -1246,6 +1305,32 @@ class ICloudMailTests(unittest.TestCase):
         payload = base64.b64decode(result["content_base64"])
         self.assertIn(b"Subject: Attached", payload)
         self.assertIn(b"attached body", payload)
+
+    def test_read_attachment_bounds_decoded_filename(self) -> None:
+        outer = EmailMessage()
+        outer.set_content("outer body")
+        outer.add_attachment(
+            b"data",
+            maintype="application",
+            subtype="octet-stream",
+            filename="x" * (server.MAX_ATTACHMENT_FILENAME_CHARS + 1),
+        )
+        message_id = server._encode_ref("INBOX", 7, 9)
+        attachment_id = server._attachment_entries(outer, message_id)[0][
+            "attachment_id"
+        ]
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_fetch_message", return_value=(outer, b"", "")
+        ):
+            result = server.read_attachment(
+                {"message_id": message_id, "attachment_id": attachment_id}
+            )
+        self.assertEqual(
+            len(result["filename"]), server.MAX_ATTACHMENT_FILENAME_CHARS
+        )
+        self.assertTrue(result["filename_truncated"])
 
     def test_read_attachment_rejects_guessed_body_part_id(self) -> None:
         outer = EmailMessage()

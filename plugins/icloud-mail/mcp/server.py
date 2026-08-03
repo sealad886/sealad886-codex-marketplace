@@ -69,6 +69,10 @@ MAX_BODYSTRUCTURE_DEPTH = 50
 MAX_MIME_DEPTH = 50
 MAX_MIME_PARTS = 500
 MAX_INCOMING_ATTACHMENTS = 100
+MAX_ATTACHMENT_FILENAME_CHARS = 512
+MAX_ATTACHMENT_FILENAME_BYTES = 2 * 1024
+MAX_ATTACHMENT_CONTENT_TYPE_CHARS = 255
+MAX_ATTACHMENT_METADATA_BYTES = 64 * 1024
 REF_PREFIX = "icloud-mail:"
 MCP_OPERATION_BUDGET_SECONDS = 540.0
 
@@ -918,6 +922,24 @@ def _attachment_parts(message: Message) -> Iterator[Message]:
             pending.extend((child, depth + 1) for child in reversed(children))
 
 
+def _bounded_attachment_filename(part: Message, index: int) -> tuple[str, bool]:
+    filename = _decode_header(part.get_filename()) or f"attachment-{index}"
+    bounded = filename[:MAX_ATTACHMENT_FILENAME_CHARS]
+    encoded = bounded.encode("utf-8")
+    if len(encoded) > MAX_ATTACHMENT_FILENAME_BYTES:
+        bounded = encoded[:MAX_ATTACHMENT_FILENAME_BYTES].decode(
+            "utf-8", errors="ignore"
+        )
+    return bounded, bounded != filename
+
+
+def _bounded_attachment_content_type(part: Message) -> str:
+    content_type = part.get_content_type()
+    if len(content_type) > MAX_ATTACHMENT_CONTENT_TYPE_CHARS:
+        raise MailError("Message attachment metadata exceeds the result limit")
+    return content_type
+
+
 def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any]]:
     entries = []
     walk_indices = {
@@ -930,18 +952,25 @@ def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any
                 f"Message contains more than {MAX_INCOMING_ATTACHMENTS} attachments"
             )
         index = walk_indices[id(part)]
-        filename = _decode_header(part.get_filename())
-        size = _attachment_payload_size(part)
+        filename, filename_truncated = _bounded_attachment_filename(part, index)
+        content_type = _bounded_attachment_content_type(part)
         token = base64.urlsafe_b64encode(str(index).encode()).decode().rstrip("=")
-        entries.append(
-            {
-                "attachment_id": f"{message_id}.{token}",
-                "filename": filename or f"attachment-{index}",
-                "content_type": part.get_content_type(),
-                "size": size,
-                "read_supported": size <= MAX_ATTACHMENT_BYTES,
-            }
-        )
+        attachment_id = f"{message_id}.{token}"
+        size = _attachment_payload_size(part)
+        candidate = {
+            "attachment_id": attachment_id,
+            "filename": filename,
+            "filename_truncated": filename_truncated,
+            "content_type": content_type,
+            "size": size,
+            "read_supported": size <= MAX_ATTACHMENT_BYTES,
+        }
+        if (
+            len(json.dumps([*entries, candidate], ensure_ascii=False).encode("utf-8"))
+            > MAX_ATTACHMENT_METADATA_BYTES
+        ):
+            raise MailError("Message attachment metadata exceeds the result limit")
+        entries.append(candidate)
     return entries
 
 
@@ -1869,10 +1898,13 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
     payload = _attachment_payload(part)
     if len(payload) > MAX_ATTACHMENT_BYTES:
         raise MailError("Attachment exceeds the 5 MiB result limit")
+    filename, filename_truncated = _bounded_attachment_filename(part, index)
+    content_type = _bounded_attachment_content_type(part)
     return {
         "attachment_id": attachment_id,
-        "filename": _decode_header(part.get_filename()) or f"attachment-{index}",
-        "content_type": part.get_content_type(),
+        "filename": filename,
+        "filename_truncated": filename_truncated,
+        "content_type": content_type,
         "size": len(payload),
         "content_base64": base64.b64encode(payload).decode(),
     }
