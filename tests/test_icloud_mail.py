@@ -2726,6 +2726,27 @@ class ICloudMailTests(unittest.TestCase):
             result = server._read_emails_shared(["vanished", "surviving"])
         self.assertEqual(result, [{"id": "surviving"}])
 
+    def test_shared_thread_fetch_skips_oversized_non_anchor_message(self) -> None:
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        message = EmailMessage()
+        with mock.patch.object(server, "_imap", return_value=context), mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server,
+            "_fetch_message",
+            side_effect=[
+                server.MailError("Message exceeds the 20 MiB processing limit"),
+                (message, b"", ""),
+            ],
+        ), mock.patch.object(
+            server,
+            "_read_email_result",
+            return_value={"id": "surviving"},
+        ):
+            result = server._read_emails_shared(["oversized", "surviving"])
+        self.assertEqual(result, [{"id": "surviving"}])
+
     def test_gui_helpers_open_only_fixed_targets(self) -> None:
         completed = mock.MagicMock(returncode=0)
         with tempfile.TemporaryDirectory() as temporary, self.config_environment(

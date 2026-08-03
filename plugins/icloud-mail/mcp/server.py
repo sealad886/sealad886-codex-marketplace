@@ -1823,7 +1823,10 @@ def _read_emails_shared(
                     client, mailbox, validity, uid
                 )
             except MailError as error:
-                if str(error) == "Message no longer exists in this mailbox":
+                if str(error) in {
+                    "Message no longer exists in this mailbox",
+                    "Message exceeds the 20 MiB processing limit",
+                }:
                     continue
                 raise
             results.append(
