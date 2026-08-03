@@ -59,6 +59,8 @@ MAX_SUMMARY_REFERENCES = 100
 MAX_SUMMARY_SCALAR_CHARS = 4 * 1024
 MAX_BODYSTRUCTURE_DEPTH = 50
 MAX_MIME_DEPTH = 50
+MAX_MIME_PARTS = 500
+MAX_INCOMING_ATTACHMENTS = 100
 REF_PREFIX = "icloud-mail:"
 MCP_OPERATION_BUDGET_SECONDS = 540.0
 
@@ -69,6 +71,10 @@ class MailError(RuntimeError):
 
 class SummaryTooLarge(MailError):
     """A search result cannot be represented within the summary limits."""
+
+
+class _MimePartLimitExceeded(Exception):
+    """Internal parser sentinel translated to a safe public mail error."""
 
 
 class OperationDeadline:
@@ -644,6 +650,7 @@ def _fetch_message(
         raise MailError("Message body response was malformed")
     if len(raw) > MAX_MESSAGE_BYTES:
         raise MailError("Message exceeds the 20 MiB processing limit")
+    _validate_summary_header_fields(_bounded_header_block(raw))
     metadata = b""
     for item in data:
         if isinstance(item, tuple):
@@ -658,14 +665,32 @@ def _fetch_message(
         if flag_matches
         else ""
     )
+    message = _parse_full_message(raw)
+    _validate_mime_depth(message)
+    return message, raw, flags_text
+
+
+def _parse_full_message(raw: bytes) -> Message:
+    created = 0
+
+    def bounded_factory(*args: Any, **kwargs: Any) -> EmailMessage:
+        nonlocal created
+        created += 1
+        if created > MAX_MIME_PARTS:
+            raise _MimePartLimitExceeded
+        return EmailMessage(*args, **kwargs)
+
+    policy = email.policy.default.clone(message_factory=bounded_factory)
     try:
-        message = email.message_from_bytes(raw, policy=email.policy.default)
+        return email.message_from_bytes(raw, policy=policy)
+    except _MimePartLimitExceeded:
+        raise MailError(
+            f"Message contains more than {MAX_MIME_PARTS} MIME parts"
+        ) from None
     except RecursionError:
         raise MailError(
             "Message MIME structure exceeds the supported depth"
         ) from None
-    _validate_mime_depth(message)
-    return message, raw, flags_text
 
 
 def _body(message: Message) -> tuple[str, str]:
@@ -839,8 +864,12 @@ def _attachment_payload_size(part: Message) -> int:
 
 def _iter_message_parts(message: Message) -> Iterator[tuple[Message, int]]:
     pending = [(message, 0)]
+    visited = 0
     while pending:
         part, depth = pending.pop()
+        visited += 1
+        if visited > MAX_MIME_PARTS:
+            raise MailError(f"Message contains more than {MAX_MIME_PARTS} MIME parts")
         if depth > MAX_MIME_DEPTH:
             raise MailError("Message MIME structure exceeds the supported depth")
         yield part, depth
@@ -856,8 +885,12 @@ def _validate_mime_depth(message: Message) -> None:
 
 def _attachment_parts(message: Message) -> Iterator[Message]:
     pending = [(message, 0)]
+    visited = 0
     while pending:
         part, depth = pending.pop()
+        visited += 1
+        if visited > MAX_MIME_PARTS:
+            raise MailError(f"Message contains more than {MAX_MIME_PARTS} MIME parts")
         if depth > MAX_MIME_DEPTH:
             raise MailError("Message MIME structure exceeds the supported depth")
         filename = _decode_header(part.get_filename())
@@ -879,6 +912,10 @@ def _attachment_entries(message: Message, message_id: str) -> list[dict[str, Any
         for index, (part, _depth) in enumerate(_iter_message_parts(message))
     }
     for part in _attachment_parts(message):
+        if len(entries) >= MAX_INCOMING_ATTACHMENTS:
+            raise MailError(
+                f"Message contains more than {MAX_INCOMING_ATTACHMENTS} attachments"
+            )
         index = walk_indices[id(part)]
         filename = _decode_header(part.get_filename())
         size = _attachment_payload_size(part)
@@ -902,6 +939,7 @@ def _summary(
     *,
     attachments: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
+    fields = _bounded_summary_fields(message)
     plain, _ = _body(message)
     attachments = (
         _attachment_entries(message, message_id)
@@ -910,13 +948,13 @@ def _summary(
     )
     return {
         "id": message_id,
-        "internet_message_id": message.get("Message-ID", ""),
-        "subject": _decode_header(message.get("Subject")),
-        "from": _addresses(message.get("From")),
-        "to": _addresses(message.get("To")),
-        "cc": _addresses(message.get("Cc")),
-        "bcc": _addresses(message.get("Bcc")),
-        "date": message.get("Date", ""),
+        "internet_message_id": fields["internet_message_id"],
+        "subject": fields["subject"],
+        "from": fields["from"],
+        "to": fields["to"],
+        "cc": fields["cc"],
+        "bcc": fields["bcc"],
+        "date": fields["date"],
         "unread": "\\Seen" not in flags,
         "flagged": "\\Flagged" in flags,
         "has_attachments": bool(attachments),
@@ -976,33 +1014,56 @@ def _fetch_summary(
         else ""
     )
     message_id = _encode_ref(mailbox, expected_validity, uid)
-    address_fields = {
-        name: _addresses(message.get(name.title()))
-        for name in ("from", "to", "cc", "bcc")
+    fields = _bounded_summary_fields(message)
+    return {
+        "id": message_id,
+        "internet_message_id": fields["internet_message_id"],
+        "subject": fields["subject"],
+        "from": fields["from"],
+        "to": fields["to"],
+        "cc": fields["cc"],
+        "bcc": fields["bcc"],
+        "date": fields["date"],
+        "in_reply_to": fields["in_reply_to"],
+        "unread": "\\Seen" not in flags,
+        "flagged": "\\Flagged" in flags,
+        "has_attachments": _bodystructure_has_attachment(metadata_bytes),
+        "snippet": "",
+        "references": fields["references"],
     }
-    if sum(len(values) for values in address_fields.values()) > MAX_SUMMARY_ADDRESSES:
+
+
+def _bounded_header_block(raw: bytes) -> bytes:
+    endings = [
+        position + len(separator)
+        for separator in (b"\r\n\r\n", b"\n\n")
+        if (position := raw.find(separator, 0, MAX_SUMMARY_HEADER_BYTES + 5)) >= 0
+    ]
+    end = min(endings) if endings else len(raw)
+    if end > MAX_SUMMARY_HEADER_BYTES:
         raise SummaryTooLarge("Message summary exceeds the processing limit")
-    scalar_fields = {
+    return raw[:end]
+
+
+def _bounded_summary_fields(message: Message) -> dict[str, Any]:
+    addresses = {
+        name: _addresses(message.get(name.replace("_", "-").title()))
+        for name in ("from", "to", "cc", "bcc", "reply_to")
+    }
+    if sum(len(values) for values in addresses.values()) > MAX_SUMMARY_ADDRESSES:
+        raise SummaryTooLarge("Message summary exceeds the processing limit")
+    scalars = {
         "internet_message_id": str(message.get("Message-ID", "")),
         "subject": _decode_header(message.get("Subject")),
         "date": str(message.get("Date", "")),
         "in_reply_to": str(message.get("In-Reply-To", "")),
     }
-    if any(len(value) > MAX_SUMMARY_SCALAR_CHARS for value in scalar_fields.values()):
+    if any(len(value) > MAX_SUMMARY_SCALAR_CHARS for value in scalars.values()):
         raise SummaryTooLarge("Message summary exceeds the processing limit")
     references = str(message.get("References", "")).split()
     if len(references) > MAX_SUMMARY_REFERENCES:
         raise SummaryTooLarge("Message summary exceeds the processing limit")
-    return {
-        "id": message_id,
-        **scalar_fields,
-        **address_fields,
-        "unread": "\\Seen" not in flags,
-        "flagged": "\\Flagged" in flags,
-        "has_attachments": _bodystructure_has_attachment(metadata_bytes),
-        "snippet": "",
-        "references": references,
-    }
+    return {**scalars, **addresses, "references": references}
 
 
 def _validate_summary_header_fields(headers: bytes) -> None:
@@ -1013,7 +1074,7 @@ def _validate_summary_header_fields(headers: bytes) -> None:
     reference_chars = 0
     reference_count = 0
     scalar_chars: dict[str, int] = {}
-    address_names = {"from", "to", "cc", "bcc"}
+    address_names = {"from", "to", "cc", "bcc", "reply-to"}
     reference_names = {"references", "in-reply-to"}
     scalar_names = {"message-id", "subject", "date"}
     for raw_name, raw_value in parsed.raw_items():
@@ -1159,7 +1220,7 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
             maintype == b"MESSAGE"
             and subtype == b"RFC822"
             and len(node) > 8
-            and contains_attachment(node[8], is_root=True, depth=depth + 1)
+            and contains_attachment(node[8], is_root=False, depth=depth + 1)
         )
 
     try:
@@ -1630,16 +1691,17 @@ def _read_email_result(
 ) -> dict[str, Any]:
     plain, html = _body(message)
     attachments = _attachment_entries(message, message_id)
+    fields = _bounded_summary_fields(message)
     result = _summary(message, message_id, flags, attachments=attachments)
     result.update(
         {
             "mailbox": mailbox,
             "body_text": plain,
             "body_html": html,
-            "reply_to": _addresses(message.get("Reply-To")),
+            "reply_to": fields["reply_to"],
             "attachments": attachments,
-            "references": message.get("References", "").split(),
-            "in_reply_to": message.get("In-Reply-To", ""),
+            "references": fields["references"],
+            "in_reply_to": fields["in_reply_to"],
         }
     )
     if include_raw_mime:

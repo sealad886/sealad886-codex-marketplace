@@ -238,6 +238,54 @@ class ICloudMailTests(unittest.TestCase):
         except RecursionError:
             self.fail("deep full MIME tree escaped depth guard")
 
+    def test_attachment_listing_rejects_excessive_mime_part_count(self) -> None:
+        root = EmailMessage()
+        root.make_mixed()
+        for index in range(server.MAX_MIME_PARTS):
+            child = EmailMessage()
+            child.set_content(f"part {index}")
+            root.attach(child)
+        with self.assertRaisesRegex(server.MailError, "MIME parts"):
+            server._attachment_entries(root, "message")
+
+    def test_attachment_listing_rejects_excessive_attachment_count(self) -> None:
+        root = EmailMessage()
+        root.set_content("body")
+        for index in range(server.MAX_INCOMING_ATTACHMENTS + 1):
+            root.add_attachment(
+                b"",
+                maintype="application",
+                subtype="octet-stream",
+                filename=f"item-{index}.bin",
+            )
+        with self.assertRaisesRegex(server.MailError, "attachments"):
+            server._attachment_entries(root, "message")
+
+    def test_mime_parser_accepts_exact_part_limit(self) -> None:
+        raw = (
+            b"Content-Type: multipart/mixed; boundary=x\r\n\r\n"
+            + b"".join(b"--x\r\n\r\n\r\n" for _ in range(server.MAX_MIME_PARTS - 1))
+            + b"--x--\r\n"
+        )
+        message = server._parse_full_message(raw)
+        self.assertEqual(len(list(server._iter_message_parts(message))), 500)
+
+    def test_mime_parser_stops_allocation_at_part_limit(self) -> None:
+        raw = (
+            b"Content-Type: multipart/mixed; boundary=x\r\n\r\n"
+            + b"".join(b"--x\r\n\r\n\r\n" for _ in range(10_000))
+            + b"--x--\r\n"
+        )
+        original = server.EmailMessage
+        with mock.patch.object(
+            server,
+            "EmailMessage",
+            side_effect=lambda *args, **kwargs: original(*args, **kwargs),
+        ) as factory:
+            with self.assertRaisesRegex(server.MailError, "more than 500 MIME parts"):
+                server._parse_full_message(raw)
+        self.assertEqual(factory.call_count, server.MAX_MIME_PARTS)
+
     def test_self_test_is_offline_and_passes(self) -> None:
         result = subprocess.run(
             [sys.executable, str(SERVER), "--self-test"],
@@ -686,6 +734,14 @@ class ICloudMailTests(unittest.TestCase):
         )
         self.assertTrue(server._bodystructure_has_attachment(metadata))
 
+    def test_bodystructure_rfc822_nested_beneath_root_wrapper_is_attachment(self) -> None:
+        metadata = (
+            b'9 (BODYSTRUCTURE ("MESSAGE" "RFC822" NIL NIL NIL "7BIT" 100 NIL '
+            b'("MESSAGE" "RFC822" NIL NIL NIL "7BIT" 80 NIL '
+            b'("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1) 1) 1))'
+        )
+        self.assertTrue(server._bodystructure_has_attachment(metadata))
+
     def test_bodystructure_multipart_name_parameter_is_attachment(self) -> None:
         metadata = (
             b'9 (BODYSTRUCTURE (("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1) '
@@ -767,6 +823,20 @@ class ICloudMailTests(unittest.TestCase):
         with self.assertRaisesRegex(server.MailError, "determine message size"):
             server._fetch_message(client, "INBOX", 7, 9)
         self.assertEqual(client.uid.call_count, 1)
+
+    def test_full_message_fetch_rejects_header_amplification_before_parsing(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        raw = b"To: " + b"a@b," * 101 + b"\r\n\r\nbody"
+        client.uid.side_effect = [
+            ("OK", [f"9 (UID 9 RFC822.SIZE {len(raw)})".encode()]),
+            ("OK", [(b"9 (UID 9 BODY[]", raw), b" FLAGS ()"]),
+        ]
+        with mock.patch.object(server.email, "message_from_bytes") as parse:
+            with self.assertRaisesRegex(server.SummaryTooLarge, "summary exceeds"):
+                server._fetch_message(client, "INBOX", 7, 9)
+        parse.assert_not_called()
 
     def test_full_message_fetch_translates_parser_recursion_failure(self) -> None:
         client = mock.MagicMock()
