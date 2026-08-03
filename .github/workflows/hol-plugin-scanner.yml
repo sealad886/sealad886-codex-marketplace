@@ -15,9 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - name: Scan plugin
+      - name: Scan Project Delivery plugin
         uses: hashgraph-online/ai-plugin-scanner-action@8f0a503ca2a70c1968a9a883e11fdff5737b7909 # v1.2.514
         with:
           plugin_dir: "plugins/project-delivery"
@@ -25,16 +27,21 @@ jobs:
           min_score: 80
           fail_on_severity: high
           format: sarif
+          profile: public-marketplace
           upload_sarif: true
           sarif_category: project-delivery
+          cisco_skill_scan: "on"
+          install_cisco: true
 
   scan-conversation-visuals:
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
 
-      - name: Scan Conversation Visuals
+      - name: Scan Conversation Visuals plugin
         uses: hashgraph-online/ai-plugin-scanner-action@8f0a503ca2a70c1968a9a883e11fdff5737b7909 # v1.2.514
         with:
           plugin_dir: "plugins/conversation-visuals"
@@ -42,5 +49,30 @@ jobs:
           min_score: 80
           fail_on_severity: high
           format: sarif
+          profile: public-marketplace
           upload_sarif: true
           sarif_category: conversation-visuals
+          cisco_skill_scan: "on"
+          install_cisco: true
+
+  scan-icloud-mail:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Scan iCloud Mail plugin
+        uses: hashgraph-online/ai-plugin-scanner-action@8f0a503ca2a70c1968a9a883e11fdff5737b7909 # v1.2.514
+        with:
+          plugin_dir: "plugins/icloud-mail"
+          mode: scan
+          min_score: 80
+          fail_on_severity: high
+          format: sarif
+          profile: public-marketplace
+          upload_sarif: true
+          sarif_category: icloud-mail
+          cisco_skill_scan: "on"
+          install_cisco: true
