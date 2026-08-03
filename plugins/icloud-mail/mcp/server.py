@@ -44,7 +44,15 @@ CONFIG_VERSION = 1
 MAX_RESULTS = 50
 MAX_MOVE_RESULTS = 5
 MAX_FLAG_RESULTS = 5
-MAX_MAILBOX_STATUS = 100
+MAX_MAILBOX_RESULTS = 100
+MAX_MAILBOX_STATUS = MAX_MAILBOX_RESULTS
+MAX_MAILBOX_SCAN_ENTRIES = 1_000
+MAX_MAILBOX_SCAN_BYTES = 512 * 1024
+MAX_MAILBOX_ENTRY_BYTES = 8 * 1024
+MAX_MAILBOX_NAME_CHARS = 500
+MAX_MAILBOX_FLAGS = 50
+MAX_MAILBOX_FLAG_CHARS = 1_000
+MAX_MAILBOX_OUTPUT_BYTES = 128 * 1024
 MAX_RECIPIENTS = 20
 MAX_SEARCH_SCAN = 80
 MAX_BODY_CHARS = 100_000
@@ -1445,24 +1453,56 @@ def open_keychain_access(arguments: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _mailboxes(client: imaplib.IMAP4_SSL) -> list[dict[str, Any]]:
+def _mailboxes(
+    client: imaplib.IMAP4_SSL, *, limit: int | None = None
+) -> tuple[list[dict[str, Any]], bool]:
     _set_socket_timeout(client, 25.0)
     status, data = client.list()
     if status != "OK":
         raise MailError("Could not list iCloud Mail mailboxes")
-    result = []
+    result: list[dict[str, Any]] = []
+    incomplete = False
+    examined_bytes = 0
     pattern = re.compile(
         rb'^\((?P<flags>[^)]*)\) (?:"(?P<delimiter>[^"]*)"|NIL) (?P<name>.+)$'
     )
-    for raw in data or []:
+    for index, raw in enumerate(data or []):
+        if index >= MAX_MAILBOX_SCAN_ENTRIES:
+            incomplete = True
+            break
         if not raw:
+            incomplete = True
             continue
-        if isinstance(raw, tuple):
-            raw = b" ".join(item for item in raw if isinstance(item, bytes))
+        was_tuple = isinstance(raw, tuple)
+        if was_tuple:
+            parts = [item for item in raw if isinstance(item, bytes)]
+            raw_size = sum(len(item) for item in parts) + max(0, len(parts) - 1)
+            if not parts:
+                incomplete = True
+                continue
+            if examined_bytes + raw_size > MAX_MAILBOX_SCAN_BYTES:
+                incomplete = True
+                break
+            examined_bytes += raw_size
+            if raw_size > MAX_MAILBOX_ENTRY_BYTES:
+                incomplete = True
+                continue
+            raw = b" ".join(parts)
         if not isinstance(raw, bytes):
+            incomplete = True
             continue
+        if not was_tuple:
+            raw_size = len(raw)
+            if examined_bytes + raw_size > MAX_MAILBOX_SCAN_BYTES:
+                incomplete = True
+                break
+            examined_bytes += raw_size
+            if raw_size > MAX_MAILBOX_ENTRY_BYTES:
+                incomplete = True
+                continue
         match = pattern.match(raw)
         if not match:
+            incomplete = True
             continue
         name_raw = match.group("name").strip()
         name_raw = re.sub(rb"^\{\d+\}\s*", b"", name_raw)
@@ -1470,15 +1510,27 @@ def _mailboxes(client: imaplib.IMAP4_SSL) -> list[dict[str, Any]]:
             name_raw = name_raw[1:-1].replace(b'\\"', b'"').replace(b"\\\\", b"\\")
         name = _decode_imap_utf7(name_raw)
         flags = match.group("flags").decode("ascii", errors="replace").split()
+        if (
+            len(name) > MAX_MAILBOX_NAME_CHARS
+            or len(flags) > MAX_MAILBOX_FLAGS
+            or sum(len(value) for value in flags) > MAX_MAILBOX_FLAG_CHARS
+        ):
+            incomplete = True
+            continue
         result.append({"name": name, "flags": flags})
-    return result
+        if limit is not None and len(result) > limit:
+            incomplete = True
+            break
+    return result, incomplete
 
 
 def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
     if arguments:
         raise ValueError("list_mailboxes takes no arguments")
     with _imap(socket_timeout=4.0) as client:
-        mailboxes = _mailboxes(client)
+        mailboxes, truncated = _mailboxes(client, limit=MAX_MAILBOX_RESULTS)
+        mailboxes = mailboxes[:MAX_MAILBOX_RESULTS]
+        bounded_mailboxes: list[dict[str, Any]] = []
         for index, item in enumerate(mailboxes):
             if index >= MAX_MAILBOX_STATUS:
                 item["messages"] = None
@@ -1496,7 +1548,18 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
             item["unread"] = (
                 int(counts["UNSEEN"]) if "UNSEEN" in counts else None
             )
-        return {"mailboxes": mailboxes}
+            candidate = {
+                "mailboxes": bounded_mailboxes + [item],
+                "truncated": False,
+            }
+            if (
+                len(json.dumps(candidate, ensure_ascii=False).encode("utf-8"))
+                > MAX_MAILBOX_OUTPUT_BYTES
+            ):
+                truncated = True
+                break
+            bounded_mailboxes.append(item)
+        return {"mailboxes": bounded_mailboxes, "truncated": truncated}
 
 
 def _quoted(value: str) -> str:
@@ -1930,7 +1993,7 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _special_mailbox(client: imaplib.IMAP4_SSL, special: str, fallbacks: list[str]) -> str:
-    mailboxes = _mailboxes(client)
+    mailboxes, _ = _mailboxes(client)
     flag = f"\\{special.lower()}"
     for item in mailboxes:
         if any(value.lower() == flag for value in item["flags"]):
@@ -2803,7 +2866,7 @@ TOOLS = [
     {"name": "validate_account", "description": "Authenticate to iCloud IMAP and SMTP without sending email.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "open_apple_password_page", "description": "On macOS, open Apple Account so the user can create an app-specific password. This does not read credentials.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "open_keychain_access", "description": "On macOS, open Keychain Access and return fields for manually saving the app-specific password.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
-    {"name": "list_mailboxes", "description": "List iCloud Mail folders with total and unread counts.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "list_mailboxes", "description": "List up to 100 iCloud Mail folders with total and unread counts; truncated is true when more folders exist.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "search_emails", "description": "Search one mailbox using bounded structured IMAP fields.", "inputSchema": {"type": "object", "properties": {"mailbox": {"type": "string", "default": "INBOX"}, "query": {"type": "string"}, "from": {"type": "string"}, "to": {"type": "string"}, "subject": {"type": "string"}, "after": {"type": "string", "description": "YYYY-MM-DD"}, "before": {"type": "string", "description": "YYYY-MM-DD"}, "unread": {"type": "boolean"}, "flagged": {"type": "boolean"}, "has_attachment": {"type": "boolean"}, "max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "additionalProperties": False}},
     {"name": "read_email", "description": "Read one message and list its attachments.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "include_raw_mime": {"type": "boolean", "default": False}}, "required": ["message_id"], "additionalProperties": False}},
     {"name": "read_email_thread", "description": "Read a best-effort conversation reconstructed within the message mailbox.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "required": ["message_id"], "additionalProperties": False}},

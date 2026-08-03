@@ -602,11 +602,101 @@ class ICloudMailTests(unittest.TestCase):
             "OK",
             [(b"(\\HasNoChildren) NIL {11}", b"Project Box")],
         )
-        result = server._mailboxes(client)
+        result, incomplete = server._mailboxes(client)
         self.assertEqual(
             result,
             [{"name": "Project Box", "flags": ["\\HasNoChildren"]}],
         )
+        self.assertFalse(incomplete)
+
+    def test_mailbox_list_truncates_and_reports_oversized_folder_trees(self) -> None:
+        client = mock.MagicMock()
+        client.list.return_value = (
+            "OK",
+            [
+                f'(\\HasNoChildren) "/" "Folder {index}"'.encode()
+                for index in range(101)
+            ],
+        )
+        client.status.return_value = ("OK", [b"(MESSAGES 1 UNSEEN 0)"])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.list_mailboxes({})
+        self.assertEqual(len(result["mailboxes"]), 100)
+        self.assertEqual(result["mailboxes"][-1]["name"], "Folder 99")
+        self.assertTrue(result["truncated"])
+
+    def test_mailbox_list_omits_oversized_names_and_flags(self) -> None:
+        client = mock.MagicMock()
+        oversized_name = b"N" * 501
+        oversized_flags = b" ".join([b"\\Flag"] * 51)
+        client.list.return_value = (
+            "OK",
+            [
+                b'(\\HasNoChildren) "/" "' + oversized_name + b'"',
+                b"(" + oversized_flags + b') "/" "Flags"',
+            ],
+        )
+        client.status.return_value = ("OK", [b"(MESSAGES 1 UNSEEN 0)"])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.list_mailboxes({})
+        self.assertEqual(result["mailboxes"], [])
+        self.assertTrue(result["truncated"])
+
+    def test_special_mailbox_discovery_scans_beyond_public_result_limit(self) -> None:
+        client = mock.MagicMock()
+        client.list.return_value = (
+            "OK",
+            [
+                f'(\\HasNoChildren) "/" "Folder {index}"'.encode()
+                for index in range(101)
+            ]
+            + [b'(\\Trash) "/" "Deleted Messages"'],
+        )
+        self.assertEqual(
+            server._special_mailbox(client, "Trash", ["Deleted Messages", "Trash"]),
+            "Deleted Messages",
+        )
+
+    def test_mailbox_scan_stops_after_bounded_invalid_entries(self) -> None:
+        client = mock.MagicMock()
+        client.list.return_value = ("OK", [b"invalid"] * 1_001)
+        mailboxes, incomplete = server._mailboxes(client)
+        self.assertEqual(mailboxes, [])
+        self.assertTrue(incomplete)
+
+    def test_mailbox_scan_stops_at_aggregate_raw_byte_budget(self) -> None:
+        client = mock.MagicMock()
+        name = b"N" * 500
+        flag = b"\\" + b"F" * 99
+        client.list.return_value = (
+            "OK",
+            [b"(" + flag + b') "/" "' + name + b'"'] * 1_000,
+        )
+        mailboxes, incomplete = server._mailboxes(client)
+        self.assertLess(len(mailboxes), 1_000)
+        self.assertTrue(incomplete)
+
+    def test_mailbox_result_stays_within_serialized_output_envelope(self) -> None:
+        client = mock.MagicMock()
+        name = server._encode_imap_utf7("\U0001f4e7" * 500).encode("ascii")
+        flags = b" ".join([b"\\" + b"F" * 19] * 50)
+        client.list.return_value = (
+            "OK",
+            [b"(" + flags + b') "/" "' + name + b'"'] * 101,
+        )
+        client.status.return_value = ("OK", [b"(MESSAGES 1 UNSEEN 0)"])
+        context = mock.MagicMock()
+        context.__enter__.return_value = client
+        with mock.patch.object(server, "_imap", return_value=context):
+            result = server.list_mailboxes({})
+        self.assertLessEqual(
+            len(json.dumps(result, ensure_ascii=False).encode()), 128 * 1024
+        )
+        self.assertTrue(result["truncated"])
 
     def test_mailbox_counts_remain_unknown_when_status_is_unavailable(self) -> None:
         client = mock.MagicMock()
@@ -621,6 +711,7 @@ class ICloudMailTests(unittest.TestCase):
             result = server.list_mailboxes({})
         self.assertIsNone(result["mailboxes"][0]["messages"])
         self.assertIsNone(result["mailboxes"][0]["unread"])
+        self.assertFalse(result["truncated"])
 
     def test_mailbox_status_enumeration_has_time_and_count_bounds(self) -> None:
         client = mock.MagicMock()
@@ -635,7 +726,9 @@ class ICloudMailTests(unittest.TestCase):
             os.environ, {"ICLOUD_MAIL_TIMEOUT": "120"}
         ), mock.patch.object(
             server, "_imap", return_value=context
-        ) as connect, mock.patch.object(server, "_mailboxes", return_value=mailboxes):
+        ) as connect, mock.patch.object(
+            server, "_mailboxes", return_value=(mailboxes, True)
+        ):
             result = server.list_mailboxes({})
         connect.assert_called_once_with(socket_timeout=4.0)
         self.assertEqual(
@@ -643,7 +736,9 @@ class ICloudMailTests(unittest.TestCase):
             [mock.call(4.0)] * server.MAX_MAILBOX_STATUS,
         )
         self.assertEqual(client.status.call_count, server.MAX_MAILBOX_STATUS)
-        self.assertIsNone(result["mailboxes"][-1]["messages"])
+        self.assertEqual(len(result["mailboxes"]), server.MAX_MAILBOX_STATUS)
+        self.assertEqual(result["mailboxes"][-1]["messages"], 1)
+        self.assertTrue(result["truncated"])
 
     def test_mailbox_discovery_refreshes_deadline_before_list(self) -> None:
         client = mock.MagicMock()
