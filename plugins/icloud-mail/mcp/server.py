@@ -1379,6 +1379,7 @@ def open_keychain_access(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def _mailboxes(client: imaplib.IMAP4_SSL) -> list[dict[str, Any]]:
+    _set_socket_timeout(client, 25.0)
     status, data = client.list()
     if status != "OK":
         raise MailError("Could not list iCloud Mail mailboxes")
@@ -1411,12 +1412,12 @@ def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("list_mailboxes takes no arguments")
     with _imap(socket_timeout=4.0) as client:
         mailboxes = _mailboxes(client)
-        _set_socket_timeout(client, 4.0)
         for index, item in enumerate(mailboxes):
             if index >= MAX_MAILBOX_STATUS:
                 item["messages"] = None
                 item["unread"] = None
                 continue
+            _set_socket_timeout(client, 4.0)
             status, data = client.status(
                 _quoted_mailbox(item["name"]), "(MESSAGES UNSEEN)"
             )
@@ -2783,10 +2784,10 @@ def _response(request_id: Any, result: Any = None, error: dict[str, Any] | None 
 
 
 def handle(request: dict[str, Any]) -> dict[str, Any] | None:
+    if "id" not in request:
+        return None
     request_id = request.get("id")
     method = request.get("method")
-    if method == "notifications/initialized":
-        return None
     if method == "initialize":
         return _response(
             request_id,

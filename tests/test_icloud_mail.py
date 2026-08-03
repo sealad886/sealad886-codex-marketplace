@@ -590,9 +590,26 @@ class ICloudMailTests(unittest.TestCase):
         ) as connect, mock.patch.object(server, "_mailboxes", return_value=mailboxes):
             result = server.list_mailboxes({})
         connect.assert_called_once_with(socket_timeout=4.0)
-        client.sock.settimeout.assert_called_once_with(4.0)
+        self.assertEqual(
+            client.sock.settimeout.call_args_list,
+            [mock.call(4.0)] * server.MAX_MAILBOX_STATUS,
+        )
         self.assertEqual(client.status.call_count, server.MAX_MAILBOX_STATUS)
         self.assertIsNone(result["mailboxes"][-1]["messages"])
+
+    def test_mailbox_discovery_refreshes_deadline_before_list(self) -> None:
+        client = mock.MagicMock()
+        deadline = mock.MagicMock()
+        deadline.timeout.side_effect = server.MailError(
+            "iCloud Mail operation timed out before completion"
+        )
+        token = server._ACTIVE_DEADLINE.set(deadline)
+        try:
+            with self.assertRaisesRegex(server.MailError, "timed out"):
+                server._mailboxes(client)
+        finally:
+            server._ACTIVE_DEADLINE.reset(token)
+        client.list.assert_not_called()
 
     def test_search_summary_detects_content_type_name_attachment(self) -> None:
         client = mock.MagicMock()
@@ -3227,6 +3244,27 @@ class ICloudMailTests(unittest.TestCase):
             )
         self.assertTrue(json.loads(response["result"]["content"][0]["text"])["active"])
         self.assertIsNone(server._ACTIVE_DEADLINE.get())
+
+    def test_notifications_are_ignored_by_missing_id(self) -> None:
+        handler = mock.MagicMock()
+        with mock.patch.dict(server.HANDLERS, {"notification_probe": handler}):
+            self.assertIsNone(
+                server.handle(
+                    {
+                        "method": "tools/call",
+                        "params": {
+                            "name": "notification_probe",
+                            "arguments": {},
+                        },
+                    }
+                )
+            )
+        handler.assert_not_called()
+        self.assertIsNone(server.handle({"method": "unknown/notification"}))
+        for request_id in (0, "", None):
+            with self.subTest(request_id=request_id):
+                response = server.handle({"id": request_id, "method": "initialize"})
+                self.assertEqual(response["id"], request_id)
 
     def test_tool_call_clears_shared_deadline_after_handler_error(self) -> None:
         def failing_handler(_arguments: dict[str, object]) -> dict[str, object]:
