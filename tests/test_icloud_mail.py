@@ -3246,11 +3246,14 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIn("Primary,\r\n User", sent.as_string(policy=email.policy.SMTP))
         self.assertIn("Alias,\r\n User", sent.as_string(policy=email.policy.SMTP))
 
-    def test_smtp_fails_closed_without_strict_address_parser(self) -> None:
-        message = EmailMessage()
-        message["From"] = "me@icloud.com"
-        message["To"] = "to@example.com"
-        message.set_content("body")
+    def test_smtp_uses_safe_fallback_without_strict_address_parser(self) -> None:
+        message = email.message_from_bytes(
+            b'From: "Me, Myself" <me@icloud.com>\r\n'
+            b"To: to@example.com\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        smtp = mock.MagicMock()
+        smtp.send_message.return_value = {}
         with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
             os.environ,
             {
@@ -3261,10 +3264,35 @@ class ICloudMailTests(unittest.TestCase):
             clear=True,
         ), mock.patch.object(
             server.email.utils, "supports_strict_parsing", False, create=True
-        ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
-            server.MailError, "Draft From"
-        ):
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            result = server._smtp_send(message)
+        self.assertEqual(result["status"], "accepted")
+
+    def test_smtp_fallback_rejects_top_level_address_list_syntax(self) -> None:
+        message = email.message_from_bytes(
+            b"From: me@icloud.com,\r\n"
+            b"To: to@example.com\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(
+            server.email.utils, "supports_strict_parsing", False, create=True
+        ), mock.patch.object(
+            server.email.utils,
+            "getaddresses",
+            return_value=[("", "me@icloud.com")],
+        ) as parse, mock.patch.object(
+            server.smtplib, "SMTP"
+        ) as smtp, self.assertRaisesRegex(server.MailError, "Draft From"):
             server._smtp_send(message)
+        parse.assert_not_called()
         smtp.assert_not_called()
 
     def test_smtp_rejects_resent_identity_block_before_connecting(self) -> None:

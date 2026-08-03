@@ -2542,6 +2542,44 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
     return message
 
 
+def _has_top_level_address_list_syntax(value: str) -> bool:
+    quoted = False
+    escaped = False
+    comment_depth = 0
+    angle_depth = 0
+    for character in value:
+        if escaped:
+            escaped = False
+            continue
+        if quoted:
+            if character == "\\":
+                escaped = True
+            elif character == '"':
+                quoted = False
+            continue
+        if comment_depth:
+            if character == "\\":
+                escaped = True
+            elif character == "(":
+                comment_depth += 1
+            elif character == ")":
+                comment_depth -= 1
+            continue
+        if character == '"':
+            quoted = True
+        elif character == "(":
+            comment_depth = 1
+        elif character == "<":
+            angle_depth += 1
+        elif character == ">":
+            if angle_depth == 0:
+                return True
+            angle_depth -= 1
+        elif character in ",:;" and angle_depth == 0:
+            return True
+    return quoted or escaped or comment_depth != 0 or angle_depth != 0
+
+
 def _draft_identity(
     message: Message, header_name: str, *, required: bool
 ) -> str | None:
@@ -2562,13 +2600,18 @@ def _draft_identity(
         for group in getattr(header, "groups", ())
     ):
         raise MailError(error)
-    if not getattr(email.utils, "supports_strict_parsing", False):
-        raise MailError(error)
     unfolded = re.sub(r"\r?\n[ \t]+", " ", str(raw_headers[0]))
-    if "\r" in unfolded or "\n" in unfolded:
+    if (
+        "\r" in unfolded
+        or "\n" in unfolded
+        or _has_top_level_address_list_syntax(unfolded)
+    ):
         raise MailError(error)
     try:
-        parsed = email.utils.getaddresses([unfolded], strict=True)
+        if getattr(email.utils, "supports_strict_parsing", False):
+            parsed = email.utils.getaddresses([unfolded], strict=True)
+        else:
+            parsed = email.utils.getaddresses([unfolded])
     except (TypeError, ValueError):
         raise MailError(error) from None
     if len(parsed) != 1:
