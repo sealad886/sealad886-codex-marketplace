@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import base64
 import binascii
+from collections import deque
 import copy
 import datetime as dt
 import email
@@ -55,6 +56,7 @@ MAX_MAILBOX_FLAG_CHARS = 1_000
 MAX_MAILBOX_OUTPUT_BYTES = 128 * 1024
 MAX_RECIPIENTS = 20
 MAX_SEARCH_SCAN = 80
+MAX_SEARCH_UID_BYTES = 8 * 1024 * 1024
 MAX_BODY_CHARS = 100_000
 MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
 MAX_MESSAGE_BYTES = 20 * 1024 * 1024
@@ -73,6 +75,7 @@ MAX_ATTACHMENT_FILENAME_CHARS = 512
 MAX_ATTACHMENT_FILENAME_BYTES = 2 * 1024
 MAX_ATTACHMENT_CONTENT_TYPE_CHARS = 255
 MAX_ATTACHMENT_METADATA_BYTES = 64 * 1024
+MAX_THREAD_OUTPUT_BYTES = 2 * 1024 * 1024
 REF_PREFIX = "icloud-mail:"
 MCP_OPERATION_BUDGET_SECONDS = 540.0
 
@@ -1663,6 +1666,45 @@ def _decode_imap_utf7(value: bytes) -> str:
     return "".join(output)
 
 
+def _bounded_search_uids(value: bytes | str, limit: int) -> tuple[list[int], int]:
+    if len(value) > MAX_SEARCH_UID_BYTES:
+        raise MailError("iCloud Mail search result exceeds the processing limit")
+    uids: deque[int] = deque(maxlen=limit)
+    token_value = 0
+    token_digits = 0
+    total = 0
+
+    def is_space(symbol: int | str) -> bool:
+        return chr(symbol).isspace() if isinstance(symbol, int) else symbol.isspace()
+
+    def digit_value(symbol: int | str) -> int | None:
+        if isinstance(symbol, int):
+            return symbol - 48 if 48 <= symbol <= 57 else None
+        return ord(symbol) - 48 if "0" <= symbol <= "9" else None
+
+    for symbol in value:
+        if is_space(symbol):
+            if token_digits:
+                uids.append(token_value)
+                total += 1
+                token_value = 0
+                token_digits = 0
+        else:
+            digit = digit_value(symbol)
+            if digit is None or (token_digits == 0 and digit == 0):
+                raise MailError("iCloud Mail search returned malformed UIDs")
+            token_digits += 1
+            if token_digits > 10:
+                raise MailError("iCloud Mail search returned malformed UIDs")
+            token_value = token_value * 10 + digit
+            if token_value > 0xFFFFFFFF:
+                raise MailError("iCloud Mail search returned malformed UIDs")
+    if token_digits:
+        uids.append(token_value)
+        total += 1
+    return list(uids), total
+
+
 def search_emails(
     arguments: dict[str, Any],
     *,
@@ -1721,6 +1763,7 @@ def search_emails(
         if thread_reference_ids:
             _set_socket_timeout(client, 10.0, deadline)
             matched_uids: set[int] = set()
+            thread_matches_truncated = False
             for reference_id in thread_reference_ids:
                 _set_socket_timeout(client, 10.0, deadline)
                 value = _text(
@@ -1729,11 +1772,17 @@ def search_emails(
                 status, data = client.uid("search", None, "TEXT", _quoted(value))
                 if status != "OK":
                     raise MailError("iCloud Mail thread search failed")
-                matched_uids.update(
-                    int(item)
-                    for item in (data[0].split() if data and data[0] else [])
+                bounded, total = _bounded_search_uids(
+                    data[0] if data and data[0] else b"", MAX_SEARCH_SCAN
                 )
-            uids = sorted(matched_uids)
+                matched_uids.update(bounded)
+                if total > len(bounded):
+                    thread_matches_truncated = True
+            uids = sorted(matched_uids)[-MAX_SEARCH_SCAN:]
+            matched_count = len(matched_uids)
+            if thread_matches_truncated or len(matched_uids) > len(uids):
+                matched_count = max(matched_count, len(uids) + 1)
+            matched_count_is_lower_bound = thread_matches_truncated
         else:
             charset = "UTF-8" if any(not item.isascii() for item in criteria) else None
             wire_criteria: list[str | bytes] = (
@@ -1742,10 +1791,10 @@ def search_emails(
             status, data = client.uid("search", charset, *wire_criteria)
             if status != "OK":
                 raise MailError("iCloud Mail search failed")
-            uids = [
-                int(item)
-                for item in (data[0].split() if data and data[0] else [])
-            ]
+            uids, matched_count = _bounded_search_uids(
+                data[0] if data and data[0] else b"", MAX_SEARCH_SCAN
+            )
+            matched_count_is_lower_bound = False
         uids.reverse()
         results = []
         scanned = 0
@@ -1776,12 +1825,14 @@ def search_emails(
             "emails": results,
             "mailbox": mailbox,
             "returned": len(results),
-            "matched_before_attachment_filter": len(uids),
+            "matched_before_attachment_filter": matched_count,
             "scanned": scanned,
-            "truncated": scanned < len(uids) or skipped_oversized > 0,
+            "truncated": scanned < matched_count or skipped_oversized > 0,
         }
         if skipped_oversized:
             result["skipped_oversized_summaries"] = skipped_oversized
+        if matched_count_is_lower_bound:
+            result["matched_before_attachment_filter_is_lower_bound"] = True
         return result
 
 
@@ -2029,15 +2080,39 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
         for item in selected
         if item["id"] == anchor["id"] or item["id"] in loaded
     ]
-    return {
-        "messages": messages,
-        "threading": "RFC Message-ID, References, and In-Reply-To relationships",
-        "truncated": (
-            discovery_truncated
-            or len(connected_ids) > maximum
-            or len(loaded) < len(other_ids)
-        ),
+    threading = "RFC Message-ID, References, and In-Reply-To relationships"
+    base_truncated = (
+        discovery_truncated
+        or len(connected_ids) > maximum
+        or len(loaded) < len(other_ids)
+    )
+    budgeted = [anchor]
+    output_truncated = False
+    for message in messages:
+        if message["id"] == anchor["id"]:
+            continue
+        candidate_messages = sorted([*budgeted, message], key=chronological_key)
+        candidate = {
+            "messages": candidate_messages,
+            "threading": threading,
+            "truncated": False,
+        }
+        if (
+            len(json.dumps(candidate, ensure_ascii=False).encode("utf-8"))
+            > MAX_THREAD_OUTPUT_BYTES
+        ):
+            output_truncated = True
+            break
+        budgeted.append(message)
+    budgeted.sort(key=chronological_key)
+    result = {
+        "messages": budgeted,
+        "threading": threading,
+        "truncated": base_truncated or output_truncated,
     }
+    if len(json.dumps(result, ensure_ascii=False).encode("utf-8")) > MAX_THREAD_OUTPUT_BYTES:
+        raise MailError("Thread anchor exceeds the result limit")
+    return result
 
 
 def _special_mailbox(client: imaplib.IMAP4_SSL, special: str, fallbacks: list[str]) -> str:
@@ -2902,8 +2977,10 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                     )
                 attachment_parts.append(part)
             decoded_attachment_bytes = 0
-            for part in attachment_parts:
-                filename = _decode_header(part.get_filename())
+            for attachment_index, part in enumerate(attachment_parts):
+                filename, _filename_truncated = _bounded_attachment_filename(
+                    part, attachment_index
+                )
                 payload = _attachment_payload(part)
                 decoded_attachment_bytes += len(payload)
                 if (
@@ -2914,7 +2991,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                         "Cannot forward attachments: limit is 20 files, 5 MiB each, "
                         "and 10 MiB total"
                     )
-                content_type = part.get_content_type().split("/", 1)
+                content_type = _bounded_attachment_content_type(part).split("/", 1)
                 if part.is_multipart() or content_type[0] == "message":
                     content_type = ["application", "octet-stream"]
                 forwarded.add_attachment(

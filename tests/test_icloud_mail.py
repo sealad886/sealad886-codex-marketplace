@@ -678,6 +678,58 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["skipped_oversized_summaries"], 80)
         self.assertTrue(result["truncated"])
 
+    def test_search_uid_parser_retains_only_bounded_newest_matches(self) -> None:
+        raw = b" ".join(str(uid).encode() for uid in range(1, 100_001))
+        uids, total = server._bounded_search_uids(raw, server.MAX_SEARCH_SCAN)
+        self.assertEqual(total, 100_000)
+        self.assertEqual(len(uids), server.MAX_SEARCH_SCAN)
+        self.assertEqual(uids[0], 100_000 - server.MAX_SEARCH_SCAN + 1)
+        self.assertEqual(uids[-1], 100_000)
+
+    def test_search_uid_parser_rejects_malformed_tokens(self) -> None:
+        with self.assertRaisesRegex(server.MailError, "malformed UIDs"):
+            server._bounded_search_uids(b"1 2 not-a-uid 3", server.MAX_SEARCH_SCAN)
+
+    def test_search_uid_parser_rejects_unbounded_or_invalid_values(self) -> None:
+        for raw in (b"9" * 100_000, b"0", b"01", b"4294967296"):
+            with self.subTest(raw_length=len(raw)), self.assertRaisesRegex(
+                server.MailError, "malformed UIDs"
+            ):
+                server._bounded_search_uids(raw, server.MAX_SEARCH_SCAN)
+        self.assertEqual(
+            server._bounded_search_uids(b"4294967295", server.MAX_SEARCH_SCAN),
+            ([0xFFFFFFFF], 1),
+        )
+
+    def test_search_uid_parser_enforces_raw_response_budget(self) -> None:
+        with mock.patch.object(server, "MAX_SEARCH_UID_BYTES", 3):
+            self.assertEqual(server._bounded_search_uids(b"1 2", 2), ([1, 2], 2))
+            with self.assertRaisesRegex(server.MailError, "processing limit"):
+                server._bounded_search_uids(b"1 2 ", 2)
+
+    def test_thread_search_labels_truncated_match_count_as_lower_bound(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"1"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.side_effect = [
+            ("OK", [b" ".join(str(uid).encode() for uid in range(1, 82))]),
+            ("OK", [b" ".join(str(uid).encode() for uid in range(101, 182))]),
+        ]
+        summary = {
+            "id": server._encode_ref("INBOX", 7, 181),
+            "has_attachments": False,
+        }
+        with mock.patch.object(server, "_fetch_summary", return_value=summary):
+            result = server.search_emails(
+                {
+                    "_thread_reference_ids": ["<one>", "<two>"],
+                    "max_results": 1,
+                },
+                client=client,
+            )
+        self.assertTrue(result["truncated"])
+        self.assertTrue(result["matched_before_attachment_filter_is_lower_bound"])
+
     def test_search_summary_rejects_address_amplification_before_parsing(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -2296,6 +2348,92 @@ class ICloudMailTests(unittest.TestCase):
         fetch.assert_called_once()
         connect.assert_called_once_with(socket_timeout=10.0)
 
+    def test_forward_bounds_untrusted_attachment_filename(self) -> None:
+        original = {
+            "subject": "Status",
+            "from": [{"name": "Alice", "address": "alice@example.com"}],
+            "date": "Thu, 31 Jul 2026 09:00:00 +0000",
+            "body_text": "Original",
+            "body_html": "",
+        }
+        source = EmailMessage()
+        source.set_content("body")
+        source.add_attachment(
+            b"data",
+            maintype="application",
+            subtype="octet-stream",
+            filename="x" * (server.MAX_ATTACHMENT_FILENAME_CHARS + 1),
+        )
+        forwarded = EmailMessage()
+        forwarded.set_content("forward")
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_read_email_result", return_value=original
+        ), mock.patch.object(
+            server, "_prepare_outgoing", return_value=forwarded
+        ), mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(source, b"", "")
+        ), mock.patch.object(
+            server,
+            "_smtp_send",
+            return_value={"status": "accepted", "internet_message_id": "<sent>"},
+        ):
+            result = server.forward_emails(
+                {"message_ids": ["first"], "to": ["recipient@example.com"]}
+            )
+        attachment = list(forwarded.iter_attachments())[0]
+        self.assertEqual(
+            len(attachment.get_filename()), server.MAX_ATTACHMENT_FILENAME_CHARS
+        )
+        self.assertEqual(result["results"][0]["status"], "accepted")
+
+    def test_forward_rejects_unbounded_attachment_content_type(self) -> None:
+        original = {
+            "subject": "Status",
+            "from": [{"name": "Alice", "address": "alice@example.com"}],
+            "date": "Thu, 31 Jul 2026 09:00:00 +0000",
+            "body_text": "Original",
+            "body_html": "",
+        }
+        source = EmailMessage()
+        source.set_content("body")
+        source.add_attachment(
+            b"data",
+            maintype="application",
+            subtype="octet-stream",
+            filename="safe.bin",
+        )
+        list(source.iter_attachments())[0].replace_header(
+            "Content-Type",
+            "application/" + "x" * server.MAX_ATTACHMENT_CONTENT_TYPE_CHARS,
+        )
+        forwarded = EmailMessage()
+        forwarded.set_content("forward")
+        context = mock.MagicMock()
+        context.__enter__.return_value = mock.MagicMock()
+        with mock.patch.object(
+            server, "_read_email_result", return_value=original
+        ), mock.patch.object(
+            server, "_prepare_outgoing", return_value=forwarded
+        ), mock.patch.object(
+            server, "_decode_ref", return_value=("INBOX", 7, 9)
+        ), mock.patch.object(
+            server, "_imap", return_value=context
+        ), mock.patch.object(
+            server, "_fetch_message", return_value=(source, b"", "")
+        ), mock.patch.object(server, "_smtp_send") as send:
+            result = server.forward_emails(
+                {"message_ids": ["first"], "to": ["recipient@example.com"]}
+            )
+        self.assertEqual(result["results"][0]["status"], "failed")
+        self.assertIn("metadata", result["results"][0]["error"])
+        send.assert_not_called()
+
     def test_forward_preserves_authored_note_whitespace(self) -> None:
         original = {
             "subject": "Status",
@@ -2524,6 +2662,48 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(
             {message["id"] for message in result["messages"]},
             {"anchor", "related"},
+        )
+
+    def test_thread_read_enforces_aggregate_serialized_result_budget(self) -> None:
+        self.install_shared_imap_session()
+        anchor = {
+            "id": "anchor",
+            "mailbox": "INBOX",
+            "subject": "Status",
+            "internet_message_id": "<anchor@example.com>",
+            "references": [],
+            "in_reply_to": "",
+            "body_text": "anchor",
+        }
+        related = {
+            "id": "related",
+            "mailbox": "INBOX",
+            "subject": "Re: Status",
+            "internet_message_id": "<related@example.com>",
+            "references": ["<anchor@example.com>"],
+            "in_reply_to": "<anchor@example.com>",
+            "body_text": "\0" * 1_000,
+        }
+        budget = 1_000
+        with mock.patch.object(
+            server, "read_email", return_value=anchor
+        ), mock.patch.object(
+            server,
+            "search_emails",
+            return_value={"emails": [anchor, related], "truncated": False},
+        ), mock.patch.object(
+            server, "_read_emails_shared", return_value=[related]
+        ), mock.patch.object(
+            server, "MAX_THREAD_OUTPUT_BYTES", budget
+        ):
+            result = server.read_email_thread(
+                {"message_id": "anchor", "max_results": 20}
+            )
+        self.assertEqual(result["messages"], [anchor])
+        self.assertTrue(result["truncated"])
+        self.assertLessEqual(
+            len(json.dumps(result, ensure_ascii=False).encode()),
+            budget,
         )
 
     def test_thread_read_splits_multiple_in_reply_to_message_ids(self) -> None:
