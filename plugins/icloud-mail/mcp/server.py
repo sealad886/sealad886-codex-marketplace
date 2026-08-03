@@ -2542,30 +2542,62 @@ def _outgoing(arguments: dict[str, Any], reply: Message | None = None) -> EmailM
     return message
 
 
+def _draft_identity(
+    message: Message, header_name: str, *, required: bool
+) -> str | None:
+    error = f"Draft {header_name} address is not allowed by current configuration"
+    structured_headers = message.get_all(header_name, [])
+    raw_headers = [
+        value
+        for name, value in message.raw_items()
+        if name.casefold() == header_name.casefold()
+    ]
+    if not structured_headers and not raw_headers and not required:
+        return None
+    if len(structured_headers) != 1 or len(raw_headers) != 1:
+        raise MailError(error)
+    if any(getattr(header, "defects", ()) for header in structured_headers) or any(
+        getattr(group, "display_name", None) is not None
+        for header in structured_headers
+        for group in getattr(header, "groups", ())
+    ):
+        raise MailError(error)
+    if not getattr(email.utils, "supports_strict_parsing", False):
+        raise MailError(error)
+    unfolded = re.sub(r"\r?\n[ \t]+", " ", str(raw_headers[0]))
+    if "\r" in unfolded or "\n" in unfolded:
+        raise MailError(error)
+    try:
+        parsed = email.utils.getaddresses([unfolded], strict=True)
+    except (TypeError, ValueError):
+        raise MailError(error) from None
+    if len(parsed) != 1:
+        raise MailError(error)
+    try:
+        return _email_address(parsed[0][1], f"Draft {header_name}")
+    except ValueError:
+        raise MailError(error) from None
+
+
 def _smtp_send(message: Message) -> dict[str, Any]:
     deadline = _current_deadline()
     username = _username()
-    password, _ = _password(username)
-    from_headers = message.get_all("From", [])
-    if any(getattr(header, "defects", ()) for header in from_headers) or any(
-        getattr(group, "display_name", None) is not None
-        for header in from_headers
-        for group in getattr(header, "groups", ())
+    if any(
+        name.casefold().startswith("resent-") for name, _ in message.raw_items()
     ):
-        raise MailError("Draft From address is not allowed by current configuration")
-    parsed_senders = email.utils.getaddresses(from_headers)
-    if len(from_headers) != 1 or len(parsed_senders) != 1:
-        raise MailError("Draft From address is not allowed by current configuration")
-    raw_sender = parsed_senders[0][1]
-    try:
-        sender = _email_address(raw_sender, "Draft From")
-    except ValueError:
-        raise MailError(
-            "Draft From address is not allowed by current configuration"
-        ) from None
+        raise MailError("Draft resent headers are not supported")
+    sender = _draft_identity(message, "From", required=True)
+    assert sender is not None
     config = _load_config(required=True)
-    if sender not in {username, *config["allowed_from"]}:
+    permitted_senders = {username, *config["allowed_from"]}
+    if sender not in permitted_senders:
         raise MailError("Draft From address is not allowed by current configuration")
+    responsible_sender = _draft_identity(message, "Sender", required=False)
+    if responsible_sender is not None and responsible_sender not in permitted_senders:
+        raise MailError(
+            "Draft Sender address is not allowed by current configuration"
+        )
+    password, _ = _password(username)
     recipient_headers = [
         header_value
         for header in ("To", "Cc", "Bcc")

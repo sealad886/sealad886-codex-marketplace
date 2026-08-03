@@ -3169,6 +3169,7 @@ class ICloudMailTests(unittest.TestCase):
         for from_value in (
             b"me@icloud.com (unclosed",
             b"Friends: me@icloud.com;",
+            b"me@icloud.com,",
         ):
             message = email.message_from_bytes(
                 b"From: "
@@ -3187,6 +3188,142 @@ class ICloudMailTests(unittest.TestCase):
             ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
                 server.MailError, "Draft From"
             ):
+                server._smtp_send(message)
+            smtp.assert_not_called()
+
+    def test_smtp_accepts_configured_sender_header(self) -> None:
+        message = email.message_from_bytes(
+            b"From: primary@icloud.com\r\n"
+            b"Sender: Alias User <alias@example.com>\r\n"
+            b"To: to@example.com\r\n"
+            b"Subject: Test\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        smtp = mock.MagicMock()
+        smtp.send_message.return_value = {}
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ), mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_APP_PASSWORD": "secret"}
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            server.configure_account(
+                {
+                    "account_address": "primary@icloud.com",
+                    "allowed_from": ["alias@example.com"],
+                }
+            )
+            result = server._smtp_send(message)
+
+        self.assertEqual(result["status"], "accepted")
+        sent = smtp.send_message.call_args.args[0]
+        self.assertEqual(sent["Sender"].addresses[0].addr_spec, "alias@example.com")
+
+    def test_smtp_accepts_folded_quoted_from_and_sender_names(self) -> None:
+        message = email.message_from_bytes(
+            b'From: "Primary,\r\n User" <primary@icloud.com>\r\n'
+            b'Sender: "Alias,\r\n User" <alias@example.com>\r\n'
+            b"To: to@example.com\r\n"
+            b"Subject: Test\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        smtp = mock.MagicMock()
+        smtp.send_message.return_value = {}
+        with tempfile.TemporaryDirectory() as temporary, self.config_environment(
+            temporary
+        ), mock.patch.dict(
+            os.environ, {"ICLOUD_MAIL_APP_PASSWORD": "secret"}
+        ), mock.patch.object(server.smtplib, "SMTP", return_value=smtp):
+            server.configure_account(
+                {
+                    "account_address": "primary@icloud.com",
+                    "allowed_from": ["alias@example.com"],
+                }
+            )
+            result = server._smtp_send(message)
+
+        self.assertEqual(result["status"], "accepted")
+        sent = smtp.send_message.call_args.args[0]
+        self.assertIn("Primary,\r\n User", sent.as_string(policy=email.policy.SMTP))
+        self.assertIn("Alias,\r\n User", sent.as_string(policy=email.policy.SMTP))
+
+    def test_smtp_fails_closed_without_strict_address_parser(self) -> None:
+        message = EmailMessage()
+        message["From"] = "me@icloud.com"
+        message["To"] = "to@example.com"
+        message.set_content("body")
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "me@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(
+            server.email.utils, "supports_strict_parsing", False, create=True
+        ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
+            server.MailError, "Draft From"
+        ):
+            server._smtp_send(message)
+        smtp.assert_not_called()
+
+    def test_smtp_rejects_resent_identity_block_before_connecting(self) -> None:
+        message = email.message_from_bytes(
+            b"From: primary@icloud.com\r\n"
+            b"To: to@example.com\r\n"
+            b"Resent-Date: Mon, 3 Aug 2026 08:00:00 +0000\r\n"
+            b"Resent-From: unauthorized@example.com\r\n"
+            b"Resent-Sender: attacker@example.net\r\n"
+            b"Resent-To: victim@example.net\r\n"
+            b"Subject: Test\r\n\r\nbody",
+            policy=email.policy.default,
+        )
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.dict(
+            os.environ,
+            {
+                "ICLOUD_MAIL_CONFIG_PATH": str(Path(temporary) / "config.json"),
+                "ICLOUD_MAIL_USERNAME": "primary@icloud.com",
+                "ICLOUD_MAIL_APP_PASSWORD": "secret",
+            },
+            clear=True,
+        ), mock.patch.object(server.smtplib, "SMTP") as smtp, self.assertRaisesRegex(
+            server.MailError, "resent headers"
+        ):
+            server._smtp_send(message)
+        smtp.assert_not_called()
+
+    def test_smtp_rejects_ambiguous_or_unauthorized_sender_header(self) -> None:
+        sender_headers = (
+            b"Sender: unauthorized@example.com\r\n",
+            b"Sender: primary@icloud.com\r\nSender: alias@example.com\r\n",
+            b"Sender: primary@icloud.com, alias@example.com\r\n",
+            b"Sender: Friends: primary@icloud.com;\r\n",
+            b"Sender: primary@icloud.com (unclosed\r\n",
+            b"Sender: primary@icloud.com,\r\n",
+            b"Sender:\r\n",
+        )
+        for sender_header in sender_headers:
+            message = email.message_from_bytes(
+                b"From: primary@icloud.com\r\n"
+                + sender_header
+                + b"To: to@example.com\r\nSubject: Test\r\n\r\nbody",
+                policy=email.policy.default,
+            )
+            with self.subTest(
+                sender_header=sender_header
+            ), tempfile.TemporaryDirectory() as temporary, self.config_environment(
+                temporary
+            ), mock.patch.dict(
+                os.environ, {"ICLOUD_MAIL_APP_PASSWORD": "secret"}
+            ), mock.patch.object(
+                server.smtplib, "SMTP"
+            ) as smtp, self.assertRaisesRegex(server.MailError, "Draft Sender"):
+                server.configure_account(
+                    {
+                        "account_address": "primary@icloud.com",
+                        "allowed_from": ["alias@example.com"],
+                    }
+                )
                 server._smtp_send(message)
             smtp.assert_not_called()
 
