@@ -1123,6 +1123,12 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
                 if contains_attachment(node[child_count], depth=depth + 1):
                     return True
                 child_count += 1
+            parameters_index = child_count + 1
+            if (
+                parameters_index < len(node)
+                and has_filename(node[parameters_index])
+            ):
+                return True
             disposition_index = child_count + 2
             return (
                 disposition_index < len(node)
@@ -2788,6 +2794,8 @@ def handle(request: dict[str, Any]) -> dict[str, Any] | None:
         return None
     request_id = request.get("id")
     method = request.get("method")
+    if method == "ping":
+        return _response(request_id, {})
     if method == "initialize":
         return _response(
             request_id,

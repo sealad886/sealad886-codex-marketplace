@@ -686,6 +686,13 @@ class ICloudMailTests(unittest.TestCase):
         )
         self.assertTrue(server._bodystructure_has_attachment(metadata))
 
+    def test_bodystructure_multipart_name_parameter_is_attachment(self) -> None:
+        metadata = (
+            b'9 (BODYSTRUCTURE (("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1) '
+            b'"MIXED" ("NAME" "bundle.zip") NIL NIL))'
+        )
+        self.assertTrue(server._bodystructure_has_attachment(metadata))
+
     def test_bodystructure_language_metadata_is_not_a_disposition(self) -> None:
         metadata = (
             b'1 (BODYSTRUCTURE ("TEXT" "PLAIN" NIL NIL NIL "7BIT" 10 1 '
@@ -3265,6 +3272,12 @@ class ICloudMailTests(unittest.TestCase):
             with self.subTest(request_id=request_id):
                 response = server.handle({"id": request_id, "method": "initialize"})
                 self.assertEqual(response["id"], request_id)
+
+    def test_ping_returns_empty_success_result(self) -> None:
+        self.assertEqual(
+            server.handle({"jsonrpc": "2.0", "id": 7, "method": "ping"}),
+            {"jsonrpc": "2.0", "id": 7, "result": {}},
+        )
 
     def test_tool_call_clears_shared_deadline_after_handler_error(self) -> None:
         def failing_handler(_arguments: dict[str, object]) -> dict[str, object]:
