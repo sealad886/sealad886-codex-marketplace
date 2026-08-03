@@ -2379,6 +2379,10 @@ class ICloudMailTests(unittest.TestCase):
             "From: Alice <alice@example.com>",
             prepare.call_args.args[0]["body"],
         )
+        self.assertIn(
+            "Subject: Status\n\nOriginal",
+            prepare.call_args.args[0]["body"],
+        )
         self.assertTrue(
             prepare.call_args.args[0]["body"].startswith(
                 "---------- Forwarded message ----------"

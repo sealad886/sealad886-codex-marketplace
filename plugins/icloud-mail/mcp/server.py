@@ -2961,6 +2961,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                     f"Date: {original['date']}",
                     f"Subject: {original['subject']}",
                     "",
+                    "",
                 ]
             )
             wrapper = f"{note}\n\n{forwarded_header}" if note else forwarded_header
