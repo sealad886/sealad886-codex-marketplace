@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Scan plugin
-        uses: hashgraph-online/ai-plugin-scanner-action@8f0a503ca2a70c1968a9a883e11fdff5737b7909 # v1.2.514
+        uses: hashgraph-online/ai-plugin-scanner-action@b11c05ef7ee17c7d84299de8a245e364c1cb070c # v1.2.533
         with:
           plugin_dir: "plugins/project-delivery"
           mode: scan
@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Scan Conversation Visuals
-        uses: hashgraph-online/ai-plugin-scanner-action@8f0a503ca2a70c1968a9a883e11fdff5737b7909 # v1.2.514
+        uses: hashgraph-online/ai-plugin-scanner-action@b11c05ef7ee17c7d84299de8a245e364c1cb070c # v1.2.533
         with:
           plugin_dir: "plugins/conversation-visuals"
           mode: scan
@@ -52,7 +52,7 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Scan MLX Optimizer
-        uses: hashgraph-online/ai-plugin-scanner-action@8f0a503ca2a70c1968a9a883e11fdff5737b7909 # v1.2.514
+        uses: hashgraph-online/ai-plugin-scanner-action@b11c05ef7ee17c7d84299de8a245e364c1cb070c # v1.2.533
         with:
           plugin_dir: "plugins/mlx-optimizer"
           mode: scan
