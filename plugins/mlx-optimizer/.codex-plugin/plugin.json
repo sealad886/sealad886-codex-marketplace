@@ -18,7 +18,6 @@
     "metal"
   ],
   "skills": "./skills/",
-  "scripts": "./scripts/",
   "interface": {
     "displayName": "MLX Optimizer",
     "shortDescription": "Audit and optimize Python MLX code on Apple Silicon.",

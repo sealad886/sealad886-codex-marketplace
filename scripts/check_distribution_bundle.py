@@ -51,6 +51,7 @@ PLUGIN_RESOURCE_DIRECTORIES = {
         ".claude-plugin",
         ".cursor-plugin",
         "references",
+        "scripts",
         "templates",
     ),
 }
