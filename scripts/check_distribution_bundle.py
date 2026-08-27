@@ -43,7 +43,17 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
 )
 EXPECTED_SKILL_COUNTS = {
     "conversation-visuals": 4,
+    "mlx-optimizer": 6,
     "project-delivery": 13,
+}
+PLUGIN_RESOURCE_DIRECTORIES = {
+    "mlx-optimizer": (
+        ".claude-plugin",
+        ".cursor-plugin",
+        "references",
+        "scripts",
+        "templates",
+    ),
 }
 UNIVERSAL_FORBIDDEN_DISTRIBUTION_PARTS = {
     ".git",
@@ -196,6 +206,11 @@ def select_paths(root: Path) -> set[Path]:
         value = manifest.get(field)
         if isinstance(value, str):
             add_declared_path(root, selected, value)
+
+    plugin_name = manifest.get("name")
+    if isinstance(plugin_name, str):
+        for directory in PLUGIN_RESOURCE_DIRECTORIES.get(plugin_name, ()):
+            add_declared_path(root, selected, directory)
 
     mcp_declaration = manifest.get("mcpServers")
     if manifest.get("name") == "conversation-visuals" and mcp_declaration is None:
