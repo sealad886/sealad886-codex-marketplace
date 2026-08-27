@@ -76,6 +76,10 @@ Completed / In progress / Next / Evidence / RAID changes / Decisions needed
 | Test ID | Risk/requirement | Level/type | Environment/data | Command or method | Expected | Result/evidence |
 |---|---|---|---|---|---|---|
 Failures and triage:
+Impact / affected requirements and gates:
+Response constraints and invariant to restore:
+Viable responses / tradeoffs:
+Recommended response and next action / owner / authority:
 Not run and reason:
 Residual gaps:
 ```
@@ -87,10 +91,11 @@ For CI/runtime evidence add: first causal job/step; category; same-revision reru
 ```markdown
 Overall decision: approve | approve with residual risk | changes required | blocked
 Scope/base/head/environment:
-| ID | Severity | Priority | Location | Evidence | Impact | Recommended fix | Blocks release? |
-|---|---|---|---|---|---|---|---|
+| ID | Severity | Priority | Location | Evidence | Impact | Solution options / tradeoffs | Recommended response / next action | Blocks release? |
+|---|---|---|---|---|---|---|---|---|
 Assessment mode/snapshot/reviewed surfaces/exclusions/deferred/coverage:
 Candidate proof (source → control → sink → reachable boundary), counterevidence, proof gaps, affected-location roles, and disposition:
+Response constraints and invariant to restore; owner or authority needed:
 Closure record for suppressed/duplicate/not-reproducible candidates: category, rationale, counterevidence, sibling checks, reviewer/date, revalidation trigger, release treatment, residual uncertainty, canonical finding if duplicate:
 Residual risks and accepted-by:
 Positive evidence (brief):
