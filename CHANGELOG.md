@@ -8,10 +8,15 @@ Versioning.
 
 ### Added
 
-- MLX Optimizer `0.2.0`, migrated from its standalone repository with six
+- MLX Optimizer `0.2.1`, migrated from its standalone repository with six
   progressive-disclosure skills, nine MLX reference guides, three stdlib helper
   scripts, three verification templates, package tests, and immutable
   marketplace distribution metadata.
+
+### Fixed
+
+- Included the required `.codexignore` file in clean Git checkouts after a
+  developer-global ignore rule omitted it from the superseded `0.2.0` tag.
 
 ## 0.1.1 - 2026-07-30
 
