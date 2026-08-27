@@ -6,6 +6,13 @@ Versioning.
 
 ## Unreleased
 
+### Added
+
+- MLX Optimizer `0.2.0`, migrated from its standalone repository with six
+  progressive-disclosure skills, nine MLX reference guides, three stdlib helper
+  scripts, three verification templates, package tests, and immutable
+  marketplace distribution metadata.
+
 ## 0.1.1 - 2026-07-30
 
 ### Fixed

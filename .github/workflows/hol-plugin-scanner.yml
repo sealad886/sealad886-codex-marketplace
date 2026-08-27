@@ -44,3 +44,20 @@ jobs:
           format: sarif
           upload_sarif: true
           sarif_category: conversation-visuals
+
+  scan-mlx-optimizer:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+
+      - name: Scan MLX Optimizer
+        uses: hashgraph-online/ai-plugin-scanner-action@8f0a503ca2a70c1968a9a883e11fdff5737b7909 # v1.2.514
+        with:
+          plugin_dir: "plugins/mlx-optimizer"
+          mode: scan
+          min_score: 80
+          fail_on_severity: high
+          format: sarif
+          upload_sarif: true
+          sarif_category: mlx-optimizer

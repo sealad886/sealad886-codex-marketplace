@@ -52,6 +52,9 @@ jobs:
       - name: Validate Conversation Visuals structure
         run: python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
 
+      - name: Validate MLX Optimizer structure
+        run: python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
+
       - name: Validate route contracts
         run: python3 scripts/check_routes.py .
 
@@ -63,6 +66,9 @@ jobs:
 
       - name: Validate Conversation Visuals distribution payload
         run: python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
+
+      - name: Validate MLX Optimizer distribution payload
+        run: python3 scripts/check_distribution_bundle.py plugins/mlx-optimizer
 
       - name: Validate Conversation Visuals MCP
         run: python3 plugins/conversation-visuals/mcp/server.py --self-test

@@ -1,0 +1,40 @@
+{
+  "name": "mlx-optimizer",
+  "version": "0.2.0",
+  "description": "Python-first MLX optimization skills, references, and audit scripts for Apple Silicon.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/mlx-optimizer",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "mlx",
+    "apple-silicon",
+    "performance",
+    "optimization",
+    "python",
+    "metal"
+  ],
+  "skills": "./skills/",
+  "scripts": "./scripts/",
+  "interface": {
+    "displayName": "MLX Optimizer",
+    "shortDescription": "Audit and optimize Python MLX code on Apple Silicon.",
+    "longDescription": "Python-first Codex skills, MLX references, audit scripts, benchmark templates, and verification workflows for optimizing MLX projects on Apple Silicon.",
+    "developerName": "Andrew Cox",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Audit this repo for MLX performance issues.",
+      "Optimize this MLX training loop.",
+      "Build an MLX benchmark plan."
+    ],
+    "brandColor": "#0F766E",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/mlx-optimizer"
+  }
+}
