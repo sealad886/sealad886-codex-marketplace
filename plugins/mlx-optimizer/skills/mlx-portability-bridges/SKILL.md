@@ -1,6 +1,7 @@
 ---
 name: mlx-portability-bridges
 description: Advise on Python-first MLX integration with Swift, C, C++, and non-native language boundaries.
+license: MIT
 ---
 
 # MLX Portability Bridges

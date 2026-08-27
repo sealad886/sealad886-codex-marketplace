@@ -1,6 +1,6 @@
 {
   "name": "mlx-optimizer",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Python-first MLX optimization skills, references, and audit scripts for Apple Silicon.",
   "author": {
     "name": "Andrew"

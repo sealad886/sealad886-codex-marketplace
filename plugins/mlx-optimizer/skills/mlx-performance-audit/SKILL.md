@@ -1,6 +1,7 @@
 ---
 name: mlx-performance-audit
 description: Audit Python MLX repos for lazy-eval, synchronization, compile, dtype, memory, progress, and benchmark issues.
+license: MIT
 ---
 
 # MLX Performance Audit

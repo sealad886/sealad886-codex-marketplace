@@ -1,6 +1,7 @@
 ---
 name: mlx-training-optimizer
 description: Optimize Python MLX training loops with value_and_grad, accumulation, checkpointing, dtype, validation cadence, memory telemetry, and progress reporting.
+license: MIT
 ---
 
 # MLX Training Optimizer

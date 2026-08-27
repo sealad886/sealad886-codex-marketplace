@@ -14,7 +14,7 @@ The repository and marketplace are both named `sealad886-codex-marketplace`. Ind
 |---|---:|---|---|
 | [Project Delivery](plugins/project-delivery/README.md) | `1.4.1` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
 | [Conversation Visuals](plugins/conversation-visuals/README.md) | `0.1.1` | Enrich supported Codex and ChatGPT conversations with relevant sourced and generated visuals | `conversation-visuals@sealad886-codex-marketplace` |
-| [MLX Optimizer](plugins/mlx-optimizer/README.md) | `0.2.1` | Audit, benchmark, and optimize Python-first MLX code on Apple Silicon | `mlx-optimizer@sealad886-codex-marketplace` |
+| [MLX Optimizer](plugins/mlx-optimizer/README.md) | `0.2.2` | Audit, benchmark, and optimize Python-first MLX code on Apple Silicon | `mlx-optimizer@sealad886-codex-marketplace` |
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 

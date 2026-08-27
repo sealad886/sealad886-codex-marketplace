@@ -1,6 +1,7 @@
 ---
 name: mlx-inference-optimizer
 description: Optimize Python MLX inference and generation loops with warmup, batching, cache handling, synchronization, quantization, and memory checks.
+license: MIT
 ---
 
 # MLX Inference Optimizer

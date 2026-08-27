@@ -1,6 +1,7 @@
 ---
 name: mlx-optimizer
 description: Route Python-first MLX optimization work on Apple Silicon to focused audit, training, inference, Metal, or bridge workflows.
+license: MIT
 ---
 
 # MLX Optimizer

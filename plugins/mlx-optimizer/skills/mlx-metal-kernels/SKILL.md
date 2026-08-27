@@ -1,6 +1,7 @@
 ---
 name: mlx-metal-kernels
 description: Guide MLX Metal profiling, mx.fast escalation, custom Metal kernels, and C++ extensions when profiling proves kernel-level bottlenecks.
+license: MIT
 ---
 
 # MLX Metal Kernels

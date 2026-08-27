@@ -35,7 +35,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "mlx-optimizer-v0.2.1",
+        "ref": "mlx-optimizer-v0.2.2",
         "path": "./plugins/mlx-optimizer"
       },
       "policy": {

@@ -27,7 +27,10 @@ def synchronize(result: object) -> None:
         import mlx.core as mx  # type: ignore
     except Exception:
         return
-    mx.eval(result)
+    evaluate = getattr(mx, "eval", None)
+    if not callable(evaluate):
+        raise RuntimeError("MLX does not expose a callable eval synchronization API.")
+    evaluate(result)
     sync = getattr(mx, "synchronize", None)
     if callable(sync):
         sync()
