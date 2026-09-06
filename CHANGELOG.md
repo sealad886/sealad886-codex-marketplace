@@ -1,8 +1,21 @@
 # Changelog
 
-This file records user-visible marketplace, Project Delivery, and Conversation
-Visuals changes. Dates use ISO 8601 and plugin versions follow Semantic
-Versioning.
+This file records user-visible marketplace, Project Delivery, Conversation
+Visuals, and MLX Optimizer changes. Dates use ISO 8601 and plugin versions follow
+Semantic Versioning.
+
+## MLX Optimizer 0.2.3 - 2026-09-06
+
+### Added
+
+- Original slate, beveled-metal, and electrified-glass branding, including the
+  256-pixel composer icon and 1024-pixel plugin logo.
+- Editable Apple Icon Composer document and reproducible Swift artwork sources.
+
+### Changed
+
+- Plugin metadata and README now show the approved layered MLX Optimizer identity.
+  The six optimization skills and their runtime behavior are unchanged.
 
 ## Unreleased
 

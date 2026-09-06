@@ -1,6 +1,7 @@
 import json
 import os
 import platform
+import struct
 import subprocess
 import sys
 import tempfile
@@ -14,6 +15,22 @@ ENV_PROBE = ROOT / "plugins" / "mlx-optimizer" / "scripts" / "mlx_env_probe.py"
 MLX_FIXTURE = ROOT / "tests" / "fixtures" / "mlx_optimizer" / "mlx_project"
 PLAIN_FIXTURE = ROOT / "tests" / "fixtures" / "mlx_optimizer" / "plain_project"
 PLUGIN_ROOT = ROOT / "plugins" / "mlx-optimizer"
+
+
+class MlxBrandAssetTests(unittest.TestCase):
+    def test_manifest_brand_assets_exist_and_are_valid_png(self):
+        manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text())
+        interface = manifest["interface"]
+
+        expected_dimensions = {"composerIcon": (256, 256), "logo": (1024, 1024)}
+        for field, dimensions in expected_dimensions.items():
+            relative_path = interface[field]
+            self.assertTrue(relative_path.startswith("./assets/"))
+            asset = PLUGIN_ROOT / relative_path
+            self.assertTrue(asset.is_file(), f"missing {field}: {asset}")
+            payload = asset.read_bytes()
+            self.assertEqual(payload[:8], b"\x89PNG\r\n\x1a\n")
+            self.assertEqual(struct.unpack(">II", payload[16:24]), dimensions)
 
 
 class MlxAuditTests(unittest.TestCase):

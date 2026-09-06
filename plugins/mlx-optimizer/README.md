@@ -1,9 +1,21 @@
-# MLX Optimizer
+<p align="center">
+  <img src="assets/mlx-optimizer-logo.png" width="176" alt="MLX Optimizer electrified compiled-flow logo">
+</p>
+
+<h1 align="center">MLX Optimizer</h1>
+
+<p align="center"><strong>Measure the work. Compress the path.</strong></p>
 
 `mlx-optimizer` helps Codex audit, benchmark, and optimize Python-first
 [MLX](https://github.com/ml-explore/mlx) projects on Apple Silicon. It combines
 six progressively disclosed skills with focused MLX references, conservative
 static-analysis scripts, and before/after verification templates.
+
+Its electrified compiled-flow mark turns three scheduled compute paths into one
+verified fast lane: mint for computation, cyan for measurement, and amber for
+the optimization decision. A reflected final stroke of the graphite `M` crosses
+the lightning-white result rail to form a compact pseudo-`x` without borrowing
+Apple or MLX product marks.
 
 Static findings remain candidates until representative workload evidence proves
 them. The plugin never installs Python globally, treats lazy evaluation and

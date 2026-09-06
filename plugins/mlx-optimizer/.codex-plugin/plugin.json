@@ -1,6 +1,6 @@
 {
   "name": "mlx-optimizer",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Python-first MLX optimization skills, references, and audit scripts for Apple Silicon.",
   "author": {
     "name": "Andrew Cox",
@@ -33,7 +33,9 @@
       "Optimize this MLX training loop.",
       "Build an MLX benchmark plan."
     ],
-    "brandColor": "#0F766E",
+    "brandColor": "#13171A",
+    "composerIcon": "./assets/mlx-optimizer-icon.png",
+    "logo": "./assets/mlx-optimizer-logo.png",
     "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/mlx-optimizer"
   }
 }
