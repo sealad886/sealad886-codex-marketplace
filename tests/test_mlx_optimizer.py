@@ -19,16 +19,19 @@ PLUGIN_ROOT = ROOT / "plugins" / "mlx-optimizer"
 
 class MlxBrandAssetTests(unittest.TestCase):
     def test_manifest_brand_assets_exist_and_are_valid_png(self):
-        manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text())
+        manifest = json.loads((PLUGIN_ROOT / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))
         interface = manifest["interface"]
 
         expected_dimensions = {"composerIcon": (256, 256), "logo": (1024, 1024)}
         for field, dimensions in expected_dimensions.items():
             relative_path = interface[field]
             self.assertTrue(relative_path.startswith("./assets/"))
-            asset = PLUGIN_ROOT / relative_path
+            asset = (PLUGIN_ROOT / relative_path).resolve()
+            self.assertTrue(asset.is_relative_to((PLUGIN_ROOT / "assets").resolve()))
             self.assertTrue(asset.is_file(), f"missing {field}: {asset}")
             payload = asset.read_bytes()
+            self.assertGreaterEqual(len(payload), 33, f"truncated PNG header: {asset}")
+            self.assertEqual(payload[8:16], b"\x00\x00\x00\x0dIHDR")
             self.assertEqual(payload[:8], b"\x89PNG\r\n\x1a\n")
             self.assertEqual(struct.unpack(">II", payload[16:24]), dimensions)
 
