@@ -210,6 +210,29 @@ class ICloudMailTests(unittest.TestCase):
         message = email.message_from_bytes(source, policy=email.policy.default)
         self.assertEqual(server._body(message), ("wrapped body", ""))
 
+    def test_read_wrapped_email_exposes_body_and_nested_attachment(self) -> None:
+        nested = EmailMessage()
+        nested.set_content("wrapped body")
+        nested.add_attachment(
+            b"important data", maintype="application", subtype="octet-stream",
+            filename="report.bin",
+        )
+        source = b"Content-Type: message/rfc822\r\n\r\n" + nested.as_bytes()
+        message = server._parse_full_message(source)
+        message_id = server._encode_ref("INBOX", 7, 9)
+        self.install_shared_imap_session()
+        with mock.patch.object(
+            server, "_fetch_message", return_value=(message, source, "")
+        ):
+            result = server.read_email({"message_id": message_id})
+            self.assertEqual(result["body_text"].strip(), "wrapped body")
+            self.assertEqual(len(result["attachments"]), 1)
+            attachment = server.read_attachment({
+                "message_id": message_id,
+                "attachment_id": result["attachments"][0]["attachment_id"],
+            })
+        self.assertEqual(base64.b64decode(attachment["content_base64"]), b"important data")
+
     def test_attachment_size_matches_supported_payload_encodings(self) -> None:
         quoted = EmailMessage()
         quoted["Content-Disposition"] = 'attachment; filename="notes.txt"'
@@ -451,7 +474,7 @@ class ICloudMailTests(unittest.TestCase):
             server.search_emails({"subject": "日本語"})
         connect.assert_called_once_with(socket_timeout=5.0)
         client.uid.assert_called_once_with(
-            "search", "UTF-8", b"ALL", b"SUBJECT", b'"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"'
+            "search", "CHARSET", "UTF-8", b"ALL", b"SUBJECT", b'"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"'
         )
 
     def test_thread_reference_search_caps_search_and_fetch_phases(self) -> None:
@@ -1698,6 +1721,53 @@ class ICloudMailTests(unittest.TestCase):
             [mock.call(socket_timeout=10.0), mock.call(socket_timeout=10.0)],
         )
 
+    def test_update_reply_draft_preserves_thread_unless_retargeted(self) -> None:
+        draft_id = server._encode_ref("Drafts", 7, 9)
+        existing = EmailMessage()
+        existing["In-Reply-To"] = "<parent@example.com>"
+        existing["References"] = "<root@example.com> <parent@example.com>"
+        existing.set_content("Old reply")
+        target = EmailMessage()
+        target["Message-ID"] = "<different@example.com>"
+        target["References"] = "<other-root@example.com>"
+        target.set_content("Different conversation")
+        _, client = self.install_shared_imap_session()
+        client.append.return_value = ("OK", [b"[APPENDUID 7 10] completed"])
+        client.response.return_value = ("APPENDUID", [b"7 10"])
+        for reply_target in (False, "", None, server._encode_ref("INBOX", 7, 3)):
+            retarget = bool(reply_target)
+            arguments = {
+                "draft_id": draft_id, "to": ["reader@example.com"],
+                "subject": "Re: Report", "body": "Revised reply",
+            }
+            if reply_target is not False:
+                arguments["reply_message_id"] = reply_target
+            with self.subTest(retarget=retarget), mock.patch.object(
+                server, "_validate_draft_ref", return_value=existing
+            ), mock.patch.object(
+                server, "_fetch_message", return_value=(target, b"", "")
+            ), mock.patch.object(
+                server, "_special_mailbox", side_effect=["Drafts", "Trash"]
+            ), mock.patch.object(
+                server, "_move", return_value={"status": "moved"}
+            ), mock.patch.object(
+                server, "_load_config",
+                return_value={**server._default_config(), "account_address": "me@icloud.com", "default_from": "me@icloud.com"},
+            ):
+                result = server.update_draft(arguments)
+                replacement = email.message_from_bytes(
+                    client.append.call_args.args[3], policy=email.policy.default
+                )
+                self.assertEqual(result["status"], "updated")
+                self.assertEqual(
+                    replacement["In-Reply-To"],
+                    "<different@example.com>" if retarget else existing["In-Reply-To"],
+                )
+                self.assertEqual(
+                    replacement["References"],
+                    "<other-root@example.com> <different@example.com>" if retarget else existing["References"],
+                )
+
     def test_update_draft_preserves_existing_attachments_when_omitted(self) -> None:
         old_id = server._encode_ref("Drafts", 7, 9)
         existing = EmailMessage()
@@ -2575,6 +2645,50 @@ class ICloudMailTests(unittest.TestCase):
                 )
         connect.assert_not_called()
 
+    def test_forward_rejects_content_that_would_be_truncated_before_sending(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        self.install_shared_imap_session()
+        cases = [
+            ("plain", "x" * 99_900 + "IMPORTANT END", "n" * 2_600),
+            ("plain", "x" * 100_100 + "IMPORTANT END", ""),
+            ("html", "<p>" + " " * 100_100 + "IMPORTANT END</p>", ""),
+        ]
+        for subtype, body, note in cases:
+            with self.subTest(subtype=subtype, body_size=len(body)):
+                source = EmailMessage()
+                source["Subject"] = "Report"
+                source.set_content(body, subtype=subtype)
+                with mock.patch.object(
+                    server, "_fetch_message", return_value=(source, source.as_bytes(), "")
+                ), mock.patch.object(
+                    server, "_load_config",
+                    return_value={**server._default_config(), "account_address": "me@icloud.com", "default_from": "me@icloud.com"},
+                ), mock.patch.object(server, "_smtp_send", return_value={"status": "accepted"}) as send:
+                    result = server.forward_emails({
+                        "message_ids": [message_id], "to": ["reader@example.com"], "note": note,
+                    })
+                self.assertEqual(result["results"][0]["status"], "failed")
+                self.assertIn("complete", result["results"][0]["error"])
+                send.assert_not_called()
+
+    def test_forward_preserves_complete_body_when_it_fits(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        self.install_shared_imap_session()
+        source = EmailMessage()
+        source["Subject"] = "Report"
+        source.set_content("x" * 5_000 + "IMPORTANT END")
+        with mock.patch.object(
+            server, "_fetch_message", return_value=(source, source.as_bytes(), "")
+        ), mock.patch.object(
+            server, "_load_config",
+            return_value={**server._default_config(), "account_address": "me@icloud.com", "default_from": "me@icloud.com"},
+        ), mock.patch.object(server, "_smtp_send", return_value={"status": "accepted"}) as send:
+            result = server.forward_emails({
+                "message_ids": [message_id], "to": ["reader@example.com"], "note": "Please review",
+            })
+        self.assertEqual(result["results"][0]["status"], "accepted")
+        self.assertIn(source.get_content(), send.call_args.args[0].get_content())
+
     def test_forwarding_enforces_aggregate_attachment_limit(self) -> None:
         original = {
             "subject": "Files",
@@ -2617,7 +2731,7 @@ class ICloudMailTests(unittest.TestCase):
             "subject": "Attached mail",
             "from": [{"name": "", "address": "alice@example.com"}],
             "date": "Thu, 31 Jul 2026 09:00:00 +0000",
-            "body_text": "x" * server.MAX_BODY_CHARS,
+            "body_text": "outer body",
             "body_html": "",
         }
         nested = EmailMessage()
@@ -3147,7 +3261,8 @@ class ICloudMailTests(unittest.TestCase):
             calls[1],
             [
                 "/usr/bin/open",
-                "/System/Applications/Utilities/Keychain Access.app",
+                "-b",
+                "com.apple.keychainaccess",
             ],
         )
 

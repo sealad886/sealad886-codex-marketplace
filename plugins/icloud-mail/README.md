@@ -140,10 +140,16 @@ Mutation tools:
 
 No tool permanently deletes or expunges messages.
 
+Forwarding refuses to send when the complete body and note exceed the processing
+limit. Shorten the note or forward that message in your mail app; the plugin
+does not silently cut off forwarded text.
+
 When updating a draft, omit `attachment_files` to preserve its existing
 attachments, pass an empty array to remove them, or pass absolute local file
 paths to replace them. A JSON `null` value is rejected so it cannot
 accidentally remove attachments.
+Reply conversation headers are also preserved unless a nonempty
+`reply_message_id` selects a different reply target.
 
 Opening Apple Account or Keychain Access requires explicit user intent.
 Clearing configuration requires `confirm=true` and deliberately leaves the

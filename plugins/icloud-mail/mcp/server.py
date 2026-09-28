@@ -754,11 +754,11 @@ def _body(message: Message) -> tuple[str, str]:
         ):
             continue
         if part.get_content_type() == "message/rfc822":
-            if part is message:
-                pending[0:0] = list(part.iter_parts())
+            if part is message and part.is_multipart():
+                pending[0:0] = part.get_payload()
             continue
         if part.is_multipart():
-            pending[0:0] = list(part.iter_parts())
+            pending[0:0] = part.get_payload()
             continue
         kind = part.get_content_type()
         if kind not in {"text/plain", "text/html"}:
@@ -926,7 +926,7 @@ def _iter_message_parts(message: Message) -> Iterator[tuple[Message, int]]:
             raise MailError("Message MIME structure exceeds the supported depth")
         yield part, depth
         if part.is_multipart():
-            children = list(part.iter_parts())
+            children = part.get_payload()
             pending.extend((child, depth + 1) for child in reversed(children))
 
 
@@ -953,7 +953,7 @@ def _attachment_parts(message: Message) -> Iterator[Message]:
         ):
             yield part
         elif part.is_multipart():
-            children = list(part.iter_parts())
+            children = part.get_payload()
             pending.extend((child, depth + 1) for child in reversed(children))
 
 
@@ -1503,14 +1503,14 @@ def validate_account(arguments: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _open_macos(arguments: dict[str, Any], target: str, label: str) -> dict[str, Any]:
+def _open_macos(arguments: dict[str, Any], target: list[str], label: str) -> dict[str, Any]:
     if arguments:
         raise ValueError(f"{label} takes no arguments")
     if sys.platform != "darwin":
         raise MailError(f"{label} is available only on macOS")
     try:
         subprocess.run(
-            ["/usr/bin/open", target],
+            ["/usr/bin/open", *target],
             check=True,
             capture_output=True,
             env={
@@ -1527,7 +1527,7 @@ def _open_macos(arguments: dict[str, Any], target: str, label: str) -> dict[str,
 
 def open_apple_password_page(arguments: dict[str, Any]) -> dict[str, Any]:
     return _open_macos(
-        arguments, "https://account.apple.com/account/manage", "Apple Account"
+        arguments, ["https://account.apple.com/account/manage"], "Apple Account"
     )
 
 
@@ -1535,7 +1535,7 @@ def open_keychain_access(arguments: dict[str, Any]) -> dict[str, Any]:
     account = _load_config(required=True)["account_address"]
     result = _open_macos(
         arguments,
-        "/System/Applications/Utilities/Keychain Access.app",
+        ["-b", "com.apple.keychainaccess"],
         "Keychain Access",
     )
     result["instructions"] = {
@@ -1839,7 +1839,8 @@ def search_emails(
             wire_criteria: list[str | bytes] = (
                 [item.encode("utf-8") for item in criteria] if charset else criteria
             )
-            status, data = client.uid("search", charset, *wire_criteria)
+            charset_options = ["CHARSET", charset] if charset else []
+            status, data = client.uid("search", *charset_options, *wire_criteria)
             if status != "OK":
                 raise MailError("iCloud Mail search failed")
             uids, matched_count = _bounded_search_uids(
@@ -2842,8 +2843,12 @@ def create_draft(
     *,
     socket_timeout: float | None = 10.0,
     preserved_attachments: list[Message] | None = None,
+    preserved_reply_headers: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     message = _prepare_outgoing(arguments)
+    for header in ("In-Reply-To", "References"):
+        if preserved_reply_headers and header in preserved_reply_headers and header not in message:
+            message[header] = preserved_reply_headers[header]
     if preserved_attachments:
         if len(preserved_attachments) > 20:
             raise MailError("Draft contains more than 20 attachments")
@@ -2962,6 +2967,14 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
     create_options: dict[str, Any] = {"socket_timeout": 10.0}
     if preserved_attachments:
         create_options["preserved_attachments"] = preserved_attachments
+    if not arguments.get("reply_message_id") and isinstance(existing, Message):
+        reply_headers = {
+            header: str(existing[header])
+            for header in ("In-Reply-To", "References")
+            if existing[header] is not None
+        }
+        if reply_headers:
+            create_options["preserved_reply_headers"] = reply_headers
     created = create_draft(replacement, **create_options)
     created["replaced_draft_id"] = draft_id
     if not created.get("draft_id"):
@@ -3098,12 +3111,21 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                 ]
             )
             wrapper = f"{note}\n\n{forwarded_header}" if note else forwarded_header
+            if not original["body_text"] and len(original.get("body_html", "")) >= MAX_BODY_CHARS:
+                raise MailError(
+                    "Cannot forward the complete HTML body within the processing limit; "
+                    "forward this message in your mail app instead"
+                )
             source_body = original["body_text"] or _html_to_text(
                 original.get("body_html", "")
             )
-            quoted = (wrapper + source_body[: max(0, MAX_BODY_CHARS - len(wrapper))])[
-                :MAX_BODY_CHARS
-            ]
+            quoted = wrapper + source_body
+            if len(quoted) > MAX_BODY_CHARS:
+                raise MailError(
+                    "Cannot forward the complete body and note within the "
+                    f"{MAX_BODY_CHARS}-character limit; shorten the note or "
+                    "forward this message in your mail app instead"
+                )
             outgoing = {
                 "to": arguments.get("to"),
                 "cc": arguments.get("cc"),
