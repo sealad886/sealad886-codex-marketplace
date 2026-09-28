@@ -8,7 +8,7 @@ Contributions that make the sealad886 Codex Marketplace or one of its contained 
 - Plugin changes belong under the canonical `plugins/<plugin-id>/` package and must follow that plugin's documented contracts and validation workflow.
 - Do not create cross-plugin runtime dependencies merely to share prompts, assets, terminology, or implementation details.
 
-Project Delivery, Conversation Visuals, and MLX Optimizer are published plugins. Each package owns its contribution contract: use the [Project Delivery guide](plugins/project-delivery/README.md) for lifecycle and routing changes, the [Conversation Visuals guide](plugins/conversation-visuals/README.md) plus its [security policy](plugins/conversation-visuals/SECURITY.md) for visual-selection, MCP, provenance, privacy, and consent changes, and the [MLX Optimizer guide](plugins/mlx-optimizer/README.md) for MLX skills, references, scripts, and measurement contracts. The Project Delivery-specific guidance below does not override another package's contract.
+Project Delivery, Conversation Visuals, MLX Optimizer, and iCloud Mail are marketplace plugins. Each package owns its contribution contract: use the [Project Delivery guide](plugins/project-delivery/README.md) for lifecycle and routing changes; the [Conversation Visuals guide](plugins/conversation-visuals/README.md) plus its [security policy](plugins/conversation-visuals/SECURITY.md) for visual-selection, MCP, provenance, privacy, and consent changes; the [MLX Optimizer guide](plugins/mlx-optimizer/README.md) for MLX skills, references, scripts, and measurement contracts; and the [iCloud Mail guide](plugins/icloud-mail/README.md) plus its [security policy](plugins/icloud-mail/SECURITY.md) for IMAP/SMTP, mailbox, credential, attachment, and mutation changes. The Project Delivery-specific guidance below does not override another package's contract.
 
 Semantic Versioning follows the same release and validation requirements. Its [package guide](plugins/semantic-versioning/README.md) describes native examples, helper contracts, progressive disclosure, and release boundaries. Its catalog entry pins the immutable release tag; validate the package before publishing a new version.
 
@@ -45,15 +45,21 @@ Run from the repository root:
 ```bash
 python3 scripts/check_plugin.py plugins/project-delivery --layout source
 python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
+python3 scripts/check_plugin.py plugins/icloud-mail --layout source
 python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
 python3 scripts/check_plugin.py plugins/semantic-versioning --layout source
 python3 scripts/check_semantic_versioning.py
 python3 scripts/check_routes.py .
+python3 scripts/check_route_receipts.py \
+  tests/fixtures/blind-route-observations-v1.3.1.json \
+  --root . --allow-subset --allow-historical-annotations
 python3 scripts/check_distribution_bundle.py plugins/project-delivery
 python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
+python3 scripts/check_distribution_bundle.py plugins/icloud-mail
 python3 scripts/check_distribution_bundle.py plugins/mlx-optimizer
 python3 scripts/check_distribution_bundle.py plugins/semantic-versioning
 python3 plugins/conversation-visuals/mcp/server.py --self-test
+python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_marketplace.py .
 python3 scripts/check_installed_parity.py <prepared-plugin-source> <installed-cache-version-dir>
 python3 -m unittest discover -s tests -p 'test_*.py' -v

@@ -1,8 +1,7 @@
 # Changelog
 
-This file records user-visible marketplace, Project Delivery, Conversation
-Visuals, MLX Optimizer, and Semantic Versioning changes. Dates use ISO 8601 and plugin versions follow
-Semantic Versioning.
+This file records user-visible marketplace and contained plugin changes. Dates
+use ISO 8601 and plugin versions follow Semantic Versioning.
 
 ## Semantic Versioning 0.1.0 - 2026-09-28
 
@@ -46,6 +45,23 @@ Semantic Versioning.
 
 - Plugin metadata and README now show the approved layered MLX Optimizer identity.
   The six optimization skills and their runtime behavior are unchanged.
+
+## iCloud Mail 0.1.0 - 2026-09-28
+
+### Added
+
+- iCloud Mail `0.1.0`, a local dependency-free MCP integration for searching,
+  reading, organizing, drafting, and sending iCloud email through Apple's
+  documented TLS IMAP and SMTP endpoints.
+- Saved non-secret account configuration, macOS Keychain guidance,
+  app-specific-password authentication, bounded message and attachment reads,
+  recoverable mailbox mutations, and package-specific CI and HOL scanning.
+
+### Changed
+
+- Documented repository-relative package sources as subtrees of the
+  GitHub-fetched marketplace checkout rather than paths into a user's
+  development checkout.
 
 ## Unreleased
 
