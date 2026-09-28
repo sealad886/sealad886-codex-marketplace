@@ -4,6 +4,25 @@ This file records user-visible marketplace, Project Delivery, Conversation
 Visuals, and MLX Optimizer changes. Dates use ISO 8601 and plugin versions follow
 Semantic Versioning.
 
+## Project Delivery 1.5.0 - Unreleased
+
+### Added
+
+- A compact `small-feature-change` route for bounded, low-risk implementation,
+  with conditional design, security, coordination, documentation, review, and
+  release ownership when evidence calls for them.
+- Simplicity-first guidance across requirements, design, planning, implementation,
+  and review; corrective simplification rewrites remain subject to explicit scope.
+- Guidance to reuse canonical implementations, extract helpers for stable repeated
+  behavior, and follow the repository's language and framework idioms.
+
+### Changed
+
+- Findings and failed checks now include impact, viable responses, material
+  tradeoffs, a recommendation, and the next action or required authority.
+- Route validation covers the new compact path alongside the existing lifecycle
+  profiles, with regression checks for required quality evidence and escalation.
+
 ## MLX Optimizer 0.2.3 - 2026-09-06
 
 ### Added

@@ -24,8 +24,9 @@ Expect a project brief or clear request. Inspect current behavior, tests, schema
 4. Elicit hidden requirements across accessibility, localization, security, privacy/data retention, performance/capacity, reliability/availability, observability/support, compatibility, migration/rollback, cost, and legal/compliance.
 5. Detect ambiguity and conflicts. Record the competing interpretations, impact, and decision owner; do not silently choose when behavior materially changes.
 6. Identify dependencies and requirement-to-requirement conflicts. Separate must/should/could or use the repository’s priority system.
-7. Seed traceability from each requirement to anticipated design, tests, work/PR slices, and release evidence.
-8. Update the Definition of Ready and Done.
+7. Apply the shared simplicity test: include only requirements needed for the stated outcome, explicit constraints, or demonstrated risks. Mark speculative generality, optional future use, and adjacent improvements as out of scope unless the user asks for them.
+8. Seed traceability from each requirement to anticipated design, tests, work/PR slices, and release evidence.
+9. Update the Definition of Ready and Done.
 
 ## Outputs and handoff
 
@@ -40,3 +41,4 @@ Every must-have requirement is unambiguous enough to test; each has source/ratio
 - Prescribe architecture unless it is a confirmed constraint.
 - Claim user validation, legal compliance, performance, or accessibility without evidence.
 - Turn implementation tasks into acceptance criteria or accept untestable words such as “fast,” “secure,” or “user-friendly” without measures.
+- Convert hypothetical future needs or unsolicited adjacent improvements into must-have requirements.
