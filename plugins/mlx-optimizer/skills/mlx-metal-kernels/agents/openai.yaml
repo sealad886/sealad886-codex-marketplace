@@ -1,0 +1,7 @@
+interface:
+  display_name: "MLX Metal Kernels"
+  short_description: "Profile and optimize MLX kernels on Apple Silicon"
+  brand_color: "#13171A"
+  default_prompt: "Use $mlx-metal-kernels to investigate whether this MLX bottleneck needs a Metal kernel."
+  icon_small: "./assets/icon.png"
+  icon_large: "./assets/icon.png"

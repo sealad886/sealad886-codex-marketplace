@@ -1,10 +1,20 @@
 # iCloud Mail for Codex
 
+![iCloud Mail](assets/icloud-mail-logo.svg)
+
 iCloud Mail gives Codex a local, dependency-free email integration using
 Apple's documented IMAP and SMTP endpoints. It offers the practical core of
 the Gmail and Outlook integrations: mailbox counts, structured search, message
 and conversation reading, attachment access, flags, archive/move/Trash,
 drafts, replies, forwards, and sending.
+
+## Try it in Codex
+
+Choose a skill or use one of these starter requests.
+
+| Skill | What it helps with | Starter request |
+| --- | --- | --- |
+| [iCloud Mail](skills/icloud-mail/SKILL.md) | Read, organize, and draft iCloud email | Summarize important unread iCloud Mail and suggest replies. |
 
 ## What is different from Gmail and Outlook
 

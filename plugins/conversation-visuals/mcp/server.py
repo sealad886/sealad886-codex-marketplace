@@ -12,7 +12,7 @@ from urllib.parse import unquote, urlparse
 
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "conversation-visuals", "version": "0.1.1"}
+SERVER_INFO = {"name": "conversation-visuals", "version": "0.1.2"}
 VISUAL_KINDS = {
     "source-image",
     "diagram",

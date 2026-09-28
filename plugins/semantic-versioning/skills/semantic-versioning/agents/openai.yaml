@@ -1,0 +1,7 @@
+interface:
+  display_name: "Semantic Versioning"
+  short_description: "Assess changes and reconcile release intent"
+  brand_color: "#167D8D"
+  default_prompt: "Use $semantic-versioning to assess the release impact of my current changes."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

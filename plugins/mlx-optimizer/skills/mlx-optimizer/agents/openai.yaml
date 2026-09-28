@@ -1,0 +1,7 @@
+interface:
+  display_name: "MLX Optimizer"
+  short_description: "Choose the right MLX optimization workflow"
+  brand_color: "#13171A"
+  default_prompt: "Use $mlx-optimizer to assess this MLX project and choose the right optimization workflow."
+  icon_small: "./assets/icon.png"
+  icon_large: "./assets/icon.png"

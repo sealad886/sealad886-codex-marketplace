@@ -1,0 +1,7 @@
+interface:
+  display_name: "Visual Companion"
+  short_description: "Add a useful visual to the conversation"
+  brand_color: "#5B43D6"
+  default_prompt: "Use $visual-companion to enrich this conversation with a visual when it helps explain the topic."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

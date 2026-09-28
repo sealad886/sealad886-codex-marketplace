@@ -1,8 +1,20 @@
 # Semantic Versioning
 
-Version 0.1.0.
+![Semantic Versioning](assets/logo.svg)
+
+Version 0.1.1.
 
 Help agents assess changes throughout development, maintain native release intent, configure release PRs and verify publication. This package is independent: no MCP server, daemon, telemetry, hooks, or other plugin is required. Helpers require Python 3.11+; native build/release tools are needed only for the selected project.
+
+## Try it in Codex
+
+Choose a skill or use one of these starter requests.
+
+| Skill | What it helps with | Starter request |
+| --- | --- | --- |
+| [Semantic Versioning](skills/semantic-versioning/SKILL.md) | Assess changes and reconcile release intent | Assess the release impact of my current changes. |
+| [Configure Releases](skills/configure-releases/SKILL.md) | Set up version ownership and release automation | Configure release PRs and publishing for this project. |
+| [Verify Release](skills/verify-release/SKILL.md) | Check release consistency and recover publication | Verify this release and identify any incomplete publication. |
 
 ## Start here
 
@@ -51,6 +63,6 @@ Git status remains unresolved when clean/process filters are configured, because
 
 Run repository plugin, distribution and marketplace validators and the semantic-versioning test suite. See the repository validation report for actual commands and limitations. Every template must distinguish static/native validation from hosted publication. Refresh source links, action pins and tool compatibility together when changing recipes. Never claim support for an untested tool version from a current URL alone.
 
-The public contract includes skill responsibilities, helper CLI/JSON behavior, and documented template behavior. Follow SemVer for changes to that contract. Release identity is `semantic-versioning-v0.1.0`. Install with `codex plugin add semantic-versioning@sealad886-codex-marketplace` after adding this marketplace. Publishing from the example workflows requires project-specific configuration and authorization.
+The public contract includes skill responsibilities, helper CLI/JSON behavior, and documented template behavior. Follow SemVer for changes to that contract. Release identity is `semantic-versioning-v0.1.1`. Install with `codex plugin add semantic-versioning@sealad886-codex-marketplace` after adding this marketplace. Publishing from the example workflows requires project-specific configuration and authorization.
 
 Original code, prose and SVG artwork, copyright 2026 Andrew Cox, MIT licensed. Upstream references inform examples; no third-party implementation is bundled.

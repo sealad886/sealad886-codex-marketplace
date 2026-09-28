@@ -1,0 +1,7 @@
+interface:
+  display_name: "Configure Releases"
+  short_description: "Set up version ownership and release automation"
+  brand_color: "#167D8D"
+  default_prompt: "Use $configure-releases to configure release PRs and publishing for this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

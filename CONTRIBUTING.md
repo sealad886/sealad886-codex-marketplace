@@ -38,6 +38,27 @@ Every skill must retain clear answers to:
 
 Prefer a small number of substantial, non-overlapping skills. Update the operating model and templates only for conventions genuinely shared across the lifecycle.
 
+## Codex display metadata
+
+A plugin has two display surfaces. Keep both useful:
+
+- `.codex-plugin/plugin.json` → `interface` describes the plugin detail page:
+  display name, short and long descriptions, artwork, website, and starter prompts.
+- `skills/<skill>/agents/openai.yaml` → `interface` describes an individual skill:
+  `display_name`, `short_description`, `brand_color`, and `default_prompt`,
+  plus skill-relative `icon_small` and `icon_large` assets.
+  These fields use snake case; the plugin manifest uses camel case.
+- `README.md` is the full package guide. Include a brief purpose, linked skill
+  summaries, useful example requests, prerequisites, and validation instructions.
+
+Display metadata does not replace `SKILL.md` or grant tool permissions. Keep
+starter prompts within the skill's authority rules. See OpenAI's
+[skill interface requirements](https://developers.openai.com/plugins/deploy/submission-errors).
+Validate the packaged files and inspect Codex's `skills/list` response after an
+isolated installation: the returned `interface` should include the intended
+names, descriptions, and prompts. This checks what Codex loads; visual rendering
+requires a separate app check.
+
 ## Validation
 
 Run from the repository root:

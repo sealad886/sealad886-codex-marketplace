@@ -1,0 +1,7 @@
+interface:
+  display_name: "Visual Generation"
+  short_description: "Create accessible diagrams, charts, and illustrations"
+  brand_color: "#5B43D6"
+  default_prompt: "Use $visual-generation to create a clear, accessible visual explaining this topic."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
