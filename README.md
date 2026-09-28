@@ -12,7 +12,7 @@ Tools for planning and shipping software, managing releases, working with visual
 
 Take work from requirements through implementation, testing, review, and release. Project Delivery adapts the workflow to the size and risk of the task, keeps decisions grounded in the repository, and tracks what has actually been verified.
 
-**Stable release:** `1.4.1` · [Guide and usage](plugins/project-delivery/README.md)
+**Stable release:** `1.5.0` · [Guide and usage](plugins/project-delivery/README.md)
 
 ### [Semantic Versioning](plugins/semantic-versioning/README.md)
 

@@ -14,7 +14,7 @@ use ISO 8601 and plugin versions follow Semantic Versioning.
 - Example build/package CI, workflow validation, behavioral regression tests,
   and distribution through the marketplace catalog.
 
-## Project Delivery 1.5.0 - Unreleased
+## Project Delivery 1.5.0 - 2026-09-28
 
 ### Added
 
