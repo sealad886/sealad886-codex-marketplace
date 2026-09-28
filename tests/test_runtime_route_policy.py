@@ -67,8 +67,8 @@ class RuntimeRoutePolicyTests(unittest.TestCase):
                 self.assertIn(fragment, self.orchestrator)
 
         profiles = self.route_profiles["profiles"]
-        self.assertEqual(len(profiles), 24)
-        self.assertEqual(len({profile["id"] for profile in profiles}), 24)
+        self.assertEqual(len(profiles), 25)
+        self.assertEqual(len({profile["id"] for profile in profiles}), 25)
 
     def test_runtime_taxonomy_is_broader_than_blind_canary_tolerance(self) -> None:
         profiles = {

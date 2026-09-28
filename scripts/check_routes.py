@@ -140,6 +140,7 @@ REQUIRED_SCENARIO_IDS = {f"ROUTE-{index:03d}" for index in range(1, 18)} | {
     "ROUTE-018",
     "ROUTE-019",
     "ROUTE-020",
+    "ROUTE-021",
 }
 REQUIRED_SUPERSEDED_IDENTITIES = {"boss", "epic", "epic-harness", "superpowers"}
 SCENARIO_ID = re.compile(r"^ROUTE-[0-9]{3}[A-D]?$")

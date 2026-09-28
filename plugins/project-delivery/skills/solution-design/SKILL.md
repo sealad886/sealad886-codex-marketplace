@@ -19,8 +19,8 @@ Expect accepted requirements or clearly stated design-only scope. Inspect curren
 ## Workflow
 
 1. Describe current state, constraints, pain points, and invariants with exact repository evidence.
-2. Propose responsibilities, component boundaries, flows, interfaces, data/failure contracts, configuration, and lifecycle behavior.
-3. Analyze alternatives—including no change when meaningful—by correctness, complexity, compatibility, operability, cost, delivery risk, and reversibility.
+2. Propose responsibilities, component boundaries, flows, interfaces, data/failure contracts, configuration, and lifecycle behavior. Reuse existing owners and extract a shared helper only for a stable process repeated across callers; preserve distinct domain behavior instead of forcing generic reuse.
+3. Apply the shared simplicity test. Start with the least complex viable design that extends canonical paths. Analyze alternatives—including no change when meaningful—by correctness, complexity, compatibility, operability, cost, delivery risk, and reversibility. Choose added abstraction or infrastructure only when the simpler design has a concrete evidenced failure.
 4. Address backward/forward compatibility, version negotiation, deprecation, data/config migration, coexistence windows, rollback, and failure recovery.
 5. Design observability: user-visible errors, logs without secrets, metrics/traces, health, alerts, dashboards, ownership, and diagnostic paths.
 6. Address authentication/authorization, trust boundaries, sensitive data, privacy/retention, dependency/supply-chain risk, abuse/failure modes, least privilege, and secrets.
@@ -41,3 +41,6 @@ The design is feasible against the actual repository; interfaces and failure beh
 - Implement, select technology from fashion, or force greenfield patterns onto an existing system.
 - Invent external API behavior; retrieve current authoritative documentation.
 - Create an ADR for routine reversible detail or omit consequences/alternatives for a material decision.
+- Add abstraction, configurability, infrastructure, or future-proofing without a current requirement or demonstrated risk.
+- Propose a rewrite without showing why bounded changes would retain or worsen entrenched complexity, duplication, incompatible paths, or an architecture that obstructs the accepted outcome.
+- Duplicate one process across multiple code paths when a narrow, well-owned helper can express it without erasing domain differences.

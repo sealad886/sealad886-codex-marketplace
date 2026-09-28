@@ -37,7 +37,7 @@ class PromptExportTests(unittest.TestCase):
         self.assertTrue(
             all(set(item) == {"id", "prompt"} for item in exported["scenarios"])
         )
-        self.assertIn("PROMPT [24/24] id=ROUTE-020", result.stderr)
+        self.assertIn("PROMPT [25/25] id=ROUTE-021", result.stderr)
 
 
 if __name__ == "__main__":
