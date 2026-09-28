@@ -21,7 +21,9 @@
     {
       "name": "conversation-visuals",
       "source": {
-        "source": "local",
+        "source": "git-subdir",
+        "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
+        "ref": "conversation-visuals-v0.1.2",
         "path": "./plugins/conversation-visuals"
       },
       "policy": {
@@ -35,7 +37,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "mlx-optimizer-v0.2.3",
+        "ref": "mlx-optimizer-v0.2.4",
         "path": "./plugins/mlx-optimizer"
       },
       "policy": {
@@ -49,7 +51,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "semantic-versioning-v0.1.0",
+        "ref": "semantic-versioning-v0.1.1",
         "path": "./plugins/semantic-versioning"
       },
       "policy": {
@@ -61,7 +63,9 @@
     {
       "name": "icloud-mail",
       "source": {
-        "source": "local",
+        "source": "git-subdir",
+        "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
+        "ref": "icloud-mail-v0.1.1",
         "path": "./plugins/icloud-mail"
       },
       "policy": {
