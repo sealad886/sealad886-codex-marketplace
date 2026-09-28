@@ -1,0 +1,36 @@
+// Minimal full build.gradle.kts for examples/jvm/gradle.
+// gradle.properties supplies group and version; no second version declaration.
+plugins {
+    `java-library`
+    `maven-publish`
+}
+java {
+    toolchain {
+        languageVersion.set(JavaLanguageVersion.of(17))
+    }
+}
+publishing {
+    publications {
+        create<MavenPublication>("library") {
+            from(components["java"])
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            // GITHUB_REPOSITORY is supplied by Actions; choose the real repository locally.
+            val repository = providers.environmentVariable("GITHUB_REPOSITORY")
+                .orElse("example-owner/semver-example")
+            url = uri("https://maven.pkg.github.com/${repository.get().lowercase()}")
+            credentials {
+                username = providers.environmentVariable("GITHUB_ACTOR").orNull
+                password = providers.environmentVariable("GITHUB_TOKEN").orNull
+            }
+        }
+    }
+}
+tasks.register("printReleaseVersion") {
+    doLast {
+        println("RELEASE_VERSION=${project.version}")
+    }
+}

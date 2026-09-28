@@ -1,0 +1,11 @@
+{
+  "name": "example/semver-example",
+  "description": "Tag-versioned reference",
+  "type": "library",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "SemverExample\\": "src/"
+    }
+  }
+}

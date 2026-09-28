@@ -1,0 +1,40 @@
+{
+  "name": "semantic-versioning",
+  "version": "0.1.0",
+  "description": "Agent-owned release assessment, native version management, and verified CI release recipes.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Semantic Versioning",
+    "shortDescription": "Assess changes and manage versions with native release tools.",
+    "longDescription": "Progressively loaded skills, ecosystem examples, read-only inspection, and release automation references for agents managing semantic versions.",
+    "developerName": "Andrew Cox",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Assess the release impact of my current changes.",
+      "Configure release PRs and automatic publishing for this project.",
+      "Verify this release and recover any incomplete publication."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "brandColor": "#167D8D"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/semantic-versioning",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "semver",
+    "versioning",
+    "release",
+    "ci",
+    "monorepo"
+  ]
+}

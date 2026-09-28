@@ -3,6 +3,17 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Semantic Versioning 0.1.0 - 2026-09-28
+
+### Added
+
+- Three progressively loaded skills for cumulative release assessment, native
+  version ownership, release configuration, and publication verification.
+- Read-only repository discovery and strict SemVer helpers; ten ecosystem
+  references, native examples, and inactive GitHub release workflow templates.
+- Example build/package CI, workflow validation, behavioral regression tests,
+  and distribution through the marketplace catalog.
+
 ## Project Delivery 1.5.0 - Unreleased
 
 ### Added

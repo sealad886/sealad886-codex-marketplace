@@ -1,0 +1,107 @@
+# Inactive example. Read references/ci/github-actions.md before materializing.
+name: Publish python
+on:
+  workflow_call:
+    inputs:
+      revision:
+        description: Approved full 40-character release commit SHA
+        type: string
+        required: true
+      tag:
+        description: Existing immutable release tag
+        type: string
+        required: true
+      version:
+        description: Expected native package version
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Approved full 40-character release commit SHA
+        type: string
+        required: true
+      tag:
+        description: Existing immutable release tag
+        type: string
+        required: true
+      version:
+        description: Expected native package version
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: publish-python-main
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_SHA: ${{ inputs.revision }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_SHA"
+          git merge-base --is-ancestor "$RELEASE_SHA" refs/remotes/origin/main
+          test -n "$RELEASE_VERSION"
+          test "$RELEASE_TAG" = "v$RELEASE_VERSION"
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12.9'
+      - run: |
+          python -m venv .release-venv
+          echo "$PWD/.release-venv/bin" >> "$GITHUB_PATH"
+          .release-venv/bin/python -m pip install build==1.2.2.post1 twine==6.1.0 packaging==24.2
+      - run: python -m build
+      - run: python -m twine check dist/*
+      - name: Verify wheel and source metadata
+        shell: python
+        run: |
+          import email, glob, os, tarfile, zipfile
+          from packaging.version import Version
+          expected = Version(os.environ['RELEASE_VERSION'])
+          artifacts = glob.glob('dist/*')
+          assert len(artifacts) == 2, artifacts
+          for path in artifacts:
+              if path.endswith('.whl'):
+                  with zipfile.ZipFile(path) as archive:
+                      data = archive.read(next(n for n in archive.namelist() if n.endswith('.dist-info/METADATA')))
+              else:
+                  with tarfile.open(path) as archive:
+                      data = archive.extractfile(next(n for n in archive.getmembers() if n.name.count('/') == 1 and n.name.endswith('/PKG-INFO'))).read()
+              assert Version(email.message_from_bytes(data)['Version']) == expected
+      - name: Retain package checksums and source identity
+        run: |
+          mkdir -p release-artifacts
+          cp dist/* release-artifacts/
+          printf '%s\n' "$RELEASE_SHA" > release-artifacts/source-revision.txt
+          (cd release-artifacts && sha256sum ./*.whl ./*.tar.gz > SHA256SUMS)
+          cat release-artifacts/SHA256SUMS
+      - name: Retain exact python artifacts before publication
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-python-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33
+        with:
+          attestations: true

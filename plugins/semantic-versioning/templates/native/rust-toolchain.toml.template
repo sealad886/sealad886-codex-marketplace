@@ -1,0 +1,5 @@
+# Copy beside the root Cargo.toml. Upgrade this pin through project validation.
+[toolchain]
+channel = "1.85.1"
+profile = "minimal"
+components = ["rustfmt", "clippy"]
