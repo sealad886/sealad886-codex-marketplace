@@ -89,6 +89,144 @@
       ]
     },
     {
+      "id": "small-feature-change",
+      "intent": "Select when a clear, bounded, low-risk repository change is authorized and can be implemented in one coherent slice using an established design. Do not use for changes needing a material design decision, multiple coordinated slices, migration, incident handling, or release execution.",
+      "preferred_scale": "small",
+      "allowed_scales": [
+        "small",
+        "small-or-medium"
+      ],
+      "preferred_risk": "low-or-risk-dependent",
+      "allowed_risks": [
+        "low",
+        "low-or-risk-dependent",
+        "medium",
+        "risk-dependent"
+      ],
+      "authority": "change",
+      "lead_capability": "delivery-orchestrator",
+      "required_capabilities": [
+        "delivery-orchestrator",
+        "project-context",
+        "requirements-acceptance",
+        "implementation-execution",
+        "testing-quality"
+      ],
+      "conditional_capabilities": [
+        {
+          "skill": "solution-design",
+          "when": "the change requires a material design choice, alters an established contract, or proposes a simplification rewrite because bounded patches would preserve entrenched complexity"
+        },
+        {
+          "skill": "delivery-planning",
+          "when": "the change has multiple dependent slices, material integration sequencing, or a nontrivial rollback boundary"
+        },
+        {
+          "skill": "documentation-knowledge",
+          "when": "the change alters canonical user, developer, operator, architecture, configuration, or release knowledge"
+        },
+        {
+          "skill": "review-audit",
+          "when": "risk, complexity, repository policy, or explicit user request requires independent review"
+        },
+        {
+          "skill": "release-change",
+          "when": "integration, versioning, changelog, packaging, release preparation, or release-gate disposition is in scope"
+        },
+        {
+          "skill": "security-operations",
+          "when": "the change reaches security, privacy, sensitive data, privileged boundaries, reliability, infrastructure, migration, or material operational risk"
+        },
+        {
+          "skill": "delivery-coordination",
+          "when": "external sources, systems of record, shared ownership, status, or authorized provider mutation require synchronization"
+        },
+        {
+          "skill": "retrospective-improvement",
+          "when": "a meaningful delivery outcome, failure, or reusable learning exists"
+        }
+      ],
+      "precedence": [
+        [
+          "project-context",
+          "requirements-acceptance"
+        ],
+        [
+          "requirements-acceptance",
+          "solution-design"
+        ],
+        [
+          "requirements-acceptance",
+          "delivery-planning"
+        ],
+        [
+          "solution-design",
+          "implementation-execution"
+        ],
+        [
+          "delivery-planning",
+          "implementation-execution"
+        ],
+        [
+          "requirements-acceptance",
+          "implementation-execution"
+        ],
+        [
+          "implementation-execution",
+          "testing-quality"
+        ],
+        [
+          "testing-quality",
+          "review-audit"
+        ],
+        [
+          "documentation-knowledge",
+          "review-audit"
+        ],
+        [
+          "testing-quality",
+          "release-change"
+        ],
+        [
+          "documentation-knowledge",
+          "release-change"
+        ],
+        [
+          "review-audit",
+          "release-change"
+        ]
+      ],
+      "allowed_reentry": [],
+      "required_reentry": [],
+      "required_reentry_before": {},
+      "required_reentry_after": {},
+      "required_final_after": {
+        "release-change": [
+          "testing-quality",
+          "documentation-knowledge",
+          "review-audit",
+          "security-operations"
+        ]
+      },
+      "forbidden_capabilities": [],
+      "expected_artifacts": [
+        "compact context and acceptance",
+        "smallest coherent change",
+        "focused test evidence",
+        "conditional design, plan, documentation, review, or release evidence only when triggered"
+      ],
+      "required_evidence": [
+        "repository conventions and canonical implementation",
+        "exact changed revision",
+        "actual focused command results"
+      ],
+      "stop_conditions": [
+        "do not expand a bounded change without evidence and user authority",
+        "a rewrite requires repository evidence and explicit rewrite scope authority",
+        "publishing requires separate authority"
+      ]
+    },
+    {
       "id": "medium-feature-change",
       "intent": "Select when repository changes are authorized for a feature or refactor that needs the full build-to-release lifecycle. Do not use for planning-only work, incident containment, migration-specific delivery, or release execution.",
       "preferred_scale": "medium",

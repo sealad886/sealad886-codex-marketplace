@@ -32,7 +32,8 @@ Inspect the user request; applicable `AGENTS.md`; repository status/history/bran
 1. Resolve authority and target: report-only, planning-only, design-only, change/build, review, release preparation, hotfix, or authorized release execution. Planning, review, and reporting do not authorize edits.
 2. Classify scale and risk using the shared model. Record why.
 3. Establish lifecycle state. Reuse valid existing artifacts; do not restart completed phases.
-4. Select exactly one canonical profile from `../.shared/route-profiles-v1.json` by semantic intent, lifecycle state, and authority—not by exact wording. Apply its required owners, declared conditional owners, precedence, re-entry, final-controller, forbidden-owner, evidence, artifact, and stop rules.
+4. Apply the shared simplicity test before routing: use the minimum sufficient lifecycle and capability set, and reject extra ceremony, specialists, artifacts, or scope that lack a current requirement or demonstrated risk.
+5. Select exactly one canonical profile from `../.shared/route-profiles-v1.json` by semantic intent, lifecycle state, and authority—not by exact wording. Apply its required owners, declared conditional owners, precedence, re-entry, final-controller, forbidden-owner, evidence, artifact, and stop rules.
    - Use the profile's preferred scale/risk when evidence is sparse. Use another normalized value only when it is in that installed profile's `allowed_scales` or `allowed_risks` and the repository or task evidence is stated. Maintainer canary contracts may accept a narrower subset for a fixed blind prompt; those test tolerances never constrain a real evidence-resolved route. Authority remains exact.
    - Required and conditional owners are disjoint. Never duplicate a required owner in `conditional_dispositions`. Record every declared conditional owner exactly once, whether activated, not applicable, deferred, blocked, or planned future.
    - Do not turn every global cross-cutting trigger into a profile conditional. Global guidance evaluates declared branches. A genuinely additional proportional owner may be introduced only from current evidence: record it as a complete conditional disposition when its trigger must be evaluated, or in `extra_capability_justifications` when it is directly selected without a conditional branch. Never duplicate a required, forbidden, or controller owner.
@@ -44,10 +45,10 @@ Inspect the user request; applicable `AGENTS.md`; repository status/history/bran
    - Use `workflow-decommission` when an active workflow, plugin, instruction set, hook, or configuration is being replaced and disabled or removed under explicit target authority; do not approximate it with ordinary feature delivery.
    - If no profile fits, use the lifecycle gates to construct the minimum safe route, state the unmatched intent as a profile gap, and justify every owner. Do not pretend an approximate profile is exact.
    - `workflow-decommission` remains an orchestrated composite: inventory active instructions, prompts, hooks/configuration, state, installed identities/versions, exact recovery sources, and legacy imperative artifacts → preserve rollback → disable one candidate at a time → start an independently resolved fresh task and run affected static/live smoke cases → re-enable on any routing or parity failure → uninstall only after observation gates and user-confirmed scope. Require ordinary fresh-task callbacks to start with `PROJECT_DELIVERY_VERSION=<expected-version>`; sealed JSON canaries use `plugin_identity.installed_version`. Do not edit consumer repositories or plugin configuration without corresponding authority.
-5. Invoke `delivery-coordination` when external sources may contain requirements/decisions, after plans need synchronization, before status or meetings, after review findings need tracking, and during release communication/handoff. Detect provider/tool capability; core execution must still work without it.
-6. Apply gates. Implementation may begin only when the Ready and necessary Design gates are satisfied. For low-risk work these may be concise and implicit in inspected evidence, but state that evidence.
-7. Maintain a visible checklist/status for multi-stage work. Report blockers, decisions, evidence, and next transition.
-8. End with the handoff contract and residual risk.
+6. Invoke `delivery-coordination` when external sources may contain requirements/decisions, after plans need synchronization, before status or meetings, after review findings need tracking, and during release communication/handoff. Detect provider/tool capability; core execution must still work without it.
+7. Apply gates. Implementation may begin only when the Ready and necessary Design gates are satisfied. For low-risk work these may be concise and implicit in inspected evidence, but state that evidence.
+8. Maintain a visible checklist/status for multi-stage work. Report blockers, decisions, evidence, and next transition.
+9. End with the handoff contract and residual risk.
 
 ## Routing contract
 
@@ -81,5 +82,6 @@ The path covers the requested outcome; no required gate is silently skipped; exi
 
 - Implement a material or risky change before requirements and design are sufficiently clear.
 - Force full ceremony on a trivial low-risk change.
+- Add lifecycle depth, delegation, artifacts, or adjacent scope without a current requirement or demonstrated risk.
 - Auto-approve requirements/design, fabricate owners/estimates/evidence, or treat missing legacy runtimes as available.
 - Create plugin-branded project state, require another plugin, or perform external/destructive/release actions beyond user authority.

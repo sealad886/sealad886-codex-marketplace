@@ -600,6 +600,35 @@
       "expected_artifacts": ["active-surface inventory and replacement map", "exact target identities and recovery sources", "rollback and one-at-a-time disable plan", "static and independently resolved fresh-task smoke evidence", "observation gate and uninstall disposition", "canonical migration and support handoff"],
       "required_evidence": ["active instructions, prompts, hooks, configurations, state, installed versions, and legacy imperative artifacts", "replacement parity at an exact source and installed revision", "fresh-task behavior after each disable with reversible recovery evidence"],
       "stop_conditions": ["do not disable or uninstall without exact target authority and a verified recovery source", "disable one candidate at a time, re-enable on any routing or parity failure, and uninstall only after the observation gate and user-confirmed scope"]
+    },
+    {
+      "id": "ROUTE-021",
+      "profile_id": "small-feature-change",
+      "prompt": "Implement this clear, bounded, low-risk change in the existing canonical code without adding unrelated scope.",
+      "scale": "small",
+      "accepted_scales": ["small", "small-or-medium"],
+      "risk": "low-or-risk-dependent",
+      "accepted_risks": ["low", "low-or-risk-dependent"],
+      "authority": "change",
+      "lead_capability": "delivery-orchestrator",
+      "required_capabilities": ["delivery-orchestrator", "project-context", "requirements-acceptance", "implementation-execution", "testing-quality"],
+      "conditional_capabilities": [
+        {"skill": "solution-design", "when": "the change requires a material design choice, alters an established contract, or proposes a simplification rewrite because bounded patches would preserve entrenched complexity"},
+        {"skill": "delivery-planning", "when": "the change has multiple dependent slices, material integration sequencing, or a nontrivial rollback boundary"},
+        {"skill": "documentation-knowledge", "when": "the change alters canonical user, developer, operator, architecture, configuration, or release knowledge"},
+        {"skill": "review-audit", "when": "risk, complexity, repository policy, or explicit user request requires independent review"},
+        {"skill": "release-change", "when": "integration, versioning, changelog, packaging, release preparation, or release-gate disposition is in scope"},
+        {"skill": "security-operations", "when": "the change reaches security, privacy, sensitive data, privileged boundaries, reliability, infrastructure, migration, or material operational risk"},
+        {"skill": "delivery-coordination", "when": "external sources, systems of record, shared ownership, status, or authorized provider mutation require synchronization"},
+        {"skill": "retrospective-improvement", "when": "a meaningful delivery outcome, failure, or reusable learning exists"}
+      ],
+      "precedence": [["project-context", "requirements-acceptance"], ["requirements-acceptance", "solution-design"], ["requirements-acceptance", "delivery-planning"], ["solution-design", "implementation-execution"], ["delivery-planning", "implementation-execution"], ["requirements-acceptance", "implementation-execution"], ["implementation-execution", "testing-quality"], ["testing-quality", "review-audit"], ["documentation-knowledge", "review-audit"], ["testing-quality", "release-change"], ["documentation-knowledge", "release-change"], ["review-audit", "release-change"]],
+      "allowed_reentry": [],
+      "required_final_after": {"release-change": ["testing-quality", "documentation-knowledge", "review-audit", "security-operations"]},
+      "forbidden_capabilities": [],
+      "expected_artifacts": ["compact context and acceptance", "smallest coherent change", "focused test evidence", "conditional design, plan, documentation, review, or release evidence only when triggered"],
+      "required_evidence": ["repository conventions and canonical implementation", "exact changed revision", "actual focused command results"],
+      "stop_conditions": ["do not expand a bounded change without evidence and user authority", "a rewrite requires repository evidence and explicit rewrite scope authority", "publishing requires separate authority"]
     }
   ]
 }

@@ -22,10 +22,11 @@ Inspect the request, applicable instructions, README/contributing/roadmap/archit
 2. Identify users, operators, maintainers, business stakeholders, and affected systems only where evidence supports them.
 3. Summarize existing context with paths, revisions, commands, or artifact links.
 4. Define value, scope, non-scope, constraints, dependencies, assumptions, risks, and open questions.
-5. Define measurable success. Prefer observable behavior, reliability/quality measures, adoption/outcome indicators, or explicit documentation completion over vague adjectives.
-6. Draft initial Definition of Ready and Definition of Done using shared conventions.
-7. Ask only questions that materially change purpose, scope, safety, or acceptance. Make safe assumptions for non-blocking gaps and label them.
-8. Classify each key statement: discovered fact, user requirement, assumption, agent decision, or open question.
+5. Apply the shared simplicity test: distinguish the requested outcome from optional adjacent improvements, caution when a proposed solution exceeds the demonstrated need, and keep unsupported expansion in non-scope.
+6. Define measurable success. Prefer observable behavior, reliability/quality measures, adoption/outcome indicators, or explicit documentation completion over vague adjectives.
+7. Draft initial Definition of Ready and Definition of Done using shared conventions.
+8. Ask only questions that materially change purpose, scope, safety, or acceptance. Make safe assumptions for non-blocking gaps and label them.
+9. Classify each key statement: discovered fact, user requirement, assumption, agent decision, or open question.
 
 ## Outputs and handoff
 
@@ -40,3 +41,4 @@ Problem, outcome, value, scope/non-scope, context, constraints, assumptions, ris
 - Start implementation or lock a technical solution.
 - Fabricate project history, user research, metrics, stakeholders, or requirements.
 - Re-ask questions answered by repository evidence or create a duplicate brief when a canonical one exists.
+- Inflate a bounded request into a broader initiative without evidence and user authorization.

@@ -1268,6 +1268,7 @@ class RouteSemanticTests(unittest.TestCase):
             "ROUTE-006": "delivery-coordination",
             "ROUTE-009": "testing-quality",
             "ROUTE-017D": "security-operations",
+            "ROUTE-021": "testing-quality",
         }
         contracts = load_contracts()
         for scenario_id, omitted in cases.items():
@@ -1473,7 +1474,7 @@ class RouteSemanticTests(unittest.TestCase):
                         item["actual_route"].index("release-change"),
                     )
 
-    def test_synthetic_route_policy_matrix_passes_all_24_contracts(self) -> None:
+    def test_synthetic_route_policy_matrix_passes_all_25_contracts(self) -> None:
         receipts = make_fresh_receipts(load_fixture())
         contracts = load_contracts()["scenarios"]
         set_fresh_scenarios(receipts, [
@@ -1481,7 +1482,7 @@ class RouteSemanticTests(unittest.TestCase):
         ])
         result = run_receipt_checker(receipts, allow_historical=False)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertIn("route_policy_records=24", result.stdout)
+        self.assertIn("route_policy_records=25", result.stdout)
 
     def test_mutation_does_not_modify_source_fixture(self) -> None:
         first = load_fixture()
