@@ -1,0 +1,10 @@
+<!-- Merge this element beneath the existing pom.xml project element.
+     Replace example-owner/semver-example with the authorized repository.
+     Match setup-java server-id: github in the Maven publisher workflow. -->
+<distributionManagement>
+  <repository>
+    <id>github</id>
+    <name>GitHub Packages</name>
+    <url>https://maven.pkg.github.com/example-owner/semver-example</url>
+  </repository>
+</distributionManagement>

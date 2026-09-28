@@ -1,0 +1,6 @@
+cmake_minimum_required(VERSION 3.20)
+project(semver_example VERSION 0.1.0 LANGUAGES CXX)
+add_library(semver_example SHARED greeting.cpp)
+set_target_properties(semver_example PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION 0)
+configure_file(version.h.in version.h @ONLY)
+target_include_directories(semver_example PUBLIC "$<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>")

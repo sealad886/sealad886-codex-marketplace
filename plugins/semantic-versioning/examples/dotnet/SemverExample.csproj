@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework><PackageId>SemverExample</PackageId><Authors>Example</Authors><PackageLicenseExpression>MIT</PackageLicenseExpression><Description>Semantic version reference example</Description></PropertyGroup></Project>

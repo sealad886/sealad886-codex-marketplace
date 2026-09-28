@@ -338,8 +338,10 @@ def validate_entry(
     if not isinstance(policy, dict):
         errors.append(f"{label} policy must be an object")
     else:
-        if policy.get("installation") != "AVAILABLE":
-            errors.append(f"{label} policy.installation must be 'AVAILABLE'")
+        if policy.get("installation") not in ("AVAILABLE", "NOT_AVAILABLE"):
+            errors.append(
+                f"{label} policy.installation must be AVAILABLE or NOT_AVAILABLE"
+            )
         if policy.get("authentication") != "ON_INSTALL":
             errors.append(f"{label} policy.authentication must be 'ON_INSTALL'")
 
@@ -497,11 +499,14 @@ def main(argv: list[str] | None = None) -> int:
     source_types = sorted(
         {entry["source"]["source"] for entry in marketplace["plugins"]}
     )
+    install_policies = sorted(
+        {entry["policy"]["installation"] for entry in marketplace["plugins"]}
+    )
     print(
         f"PASS marketplace={MARKETPLACE_NAME} plugins={len(marketplace['plugins'])} "
         f"project-delivery-ref={project_delivery_ref} "
         f"sources={','.join(source_types)} "
-        "policy=AVAILABLE/ON_INSTALL license_parity=true"
+        f"policies={','.join(install_policies)}/ON_INSTALL license_parity=true"
     )
     return 0
 

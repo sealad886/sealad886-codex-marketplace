@@ -42,11 +42,13 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "semantic-versioning": 3,
     "conversation-visuals": 4,
     "mlx-optimizer": 6,
     "project-delivery": 13,
 }
 PLUGIN_RESOURCE_DIRECTORIES = {
+    "semantic-versioning": ("references", "scripts", "templates", "examples"),
     "mlx-optimizer": (
         ".claude-plugin",
         ".cursor-plugin",

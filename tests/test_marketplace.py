@@ -80,6 +80,9 @@ def create_repository_fixture(root: Path) -> dict[str, object]:
             )
     write_marketplace(root, marketplace)
     run_git(root, "init", "-q")
+    # Background maintenance must not outlive this disposable repository.
+    run_git(root, "config", "maintenance.auto", "false")
+    run_git(root, "config", "gc.auto", "0")
     commit_fixture(root, "fixture: add catalog plugins")
     for entry in marketplace["plugins"]:
         source_ref = entry["source"].get("ref")
@@ -280,7 +283,7 @@ class MarketplaceTests(unittest.TestCase):
             result = run_checker(root)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertIn("plugins=4", result.stdout)
+            self.assertIn(f"plugins={len(marketplace['plugins'])}", result.stdout)
 
     def test_duplicate_marketplace_plugin_name_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

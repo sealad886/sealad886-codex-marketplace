@@ -1,0 +1,13 @@
+{
+  "name": "semver-example-js",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": "./index.js",
+  "files": [
+    "index.js"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test"
+  }
+}
