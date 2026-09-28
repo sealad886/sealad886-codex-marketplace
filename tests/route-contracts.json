@@ -622,7 +622,7 @@
         {"skill": "delivery-coordination", "when": "external sources, systems of record, shared ownership, status, or authorized provider mutation require synchronization"},
         {"skill": "retrospective-improvement", "when": "a meaningful delivery outcome, failure, or reusable learning exists"}
       ],
-      "precedence": [["project-context", "requirements-acceptance"], ["requirements-acceptance", "solution-design"], ["requirements-acceptance", "delivery-planning"], ["solution-design", "implementation-execution"], ["delivery-planning", "implementation-execution"], ["requirements-acceptance", "implementation-execution"], ["implementation-execution", "testing-quality"], ["testing-quality", "review-audit"], ["documentation-knowledge", "review-audit"], ["testing-quality", "release-change"], ["documentation-knowledge", "release-change"], ["review-audit", "release-change"]],
+      "precedence": [["project-context", "requirements-acceptance"], ["requirements-acceptance", "solution-design"], ["requirements-acceptance", "delivery-planning"], ["solution-design", "delivery-planning"], ["solution-design", "implementation-execution"], ["delivery-planning", "implementation-execution"], ["requirements-acceptance", "implementation-execution"], ["implementation-execution", "testing-quality"], ["testing-quality", "review-audit"], ["documentation-knowledge", "review-audit"], ["testing-quality", "release-change"], ["documentation-knowledge", "release-change"], ["review-audit", "release-change"]],
       "allowed_reentry": [],
       "required_final_after": {"release-change": ["testing-quality", "documentation-knowledge", "review-audit", "security-operations"]},
       "forbidden_capabilities": [],

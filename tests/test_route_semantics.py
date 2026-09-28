@@ -1284,6 +1284,33 @@ class RouteSemanticTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn(f"misses required capabilities: {omitted}", result.stdout)
 
+    def test_small_feature_orders_activated_design_before_planning(self) -> None:
+        contract = scenario(load_contracts(), "ROUTE-021")
+        for design_first in (True, False):
+            with self.subTest(design_first=design_first):
+                receipts = make_fresh_receipts(load_fixture())
+                item = synthetic_policy_scenario(contract)
+                owners = ["solution-design", "delivery-planning"]
+                for skill in owners:
+                    item["conditional_dispositions"][skill] = {
+                        "state": "activated",
+                        "rationale": "The bounded change needs design and sequencing evidence.",
+                        "evidence": ["Synthetic conditional lifecycle regression."],
+                    }
+                insertion = item["actual_route"].index("implementation-execution")
+                item["actual_route"][insertion:insertion] = (
+                    owners if design_first else list(reversed(owners))
+                )
+                set_fresh_scenarios(receipts, [item])
+                result = run_receipt_checker(receipts, allow_historical=False)
+                if design_first:
+                    self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                else:
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertIn(
+                        "solution-design must precede delivery-planning", result.stdout
+                    )
+
     def test_final_release_disposition_must_follow_evidence_owners(self) -> None:
         malformed_routes = {
             "ROUTE-014": [
