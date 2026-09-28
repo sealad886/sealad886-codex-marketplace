@@ -4,7 +4,7 @@
 [![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Tools for planning and shipping software, managing releases, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
+Tools for planning and shipping software, managing releases, working with visuals, managing iCloud email, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
 
 ## Plugins
 
@@ -32,6 +32,12 @@ Bring useful images, diagrams, and generated visuals into supported Codex and Ch
 
 **Version:** `0.1.1` · [Guide and supported capabilities](plugins/conversation-visuals/README.md)
 
+### [iCloud Mail](plugins/icloud-mail/README.md)
+
+Search, read, organize, draft, and send iCloud email through a local IMAP/SMTP integration. Guided setup uses an Apple app-specific password stored in macOS Keychain. Includes attachments, replies, forwarding, and recoverable mailbox actions.
+
+**Release:** `0.1.0` · [Setup and usage](plugins/icloud-mail/README.md)
+
 ## Install
 
 Add the marketplace once:
@@ -47,6 +53,7 @@ codex plugin add project-delivery@sealad886-codex-marketplace
 codex plugin add semantic-versioning@sealad886-codex-marketplace
 codex plugin add mlx-optimizer@sealad886-codex-marketplace
 codex plugin add conversation-visuals@sealad886-codex-marketplace
+codex plugin add icloud-mail@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.
