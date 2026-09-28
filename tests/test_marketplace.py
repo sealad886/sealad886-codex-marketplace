@@ -123,20 +123,34 @@ def example_entry(source_ref: str) -> dict[str, object]:
 
 
 class MarketplaceTests(unittest.TestCase):
-    def test_published_plugins_resolve_to_matching_release_manifests(self) -> None:
+    def test_pinned_plugins_resolve_to_matching_release_manifests(self) -> None:
         marketplace = json.loads(
             (REPOSITORY_ROOT / MARKETPLACE_PATH).read_text(encoding="utf-8")
         )
         for entry in marketplace["plugins"]:
             with self.subTest(plugin=entry["name"]):
                 source = entry["source"]
-                self.assertEqual(source["source"], "git-subdir")
+                if source["source"] != "git-subdir":
+                    continue
                 manifest_path = Path(source["path"]) / ".codex-plugin/plugin.json"
                 manifest = json.loads(run_git(
                     REPOSITORY_ROOT, "show", f"{source['ref']}:{manifest_path.as_posix()}"
                 ).stdout)
                 self.assertEqual(manifest["name"], entry["name"])
                 self.assertEqual(version_from_tag(source["ref"]), manifest["version"])
+
+    def test_semantic_versioning_metadata_is_available_before_install(self) -> None:
+        # The current host reads complete uninstalled metadata from local sources;
+        # git-subdir sources expose a cross-repository placeholder until installed.
+        marketplace = json.loads(
+            (REPOSITORY_ROOT / MARKETPLACE_PATH).read_text(encoding="utf-8")
+        )
+        entry = next(e for e in marketplace["plugins"] if e["name"] == "semantic-versioning")
+        self.assertEqual(entry["source"]["source"], "local")
+        package = REPOSITORY_ROOT / entry["source"]["path"]
+        manifest = json.loads((package / ".codex-plugin/plugin.json").read_text())
+        from check_marketplace import validate_local_interface
+        self.assertEqual(validate_local_interface(package, manifest, entry["name"]), [])
 
     def test_repository_marketplace_and_license_parity_pass(self) -> None:
         result = run_checker(REPOSITORY_ROOT)

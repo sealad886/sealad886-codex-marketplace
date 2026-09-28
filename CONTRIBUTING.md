@@ -10,7 +10,7 @@ Contributions that make the sealad886 Codex Marketplace or one of its contained 
 
 Project Delivery, Conversation Visuals, MLX Optimizer, and iCloud Mail are marketplace plugins. Each package owns its contribution contract: use the [Project Delivery guide](plugins/project-delivery/README.md) for lifecycle and routing changes; the [Conversation Visuals guide](plugins/conversation-visuals/README.md) plus its [security policy](plugins/conversation-visuals/SECURITY.md) for visual-selection, MCP, provenance, privacy, and consent changes; the [MLX Optimizer guide](plugins/mlx-optimizer/README.md) for MLX skills, references, scripts, and measurement contracts; and the [iCloud Mail guide](plugins/icloud-mail/README.md) plus its [security policy](plugins/icloud-mail/SECURITY.md) for IMAP/SMTP, mailbox, credential, attachment, and mutation changes. The Project Delivery-specific guidance below does not override another package's contract.
 
-Semantic Versioning follows the same release and validation requirements. Its [package guide](plugins/semantic-versioning/README.md) describes native examples, helper contracts, progressive disclosure, and release boundaries. Its catalog entry pins the immutable release tag; validate the package before publishing a new version.
+Semantic Versioning follows the same release and validation requirements. Its [package guide](plugins/semantic-versioning/README.md) describes native examples, helper contracts, progressive disclosure, and release boundaries. Its catalog entry uses the package in this marketplace checkout so Codex can show its details before installation. Immutable Git tags still identify published releases; validate the package before publishing a new version.
 
 ## Before changing Project Delivery
 
@@ -54,6 +54,19 @@ A plugin has two display surfaces. Keep both useful:
 Display metadata does not replace `SKILL.md` or grant tool permissions. Keep
 starter prompts within the skill's authority rules. See OpenAI's
 [skill interface requirements](https://developers.openai.com/plugins/deploy/submission-errors).
+For Semantic Versioning, retain the catalog-local source unless a replacement
+passes native pre-install discovery. With `git-subdir`, the current Codex host
+returns a cross-repository placeholder before installation; adding skill metadata
+does not fix that listing. A local source in a Git-backed marketplace resolves
+inside the downloaded marketplace checkout, not a developer-specific directory.
+Catalog installs therefore follow the package on the marketplace branch; keep
+that package at the intended published version.
+
+Validate `plugin/read` in a fresh Codex home **before installing**: the plugin
+should have a display name, descriptions, prompts, existing artwork paths, and
+its three skills while `installed` is false. Verify installation and published
+package identity separately.
+
 Validate the packaged files and inspect Codex's `skills/list` response after an
 isolated installation: the returned `interface` should include the intended
 names, descriptions, and prompts. This checks what Codex loads; visual rendering
