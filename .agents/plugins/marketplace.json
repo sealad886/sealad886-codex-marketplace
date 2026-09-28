@@ -47,11 +47,13 @@
     {
       "name": "semantic-versioning",
       "source": {
-        "source": "local",
+        "source": "git-subdir",
+        "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
+        "ref": "semantic-versioning-v0.1.0",
         "path": "./plugins/semantic-versioning"
       },
       "policy": {
-        "installation": "NOT_AVAILABLE",
+        "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools"
