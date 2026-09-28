@@ -1,6 +1,6 @@
 {
   "name": "semantic-versioning",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Agent-owned release assessment, native version management, and verified CI release recipes.",
   "author": {
     "name": "Andrew Cox",
@@ -25,7 +25,8 @@
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/logo.svg",
-    "brandColor": "#167D8D"
+    "brandColor": "#167D8D",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/semantic-versioning"
   },
   "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/semantic-versioning",
   "repository": "https://github.com/sealad886/sealad886-codex-marketplace",

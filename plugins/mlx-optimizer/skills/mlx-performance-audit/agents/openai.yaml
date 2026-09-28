@@ -1,0 +1,7 @@
+interface:
+  display_name: "MLX Performance Audit"
+  short_description: "Find MLX bottlenecks and build a benchmark plan"
+  brand_color: "#13171A"
+  default_prompt: "Use $mlx-performance-audit to audit this repository for MLX performance issues."
+  icon_small: "./assets/icon.png"
+  icon_large: "./assets/icon.png"

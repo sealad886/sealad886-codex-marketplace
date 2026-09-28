@@ -3,6 +3,16 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Plugin display updates - 2026-09-28
+
+### Fixed
+
+- Conversation Visuals 0.1.2, Semantic Versioning 0.1.1, MLX Optimizer 0.2.4,
+  and iCloud Mail 0.1.1 now include skill display names, descriptions, brand
+  colors, and starter prompts through `agents/openai.yaml`.
+- Package guides include artwork and linked skill summaries with example requests.
+- Semantic Versioning now supplies the plugin detail page website link.
+
 ## Semantic Versioning 0.1.0 - 2026-09-28
 
 ### Added

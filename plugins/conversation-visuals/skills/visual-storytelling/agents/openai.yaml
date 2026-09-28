@@ -1,0 +1,7 @@
+interface:
+  display_name: "Visual Storytelling"
+  short_description: "Turn an explanation into a concise visual story"
+  brand_color: "#5B43D6"
+  default_prompt: "Use $visual-storytelling to turn this explanation into a concise sequence of visual frames."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

@@ -1,4 +1,5 @@
 <p align="center">
+
   <img src="assets/mlx-optimizer-logo.png" width="176" alt="MLX Optimizer electrified compiled-flow logo">
 </p>
 
@@ -21,6 +22,19 @@ Static findings remain candidates until representative workload evidence proves
 them. The plugin never installs Python globally, treats lazy evaluation and
 synchronization as correctness concerns, and requires concrete timing, memory,
 and output evidence for optimization claims.
+
+## Try it in Codex
+
+Choose a skill or use one of these starter requests.
+
+| Skill | What it helps with | Starter request |
+| --- | --- | --- |
+| [MLX Optimizer](skills/mlx-optimizer/SKILL.md) | Choose the right MLX optimization workflow | Assess this MLX project and choose the right optimization workflow. |
+| [MLX Performance Audit](skills/mlx-performance-audit/SKILL.md) | Find MLX bottlenecks and build a benchmark plan | Audit this repository for MLX performance issues. |
+| [MLX Training Optimizer](skills/mlx-training-optimizer/SKILL.md) | Optimize MLX training loops with measured evidence | Optimize this MLX training loop and verify the result. |
+| [MLX Inference Optimizer](skills/mlx-inference-optimizer/SKILL.md) | Optimize MLX inference and generation loops | Optimize this MLX inference loop and measure latency. |
+| [MLX Metal Kernels](skills/mlx-metal-kernels/SKILL.md) | Profile and optimize MLX kernels on Apple Silicon | Investigate whether this MLX bottleneck needs a Metal kernel. |
+| [MLX Portability Bridges](skills/mlx-portability-bridges/SKILL.md) | Plan MLX integration across language boundaries | Plan an MLX integration across these language boundaries. |
 
 ## Install
 

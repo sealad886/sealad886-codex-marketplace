@@ -18,25 +18,25 @@ Take work from requirements through implementation, testing, review, and release
 
 Keep version decisions aligned with code changes. Assess release impact, respect the project's existing version owner, and configure or verify release automation. Includes guidance across ten ecosystem families, read-only inspection tools, and GitHub Actions examples for common packaging workflows.
 
-**Release:** `0.1.0` · [Guide and examples](plugins/semantic-versioning/README.md)
+**Release:** `0.1.1` · [Guide and examples](plugins/semantic-versioning/README.md)
 
 ### [MLX Optimizer](plugins/mlx-optimizer/README.md)
 
 Audit, benchmark, and optimize Python MLX code on Apple Silicon. Find performance bottlenecks, compare changes against measured baselines, and check numerical accuracy alongside speed and memory use.
 
-**Stable release:** `0.2.3` · [Guide and requirements](plugins/mlx-optimizer/README.md)
+**Stable release:** `0.2.4` · [Guide and requirements](plugins/mlx-optimizer/README.md)
 
 ### [Conversation Visuals](plugins/conversation-visuals/README.md)
 
 Bring useful images, diagrams, and generated visuals into supported Codex and ChatGPT conversations. Choose visuals that help explain the subject, with source attribution and clear disclosure of generated content.
 
-**Version:** `0.1.1` · [Guide and supported capabilities](plugins/conversation-visuals/README.md)
+**Version:** `0.1.2` · [Guide and supported capabilities](plugins/conversation-visuals/README.md)
 
 ### [iCloud Mail](plugins/icloud-mail/README.md)
 
 Search, read, organize, draft, and send iCloud email through a local IMAP/SMTP integration. Guided setup uses an Apple app-specific password stored in macOS Keychain. Includes attachments, replies, forwarding, and recoverable mailbox actions.
 
-**Release:** `0.1.0` · [Setup and usage](plugins/icloud-mail/README.md)
+**Release:** `0.1.1` · [Setup and usage](plugins/icloud-mail/README.md)
 
 ## Install
 

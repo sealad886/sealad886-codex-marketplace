@@ -1,0 +1,7 @@
+interface:
+  display_name: "MLX Portability Bridges"
+  short_description: "Plan MLX integration across language boundaries"
+  brand_color: "#13171A"
+  default_prompt: "Use $mlx-portability-bridges to plan an MLX integration across these language boundaries."
+  icon_small: "./assets/icon.png"
+  icon_large: "./assets/icon.png"

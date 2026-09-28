@@ -1,0 +1,7 @@
+interface:
+  display_name: "MLX Inference Optimizer"
+  short_description: "Optimize MLX inference and generation loops"
+  brand_color: "#13171A"
+  default_prompt: "Use $mlx-inference-optimizer to optimize this MLX inference loop and measure latency."
+  icon_small: "./assets/icon.png"
+  icon_large: "./assets/icon.png"

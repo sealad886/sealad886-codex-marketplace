@@ -1,10 +1,23 @@
 # Conversation Visuals
 
+![Conversation Visuals](assets/conversation-visuals-logo.svg)
+
 Conversation Visuals enriches supported Codex and ChatGPT conversations with
 relevant sourced images, generated illustrations, diagrams, charts, slide
 sequences, and short media. It chooses the smallest visual that materially
 improves the conversation, supplies accessible descriptions, and keeps sourced
 evidence distinct from generated content.
+
+## Try it in Codex
+
+Choose a skill or use one of these starter requests.
+
+| Skill | What it helps with | Starter request |
+| --- | --- | --- |
+| [Visual Companion](skills/visual-companion/SKILL.md) | Add a useful visual to the conversation | Enrich this conversation with a visual when it helps explain the topic. |
+| [Visual Research](skills/visual-research/SKILL.md) | Find relevant visuals with source attribution | Find a sourced visual that helps explain this topic. |
+| [Visual Generation](skills/visual-generation/SKILL.md) | Create accessible diagrams, charts, and illustrations | Create a clear, accessible visual explaining this topic. |
+| [Visual Storytelling](skills/visual-storytelling/SKILL.md) | Turn an explanation into a concise visual story | Turn this explanation into a concise sequence of visual frames. |
 
 ## What installation configures
 

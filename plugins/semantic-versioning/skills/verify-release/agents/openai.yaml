@@ -1,0 +1,7 @@
+interface:
+  display_name: "Verify Release"
+  short_description: "Check release consistency and recover publication"
+  brand_color: "#167D8D"
+  default_prompt: "Use $verify-release to verify this release and identify any incomplete publication."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

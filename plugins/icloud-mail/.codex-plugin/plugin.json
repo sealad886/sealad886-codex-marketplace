@@ -1,6 +1,6 @@
 {
   "name": "icloud-mail",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Read, search, organize, draft, and send iCloud Mail through a local, dependency-free MCP server.",
   "author": {
     "name": "Andrew Cox",

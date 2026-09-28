@@ -1,0 +1,7 @@
+interface:
+  display_name: "iCloud Mail"
+  short_description: "Read, organize, and draft iCloud email"
+  brand_color: "#1687F8"
+  default_prompt: "Use $icloud-mail to summarize important unread iCloud Mail and suggest replies."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

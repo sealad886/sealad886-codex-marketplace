@@ -1,0 +1,7 @@
+interface:
+  display_name: "MLX Training Optimizer"
+  short_description: "Optimize MLX training loops with measured evidence"
+  brand_color: "#13171A"
+  default_prompt: "Use $mlx-training-optimizer to optimize this MLX training loop and verify the result."
+  icon_small: "./assets/icon.png"
+  icon_large: "./assets/icon.png"
