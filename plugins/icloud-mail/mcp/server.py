@@ -3146,7 +3146,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
                 ]
             )
             wrapper = f"{note}\n\n{forwarded_header}" if note else forwarded_header
-            if not original["body_text"] and len(original.get("body_html", "")) >= MAX_BODY_CHARS:
+            if not original["body_text"] and original.get("body_html_truncated"):
                 raise MailError(
                     "Cannot forward the complete HTML body within the processing limit; "
                     "forward this message in your mail app instead"

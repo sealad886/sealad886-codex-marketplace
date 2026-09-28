@@ -2819,6 +2819,27 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(result["results"][0]["status"], "accepted")
         self.assertIn(source.get_content(), send.call_args.args[0].get_content())
 
+    def test_forward_accepts_complete_html_at_exact_read_limit(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        self.install_shared_imap_session()
+        source = EmailMessage()
+        source["Subject"] = "Report"
+        suffix = "IMPORTANT END</p>"
+        body = "<p>" + " " * (server.MAX_BODY_CHARS - 4 - len(suffix)) + suffix
+        source.set_content(body, subtype="html")
+        self.assertEqual(len(source.get_content()), server.MAX_BODY_CHARS)
+        with mock.patch.object(
+            server, "_fetch_message", return_value=(source, source.as_bytes(), "")
+        ), mock.patch.object(
+            server, "_load_config",
+            return_value={**server._default_config(), "account_address": "me@icloud.com", "default_from": "me@icloud.com"},
+        ), mock.patch.object(server, "_smtp_send", return_value={"status": "accepted"}) as send:
+            result = server.forward_emails({
+                "message_ids": [message_id], "to": ["reader@example.com"],
+            })
+        self.assertEqual(result["results"][0]["status"], "accepted")
+        self.assertIn("IMPORTANT END", send.call_args.args[0].get_content())
+
     def test_forwarding_enforces_aggregate_attachment_limit(self) -> None:
         original = {
             "subject": "Files",
