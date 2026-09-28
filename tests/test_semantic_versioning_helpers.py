@@ -1,9 +1,11 @@
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 SCRIPTS = Path(__file__).resolve().parents[1] / 'plugins/semantic-versioning/scripts'
 
@@ -43,6 +45,10 @@ class VersionTests(unittest.TestCase):
 
 class InspectionTests(unittest.TestCase):
     def setUp(self):
+        # Synthetic repositories must not inherit machine-specific LFS filters.
+        config = patch.dict(os.environ, GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM='1')
+        config.start()
+        self.addCleanup(config.stop)
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -120,6 +126,52 @@ class InspectionTests(unittest.TestCase):
         self.git('config', 'core.fsmonitor', str(hook))
         self.assertEqual(run('inspect_repository.py', self.root)[0], 0)
         self.assertFalse(marker.exists())
+
+    def test_configured_filters_leave_status_unresolved_without_execution(self):
+        self.write('package.json', '{"version":"1.0.0"}')
+        self.write('.gitattributes', 'package.json filter=demo\n')
+        self.commit()
+        marker = self.root / 'executed'
+        hook = self.root / 'filter.sh'
+        hook.write_text('#!/bin/sh\ntouch "' + str(marker) + '"\ncat\n')
+        hook.chmod(0o755)
+        self.write('package.json', '{"version":"2.0.0"}')
+        for kind in ('clean', 'process'):
+            with self.subTest(kind=kind):
+                self.git('config', 'filter.demo.' + kind, str(hook))
+                self.git('config', 'filter.demo.required', 'true')
+                before = {str(p): p.read_bytes() for p in self.root.rglob('*') if p.is_file()}
+                code, data = run('inspect_repository.py', self.root)
+                self.assertEqual(code, 0)
+                self.assertFalse(marker.exists())
+                self.assertIsNone(data['git']['status'])
+                self.assertTrue(any('filter' in issue for issue in data['unresolved']))
+                self.assertEqual(before, {str(p): p.read_bytes() for p in self.root.rglob('*') if p.is_file()})
+                self.git('config', '--unset', 'filter.demo.' + kind)
+
+    def test_status_does_not_enter_submodule_worktrees(self):
+        nested = self.root / 'nested'
+        nested.mkdir()
+        subprocess.run(['git', '-C', str(nested), 'init', '-b', 'main'], check=True, capture_output=True)
+        def nested_git(*args):
+            return subprocess.run(['git', '-C', str(nested), *args], check=True, capture_output=True)
+        nested_git('config', 'user.name', 'Fixture')
+        nested_git('config', 'user.email', 'fixture@example.invalid')
+        self.write('nested/package.json', '{"version":"1.0.0"}')
+        self.write('nested/.gitattributes', 'package.json filter=demo\n')
+        nested_git('add', '.')
+        nested_git('commit', '-m', 'fixture')
+        self.commit()
+        marker = self.root / 'executed'
+        hook = self.root / 'filter.sh'
+        hook.write_text('#!/bin/sh\ntouch "' + str(marker) + '"\ncat\n')
+        hook.chmod(0o755)
+        nested_git('config', 'filter.demo.clean', str(hook))
+        self.write('nested/package.json', '{"version":"2.0.0"}')
+        code, data = run('inspect_repository.py', self.root)
+        self.assertEqual(code, 0)
+        self.assertFalse(marker.exists())
+        self.assertTrue(data['git']['status_excludes_submodules'])
 
     def test_inherited_rust_and_distinct_dotnet_roles(self):
         self.write('Cargo.toml', '[workspace.package]\nversion="0.4.0"\n[workspace]\nmembers=["lib"]\n')

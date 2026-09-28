@@ -1,4 +1,6 @@
-# Semantic Versioning 0.1.0 implementation evidence
+# Semantic Versioning 0.1.0 implementation-stage evidence
+
+Historical snapshot before PR review; later review and hosted checks are recorded in [PR #30 — Semantic Versioning plugin](https://github.com/sealad886/sealad886-codex-marketplace/pull/30).
 
 Date: 2026-09-28. Base: `4710f0f`; local branch `codex/semantic-versioning`.
 Status: implementation candidate; publication, installation and hosted release acceptance are not performed.

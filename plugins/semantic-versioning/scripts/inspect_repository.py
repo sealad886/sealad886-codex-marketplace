@@ -16,7 +16,8 @@ CONFIGS = {'release-please-config.json': 'release-please', '.release-please-mani
 
 
 def git(root, *args):
-    env = dict(os.environ, GIT_OPTIONAL_LOCKS='0', GIT_TERMINAL_PROMPT='0')
+    env = dict(os.environ, GIT_OPTIONAL_LOCKS='0', GIT_TERMINAL_PROMPT='0',
+               GIT_NO_LAZY_FETCH='1', GIT_ALLOW_PROTOCOL='')
     result = subprocess.run(['git', '-c', 'core.fsmonitor=false', '-C', str(root), '--no-pager', *args], capture_output=True, text=True, env=env, timeout=15)
     return result.stdout.strip() if result.returncode == 0 else None
 
@@ -118,12 +119,17 @@ def inspect(root, scope):
         candidates.append({'tag': tag, 'commit': peeled or direct, 'selected': False})
     shallow = git(root, 'rev-parse', '--is-shallow-repository')
     owners = sorted({c['owner_candidate'] for c in configs})
+    # Status may execute clean/process filters while comparing worktree content.
+    # An unfiltered comparison is not equivalent, so leave this evidence unresolved.
+    filters = git(root, 'config', '--name-only', '--get-regexp', r'^filter\..*\.(clean|process)$')
+    status = None if filters else git(root, 'status', '--porcelain=v1', '--untracked-files=all', '--ignore-submodules=all')
+    status_issues = ['Git status is unresolved because clean/process filters are configured; discovery does not execute them.'] if filters else []
     return {'schema_version': 1, 'root': str(root), 'scope': target.relative_to(root).as_posix(),
             'manifests': manifests, 'release_configurations': configs,
             'owner_candidates': owners,
-            'git': {'head': head, 'branch': git(root, 'symbolic-ref', '--short', '-q', 'HEAD'), 'status': git(root, 'status', '--porcelain=v1', '--untracked-files=all'), 'shallow': shallow == 'true', 'baseline_candidates': candidates},
+            'git': {'head': head, 'branch': git(root, 'symbolic-ref', '--short', '-q', 'HEAD'), 'status': status, 'status_excludes_submodules': True, 'shallow': shallow == 'true', 'baseline_candidates': candidates},
             'references': sorted({m['ecosystem'] for m in manifests}),
-            'unresolved': ['Baseline candidates are ancestry-filtered but not package-filtered or selected. Verify package tag convention and published release state.'] + (['Multiple owner candidates; scope their responsibilities before editing.'] if len(owners) > 1 else []) + (['History is shallow; release baseline evidence may be incomplete.'] if shallow == 'true' else []) + ([] if head else ['No Git HEAD; establish initial-release policy.'])}
+            'unresolved': status_issues + ['Baseline candidates are ancestry-filtered but not package-filtered or selected. Verify package tag convention and published release state.'] + (['Multiple owner candidates; scope their responsibilities before editing.'] if len(owners) > 1 else []) + (['History is shallow; release baseline evidence may be incomplete.'] if shallow == 'true' else []) + ([] if head else ['No Git HEAD; establish initial-release policy.'])}
 
 
 def main(argv=None):

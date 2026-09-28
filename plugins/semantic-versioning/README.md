@@ -26,6 +26,8 @@ python3 scripts/check_version.py check 1.2.3 1.3.0 --impact minor --json
 
 Both tools emit schema_version 1 JSON with `--json`. Exit 0 means success; 1 means a failed contract check; 2 means invalid input or an operational error. Discovery reports candidate evidence and unresolved dynamic configuration; it does not execute project files, fetch Git history, install dependencies, or decide semantic impact. Version checks implement SemVer arithmetic, not ecosystem range resolution or ABI analysis. A prerelease baseline permits only same-core iteration or promotion; assess new cumulative impact against the preceding stable baseline.
 
+Git status remains unresolved when clean/process filters are configured, because comparison could execute project code. Status excludes nested submodule worktrees; inspect each submodule release unit separately. Discovery disables Git lazy fetching and transport access, and leaves unavailable evidence unresolved.
+
 ## Reference library
 
 [Core rules](references/core.md), [release architectures](references/architectures.md), [recovery](references/recovery.md), and [policy worksheet](templates/release-policy.md) separate general decisions from ecosystem detail.
