@@ -3,7 +3,20 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
-## Unreleased
+## MLX Optimizer 0.2.3 - 2026-09-06
+
+### Added
+
+- Original slate, beveled-metal, and electrified-glass branding, including the
+  256-pixel composer icon and 1024-pixel plugin logo.
+- Editable Apple Icon Composer document and reproducible Swift artwork sources.
+
+### Changed
+
+- Plugin metadata and README now show the approved layered MLX Optimizer identity.
+  The six optimization skills and their runtime behavior are unchanged.
+
+## iCloud Mail 0.1.0 - Unreleased
 
 ### Added
 
@@ -19,6 +32,22 @@ use ISO 8601 and plugin versions follow Semantic Versioning.
 - Documented repository-relative package sources as subtrees of the
   GitHub-fetched marketplace checkout rather than paths into a user's
   development checkout.
+
+## Unreleased
+
+### Added
+
+- MLX Optimizer `0.2.2`, migrated from its standalone repository with six
+  progressive-disclosure skills, nine MLX reference guides, three stdlib helper
+  scripts, three verification templates, package tests, and immutable
+  marketplace distribution metadata.
+
+### Fixed
+
+- Included the required `.codexignore` file in clean Git checkouts after a
+  developer-global ignore rule omitted it from the superseded `0.2.0` tag.
+- Preserved MLX evaluation synchronization through an explicit callable lookup
+  so security scanners do not confuse `mx.eval` with Python dynamic evaluation.
 
 ## 0.1.1 - 2026-07-30
 

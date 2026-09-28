@@ -6,7 +6,7 @@
 
 This repository is Andrew Cox's public marketplace for original Codex plugins. Each plugin is independently useful, versioned, documented, validated, and packaged beneath `plugins/<plugin-id>/`; the marketplace is the catalog and distribution boundary, not a shared runtime dependency.
 
-The repository and marketplace are both named `sealad886-codex-marketplace`. Individual plugin IDs remain stable: Project Delivery uses `project-delivery@sealad886-codex-marketplace`, Conversation Visuals uses `conversation-visuals@sealad886-codex-marketplace`, and iCloud Mail uses `icloud-mail@sealad886-codex-marketplace`. Their skills retain the corresponding plugin prefix.
+The repository and marketplace are both named `sealad886-codex-marketplace`. Individual plugin IDs remain stable: Project Delivery uses `project-delivery@sealad886-codex-marketplace`, Conversation Visuals uses `conversation-visuals@sealad886-codex-marketplace`, MLX Optimizer uses `mlx-optimizer@sealad886-codex-marketplace`, and iCloud Mail uses `icloud-mail@sealad886-codex-marketplace`. Their skills retain the corresponding plugin prefix.
 
 ## Available plugins
 
@@ -14,6 +14,8 @@ The repository and marketplace are both named `sealad886-codex-marketplace`. Ind
 |---|---:|---|---|
 | [Project Delivery](plugins/project-delivery/README.md) | `1.4.1` | A repository-grounded, risk-scaled workflow from idea and requirements through implementation, evidence, review, release, and improvement | `project-delivery@sealad886-codex-marketplace` |
 | [Conversation Visuals](plugins/conversation-visuals/README.md) | `0.1.1` | Enrich supported Codex and ChatGPT conversations with relevant sourced and generated visuals | `conversation-visuals@sealad886-codex-marketplace` |
+| [MLX Optimizer](plugins/mlx-optimizer/README.md) | `0.2.3` | Audit, benchmark, and optimize Python-first MLX code on Apple Silicon | `mlx-optimizer@sealad886-codex-marketplace` |
+| [iCloud Mail](plugins/icloud-mail/README.md) | `0.1.0` | Read, search, organize, draft, and send iCloud email through a local IMAP/SMTP integration | `icloud-mail@sealad886-codex-marketplace` |
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 
@@ -26,6 +28,7 @@ codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
 codex plugin add project-delivery@sealad886-codex-marketplace
 codex plugin add conversation-visuals@sealad886-codex-marketplace
 codex plugin add icloud-mail@sealad886-codex-marketplace
+codex plugin add mlx-optimizer@sealad886-codex-marketplace
 ```
 
 Start a fresh Codex task after installation so the current plugin catalog and skill metadata are loaded.
@@ -64,7 +67,7 @@ sealad886-codex-marketplace/
 └── plugins/
     ├── project-delivery/              canonical installable plugin
     ├── conversation-visuals/          installable visual conversation plugin
-    └── icloud-mail/                   installable iCloud email plugin
+    ├── icloud-mail/                   installable iCloud email plugin
         ├── .codex-plugin/plugin.json
         ├── .mcp.json
         ├── README.md
@@ -72,6 +75,12 @@ sealad886-codex-marketplace/
         ├── assets/
         ├── mcp/
         └── skills/
+    └── mlx-optimizer/                 installable MLX performance plugin
+        ├── .codex-plugin/plugin.json
+        ├── references/
+        ├── scripts/
+        ├── skills/
+        └── templates/
 ```
 
 Only a plugin's own subtree is installable. Repository CI, tests, contributor tooling, audit evidence, Git metadata, and development environments stay outside installed payloads. Marketplace entries use supported, validated source declarations that resolve to the intended package rather than the repository root.
@@ -79,8 +88,8 @@ Only a plugin's own subtree is installable. Repository CI, tests, contributor to
 The marketplace itself is loaded from the hosted GitHub repository. A catalog
 entry with `source: "local"` resolves a repository-relative plugin subtree
 inside that GitHub-fetched marketplace checkout; it does not read from a
-user's development checkout. Project Delivery instead uses an immutable
-`git-subdir` release reference. Repository-relative packages retain their own
+user's development checkout. Project Delivery and MLX Optimizer use immutable
+`git-subdir` release references. Repository-relative packages retain their own
 versioned release identity and immutable tag even though complete manifest and
 branding metadata are served from the hosted marketplace checkout.
 
@@ -122,6 +131,7 @@ The current checks use only Python's standard library:
 python3 scripts/check_plugin.py plugins/project-delivery --layout source
 python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
 python3 scripts/check_plugin.py plugins/icloud-mail --layout source
+python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
 python3 scripts/check_routes.py .
 python3 scripts/check_route_receipts.py \
   tests/fixtures/blind-route-observations-v1.3.1.json \
@@ -129,6 +139,7 @@ python3 scripts/check_route_receipts.py \
 python3 scripts/check_distribution_bundle.py plugins/project-delivery
 python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
 python3 scripts/check_distribution_bundle.py plugins/icloud-mail
+python3 scripts/check_distribution_bundle.py plugins/mlx-optimizer
 python3 plugins/conversation-visuals/mcp/server.py --self-test
 python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_marketplace.py .

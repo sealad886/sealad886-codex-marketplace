@@ -25,18 +25,18 @@ Resolve exact scope/base/head/revision and review mode. Inspect requirements/AC,
    - Release readiness: requirement/test evidence, CI, approvals, migrations, flags, observability, rollback, support, residual risk.
 2. Trace `REQ/AC → design → diff/work → test/docs/release evidence`; identify omissions and unsupported claims.
 3. Define assessment mode, target revision/snapshot, reviewed surfaces, exclusions, deferred/not-applicable surfaces, and coverage completeness. Validate each candidate against source and reachable behavior; for security paths record source, control, sink, reachable boundary, preconditions/outcome, counterevidence, proof gaps, and static/dynamic validation rationale.
-4. Deduplicate by stable root-cause identity/fingerprint while retaining every affected location and its role. Report actionable `FIND-*` with severity, priority, exact location, evidence, impact, recommended fix, release-blocking state, confidence, uncertainty, and residual risk.
+4. Deduplicate by stable root-cause identity/fingerprint while retaining every affected location and its role. Report decision-ready `FIND-*` with severity, priority, exact location, evidence, impact, response constraints and invariant, viable solution options and material tradeoffs, recommended response and next action, owner or authority need, release-blocking state, confidence, uncertainty, and residual risk. A localized obvious defect may have one precise fix; a material design choice should compare multiple credible options. If evidence cannot yet support a remedy, specify the smallest next proof action instead of stopping at the defect.
 5. Distinguish confirmed defect, design concern, test/evidence gap, question, and accepted residual risk. Do not inflate style preference into correctness.
 6. Technically adjudicate incoming review comments; verify before accepting or rejecting them.
 7. Re-review fixes and rerun relevant evidence before closing findings. Apply the shared finding lifecycle. Suppression is limited to evidence-backed false-positive, duplicate, or invalidation closure and records category, rationale, counterevidence, sibling/variant checks, qualified reviewer/date, revalidation trigger, release treatment, and residual uncertainty; a duplicate links its canonical finding. If material reachability/exploitability/impact remains uncertain, keep the candidate open or mark it deferred/blocked with owner and next proof action. Residual risk requires acceptance by the identified risk owner. Verify remediation invariant and regression evidence before `fixed`.
 
 ## Outputs and handoff
 
-Review decision, scope/revision, finding ledger, requirement coverage, positive evidence (brief), residual risks, blockers, and re-review needs. Handoff fixes to `implementation-execution`, evidence gaps to `testing-quality`, security/operations depth to `security-operations`, and cleared work to `release-change`.
+Review decision, scope/revision, decision-ready finding ledger, requirement coverage, positive evidence (brief), residual risks, blockers, and re-review needs. Handoff bounded fixes to `implementation-execution`, material solution choices to `solution-design`, evidence gaps to `testing-quality`, security/operations depth to `security-operations`, and cleared work to `release-change`.
 
 ## Completion evidence
 
-Exact scope is pinned; all material lenses were applied or marked not applicable; findings are reproducible and located; blockers/residual risk are explicit; reviewer did not self-approve unverified work.
+Exact scope is pinned; all material lenses were applied or marked not applicable; findings are reproducible, located, impact-assessed, and paired with a viable recommended response or explicit next proof action; blockers/residual risk are explicit; reviewer did not self-approve unverified work.
 
 ## Must not
 

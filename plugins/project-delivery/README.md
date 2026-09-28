@@ -20,6 +20,7 @@ It is designed to become the sole generic project-management and software-delive
 - **Risk scaled:** preserve the same gates for a one-file fix and a multi-release initiative, but compress them when evidence supports low risk.
 - **Evidence bound:** tie claims to exact revisions, environments, commands, artifacts, provider state, and actual results; record failures and checks not run.
 - **Traceable:** connect outcomes, requirements, acceptance, decisions, risks, work, tests, findings, and release disposition.
+- **Solution-oriented:** carry defects, risks, and failed checks through impact analysis to viable responses, tradeoffs, a recommendation, and an owned next action instead of stopping at problem discovery.
 - **Authority safe:** planning does not authorize edits; preparation does not authorize merge, publish, deploy, external writes, communication, or risk acceptance.
 - **Provider neutral:** optional tools deepen evidence or perform authorized actions, while the core still produces useful plans, drafts, mappings, and receipts without them.
 - **Independently implemented:** no runtime code, prompt, hook, manifest, app/MCP configuration, executable, or asset from another delivery plugin is required or re-exported.
