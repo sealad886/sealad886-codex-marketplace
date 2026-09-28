@@ -46,7 +46,7 @@ use ISO 8601 and plugin versions follow Semantic Versioning.
 - Plugin metadata and README now show the approved layered MLX Optimizer identity.
   The six optimization skills and their runtime behavior are unchanged.
 
-## iCloud Mail 0.1.0 - Unreleased
+## iCloud Mail 0.1.0 - 2026-09-28
 
 ### Added
 

@@ -742,36 +742,52 @@ def _parse_full_message(raw: bytes) -> Message:
         ) from None
 
 
-def _body(message: Message) -> tuple[str, str]:
-    plain = ""
-    html = ""
-    pending = [message]
-    while pending:
-        part = pending.pop(0)
+def _message_bodies(message: Message) -> tuple[str, str]:
+    """Extract complete inline content from an already size/depth-bounded message."""
+    def extract(part: Message) -> tuple[str, str]:
         if (
             part.get_content_disposition() == "attachment"
             or bool(_decode_header(part.get_filename()))
         ):
-            continue
+            return "", ""
         if part.get_content_type() == "message/rfc822":
-            if part is message and part.is_multipart():
-                pending[0:0] = part.get_payload()
-            continue
+            if part is not message or not part.is_multipart():
+                return "", ""
         if part.is_multipart():
-            pending[0:0] = part.get_payload()
-            continue
+            children = [extract(child) for child in part.get_payload()]
+            if part.get_content_subtype() == "alternative":
+                # Alternatives repeat the same content. Prefer the last available
+                # version of each representation, as MIME alternative ordering specifies.
+                return (
+                    next((plain for plain, _ in reversed(children) if plain), ""),
+                    next((markup for _, markup in reversed(children) if markup), ""),
+                )
+            # Mixed inline parts are consecutive content, including text following
+            # an attachment. Fill representation gaps without duplicating alternatives.
+            plain = "\n".join(
+                text or _html_to_text(markup)
+                for text, markup in children if text or markup
+            ) if any(text for text, _ in children) else ""
+            markup = "\n".join(
+                markup or f"<pre>{html.escape(text)}</pre>"
+                for text, markup in children if text or markup
+            ) if any(markup for _, markup in children) else ""
+            return plain, markup
         kind = part.get_content_type()
         if kind not in {"text/plain", "text/html"}:
-            continue
+            return "", ""
         try:
             value = part.get_content()
         except (LookupError, UnicodeError):
             payload = part.get_payload(decode=True) or b""
             value = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
-        if kind == "text/plain" and not plain:
-            plain = str(value)
-        elif kind == "text/html" and not html:
-            html = str(value)
+        return (str(value), "") if kind == "text/plain" else ("", str(value))
+
+    return extract(message)
+
+
+def _body(message: Message) -> tuple[str, str]:
+    plain, html = _message_bodies(message)
     return plain[:MAX_BODY_CHARS], html[:MAX_BODY_CHARS]
 
 
@@ -1147,7 +1163,7 @@ def _validate_summary_header_fields(headers: bytes) -> None:
     """Reject compact headers that expand into unbounded summary objects."""
     parsed = BytesHeaderParser(policy=email.policy.compat32).parsebytes(headers)
     address_chars = 0
-    address_count = 0
+    address_values: list[str] = []
     reference_chars = 0
     reference_count = 0
     scalar_chars: dict[str, int] = {}
@@ -1159,8 +1175,7 @@ def _validate_summary_header_fields(headers: bytes) -> None:
         value = str(raw_value)
         if name in address_names:
             address_chars += len(value)
-            if value.strip():
-                address_count += 1 + value.count(",") + value.count(";")
+            address_values.append(value)
         elif name in reference_names:
             reference_chars += len(value)
             in_token = False
@@ -1174,11 +1189,19 @@ def _validate_summary_header_fields(headers: bytes) -> None:
             scalar_chars[name] = scalar_chars.get(name, 0) + len(value)
     if (
         address_chars > MAX_SUMMARY_ADDRESS_CHARS
-        or address_count > MAX_SUMMARY_ADDRESSES
         or reference_chars > MAX_SUMMARY_REFERENCE_CHARS
         or reference_count > MAX_SUMMARY_REFERENCES
         or any(value > MAX_SUMMARY_SCALAR_CHARS for value in scalar_chars.values())
     ):
+        raise SummaryTooLarge("Message summary exceeds the processing limit")
+    # Parse only after bounding input; punctuation inside display names is not
+    # a recipient separator.
+    try:
+        addresses = email.utils.getaddresses(address_values, strict=False)
+    except TypeError:  # Python versions before the strict keyword was added.
+        addresses = email.utils.getaddresses(address_values)
+    address_count = sum(bool(address) for _, address in addresses)
+    if address_count > MAX_SUMMARY_ADDRESSES:
         raise SummaryTooLarge("Message summary exceeds the processing limit")
 
 
@@ -1563,6 +1586,9 @@ def _mailboxes(
         if index >= MAX_MAILBOX_SCAN_ENTRIES:
             incomplete = True
             break
+        if raw == b"":
+            # imaplib emits an empty trailing line after a literal LIST value.
+            continue
         if not raw:
             incomplete = True
             continue
@@ -1897,15 +1923,17 @@ def _read_email_result(
     *,
     include_raw_mime: bool = False,
 ) -> dict[str, Any]:
-    plain, html = _body(message)
+    plain, html = _message_bodies(message)
     attachments = _attachment_entries(message, message_id)
     fields = _bounded_summary_fields(message)
     result = _summary(message, message_id, flags, attachments=attachments)
     result.update(
         {
             "mailbox": mailbox,
-            "body_text": plain,
-            "body_html": html,
+            "body_text": plain[:MAX_BODY_CHARS],
+            "body_html": html[:MAX_BODY_CHARS],
+            "body_text_truncated": len(plain) > MAX_BODY_CHARS,
+            "body_html_truncated": len(html) > MAX_BODY_CHARS,
             "reply_to": fields["reply_to"],
             "attachments": attachments,
             "references": fields["references"],

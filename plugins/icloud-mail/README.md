@@ -140,6 +140,12 @@ Mutation tools:
 
 No tool permanently deletes or expunges messages.
 
+Message reads, including messages returned in threads, cap each body representation
+at 100,000 characters. `body_text_truncated` and `body_html_truncated` identify
+incomplete representations; read the complete message in your mail app when either
+flag is true. Inline body sections are included in order, while MIME alternatives
+remain separate plain-text and HTML representations.
+
 Forwarding refuses to send when the complete body and note exceed the processing
 limit. Shorten the note or forward that message in your mail app; the plugin
 does not silently cut off forwarded text.

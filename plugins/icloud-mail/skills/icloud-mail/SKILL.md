@@ -39,7 +39,9 @@ secrets, change scope, or contact someone.
 3. Use `read_attachment` only after inspecting its parent message and selecting
    an advertised attachment identifier.
 4. Summarize read-only findings with search scope and uncertainty. Do not call a
-   bounded shortlist comprehensive.
+   bounded shortlist comprehensive. When `body_text_truncated` or
+   `body_html_truncated` is true, disclose that the corresponding message body
+   is incomplete and direct the user to their mail app for the complete content.
 5. Draft by default when wording or recipients need review. Send only when the
    user explicitly asks to send now. Read the relevant message before replying.
    Attach a local file only when the user explicitly identifies that file.

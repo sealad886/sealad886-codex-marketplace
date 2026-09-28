@@ -210,6 +210,86 @@ class ICloudMailTests(unittest.TestCase):
         message = email.message_from_bytes(source, policy=email.policy.default)
         self.assertEqual(server._body(message), ("wrapped body", ""))
 
+    def test_read_mixed_inline_parts_preserves_later_content_without_duplicate_alternatives(self) -> None:
+        message = EmailMessage()
+        message.set_content("Main plain version")
+        message.add_alternative("<p>Main HTML version</p>", subtype="html")
+        message.make_mixed()
+        message.add_attachment(b"file", maintype="application", subtype="octet-stream", filename="file.bin")
+        footer = EmailMessage()
+        footer.set_content("Later inline instruction")
+        message.attach(footer)
+        html_footer = EmailMessage()
+        html_footer.set_content("<p>Final HTML instruction</p>", subtype="html")
+        message.attach(html_footer)
+        message_id = server._encode_ref("INBOX", 7, 9)
+        self.install_shared_imap_session()
+        with mock.patch.object(server, "_fetch_message", return_value=(message, message.as_bytes(), "")):
+            result = server.read_email({"message_id": message_id})
+        self.assertIn("Main plain version", result["body_text"])
+        self.assertNotIn("Main HTML version", result["body_text"])
+        self.assertIn("Main HTML version", result["body_html"])
+        self.assertNotIn("Main plain version", result["body_html"])
+        for field in ("body_text", "body_html"):
+            self.assertIn("Later inline instruction", result[field])
+            self.assertIn("Final HTML instruction", result[field])
+            self.assertNotIn("file.bin", result[field])
+
+    def test_alternative_body_chooses_last_supported_representation(self) -> None:
+        message = EmailMessage()
+        message.set_content("Old plain rendition")
+        message.add_alternative("Preferred plain rendition", subtype="plain")
+        message.add_alternative("<p>HTML rendition</p>", subtype="html")
+        plain, markup = server._body(message)
+        self.assertEqual(plain.strip(), "Preferred plain rendition")
+        self.assertEqual(markup.strip(), "<p>HTML rendition</p>")
+
+    def test_read_and_thread_report_each_capped_body_representation(self) -> None:
+        message_id = server._encode_ref("INBOX", 7, 9)
+        self.install_shared_imap_session()
+        for size in (server.MAX_BODY_CHARS, server.MAX_BODY_CHARS + 1):
+            with self.subTest(size=size):
+                message = EmailMessage()
+                message.set_content("x" * (size - 1))
+                message.add_alternative("<p>Complete HTML body</p>", subtype="html")
+                with mock.patch.object(server, "_fetch_message", return_value=(message, message.as_bytes(), "")):
+                    result = server.read_email({"message_id": message_id})
+                    thread = server.read_email_thread({"message_id": message_id})
+                for item in (result, thread["messages"][0]):
+                    self.assertEqual(len(item["body_text"]), server.MAX_BODY_CHARS)
+                    self.assertEqual(item["body_text_truncated"], size > server.MAX_BODY_CHARS)
+                    self.assertFalse(item["body_html_truncated"])
+        message = EmailMessage()
+        message.set_content("<p>" + "x" * server.MAX_BODY_CHARS + "</p>", subtype="html")
+        with mock.patch.object(server, "_fetch_message", return_value=(message, message.as_bytes(), "")):
+            result = server.read_email({"message_id": message_id})
+        self.assertTrue(result["body_html_truncated"])
+        self.assertFalse(result["body_text_truncated"])
+
+    def test_forward_includes_later_mixed_inline_body_parts(self) -> None:
+        message = EmailMessage()
+        message["Subject"] = "Instructions"
+        message.set_content("First instruction")
+        message.make_mixed()
+        tail = EmailMessage()
+        tail.set_content("Final important instruction")
+        message.attach(tail)
+        message_id = server._encode_ref("INBOX", 7, 9)
+        self.install_shared_imap_session()
+        with mock.patch.object(server, "_fetch_message", return_value=(message, message.as_bytes(), "")), mock.patch.object(
+            server, "_load_config", return_value={**server._default_config(), "account_address": "me@icloud.com", "default_from": "me@icloud.com"}
+        ), mock.patch.object(server, "_smtp_send", return_value={"status": "accepted"}) as send:
+            result = server.forward_emails({"message_ids": [message_id], "to": ["reader@example.com"]})
+        self.assertEqual(result["results"][0]["status"], "accepted")
+        self.assertIn("First instruction", send.call_args.args[0].get_content())
+        self.assertIn("Final important instruction", send.call_args.args[0].get_content())
+        tail.set_content("x" * server.MAX_BODY_CHARS + "Final important instruction")
+        with mock.patch.object(server, "_fetch_message", return_value=(message, message.as_bytes(), "")), mock.patch.object(server, "_smtp_send") as send:
+            result = server.forward_emails({"message_ids": [message_id], "to": ["reader@example.com"]})
+        self.assertEqual(result["results"][0]["status"], "failed")
+        self.assertIn("complete", result["results"][0]["error"])
+        send.assert_not_called()
+
     def test_read_wrapped_email_exposes_body_and_nested_attachment(self) -> None:
         nested = EmailMessage()
         nested.set_content("wrapped body")
@@ -767,6 +847,16 @@ class ICloudMailTests(unittest.TestCase):
                 server._fetch_summary(client, "INBOX", 7, 9)
         parse.assert_not_called()
 
+    def test_summary_accepts_punctuation_in_quoted_display_names(self) -> None:
+        name = ",;" * 60
+        headers = f'To: "{name}" <reader@example.com>\r\n\r\n'.encode()
+        server._validate_summary_header_fields(headers)
+
+    def test_summary_rejects_too_many_actual_addresses(self) -> None:
+        headers = b"To: " + b", ".join([b"a@b"] * 101) + b"\r\n\r\n"
+        with self.assertRaises(server.SummaryTooLarge):
+            server._validate_summary_header_fields(headers)
+
     def test_search_summary_rejects_reference_amplification_before_parsing(self) -> None:
         client = mock.MagicMock()
         client.select.return_value = ("OK", [b"1"])
@@ -785,7 +875,7 @@ class ICloudMailTests(unittest.TestCase):
         client = mock.MagicMock()
         client.list.return_value = (
             "OK",
-            [(b"(\\HasNoChildren) NIL {11}", b"Project Box")],
+            [(b"(\\HasNoChildren) NIL {11}", b"Project Box"), b""],
         )
         result, incomplete = server._mailboxes(client)
         self.assertEqual(
@@ -793,6 +883,13 @@ class ICloudMailTests(unittest.TestCase):
             [{"name": "Project Box", "flags": ["\\HasNoChildren"]}],
         )
         self.assertFalse(incomplete)
+
+    def test_mailbox_list_reports_missing_response_entry(self) -> None:
+        client = mock.MagicMock()
+        client.list.return_value = ("OK", [None])
+        result, incomplete = server._mailboxes(client)
+        self.assertEqual(result, [])
+        self.assertTrue(incomplete)
 
     def test_mailbox_list_truncates_and_reports_oversized_folder_trees(self) -> None:
         client = mock.MagicMock()
