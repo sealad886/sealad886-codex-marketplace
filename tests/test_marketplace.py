@@ -123,23 +123,20 @@ def example_entry(source_ref: str) -> dict[str, object]:
 
 
 class MarketplaceTests(unittest.TestCase):
-    def test_conversation_visuals_uses_manifest_visible_local_source(self) -> None:
+    def test_published_plugins_resolve_to_matching_release_manifests(self) -> None:
         marketplace = json.loads(
             (REPOSITORY_ROOT / MARKETPLACE_PATH).read_text(encoding="utf-8")
         )
-        entry = next(
-            item
-            for item in marketplace["plugins"]
-            if item["name"] == "conversation-visuals"
-        )
-
-        self.assertEqual(
-            entry["source"],
-            {
-                "source": "local",
-                "path": "./plugins/conversation-visuals",
-            },
-        )
+        for entry in marketplace["plugins"]:
+            with self.subTest(plugin=entry["name"]):
+                source = entry["source"]
+                self.assertEqual(source["source"], "git-subdir")
+                manifest_path = Path(source["path"]) / ".codex-plugin/plugin.json"
+                manifest = json.loads(run_git(
+                    REPOSITORY_ROOT, "show", f"{source['ref']}:{manifest_path.as_posix()}"
+                ).stdout)
+                self.assertEqual(manifest["name"], entry["name"])
+                self.assertEqual(version_from_tag(source["ref"]), manifest["version"])
 
     def test_repository_marketplace_and_license_parity_pass(self) -> None:
         result = run_checker(REPOSITORY_ROOT)
@@ -155,6 +152,12 @@ class MarketplaceTests(unittest.TestCase):
                 for item in marketplace["plugins"]
                 if item["name"] == "conversation-visuals"
             )
+            # Exercise local-source validation independently of the live catalog.
+            entry["source"] = {
+                "source": "local",
+                "path": "./plugins/conversation-visuals",
+            }
+            write_marketplace(root, marketplace)
             manifest_path = (
                 root
                 / entry["source"]["path"]
