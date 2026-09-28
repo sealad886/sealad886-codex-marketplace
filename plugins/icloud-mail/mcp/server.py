@@ -780,7 +780,10 @@ def _message_bodies(message: Message) -> tuple[str, str]:
             value = part.get_content()
         except (LookupError, UnicodeError):
             payload = part.get_payload(decode=True) or b""
-            value = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+            try:
+                value = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+            except LookupError:
+                value = payload.decode("utf-8", errors="replace")
         return (str(value), "") if kind == "text/plain" else ("", str(value))
 
     return extract(message)
