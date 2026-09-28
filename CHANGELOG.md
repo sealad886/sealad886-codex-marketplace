@@ -4,7 +4,7 @@ This file records user-visible marketplace, Project Delivery, Conversation
 Visuals, MLX Optimizer, and Semantic Versioning changes. Dates use ISO 8601 and plugin versions follow
 Semantic Versioning.
 
-## Semantic Versioning 0.1.0 - Unreleased
+## Semantic Versioning 0.1.0 - 2026-09-28
 
 ### Added
 
@@ -13,7 +13,7 @@ Semantic Versioning.
 - Read-only repository discovery and strict SemVer helpers; ten ecosystem
   references, native examples, and inactive GitHub release workflow templates.
 - Example build/package CI, workflow validation, behavioral regression tests,
-  and an unavailable catalog entry pending immutable release validation.
+  and distribution through the marketplace catalog.
 
 ## Project Delivery 1.5.0 - Unreleased
 

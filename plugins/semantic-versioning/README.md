@@ -1,6 +1,6 @@
 # Semantic Versioning
 
-Version 0.1.0 — development candidate, unavailable in the marketplace pending release validation.
+Version 0.1.0.
 
 Help agents assess changes throughout development, maintain native release intent, configure release PRs and verify publication. This package is independent: no MCP server, daemon, telemetry, hooks, or other plugin is required. Helpers require Python 3.11+; native build/release tools are needed only for the selected project.
 
@@ -51,6 +51,6 @@ Git status remains unresolved when clean/process filters are configured, because
 
 Run repository plugin, distribution and marketplace validators and the semantic-versioning test suite. See the repository validation report for actual commands and limitations. Every template must distinguish static/native validation from hosted publication. Refresh source links, action pins and tool compatibility together when changing recipes. Never claim support for an untested tool version from a current URL alone.
 
-The public contract includes skill responsibilities, helper CLI/JSON behavior, and documented template behavior. Follow SemVer for changes to that contract. Release identity is `semantic-versioning-v0.1.0`; no such release is created by this implementation. Catalog activation, signing, publication, installation and consumer verification are separate authorized steps.
+The public contract includes skill responsibilities, helper CLI/JSON behavior, and documented template behavior. Follow SemVer for changes to that contract. Release identity is `semantic-versioning-v0.1.0`. Install with `codex plugin add semantic-versioning@sealad886-codex-marketplace` after adding this marketplace. Publishing from the example workflows requires project-specific configuration and authorization.
 
 Original code, prose and SVG artwork, copyright 2026 Andrew Cox, MIT licensed. Upstream references inform examples; no third-party implementation is bundled.
