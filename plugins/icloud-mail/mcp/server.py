@@ -2008,18 +2008,16 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"message_id", "attachment_id"}:
         raise ValueError("read_attachment requires message_id and attachment_id")
     message_id = arguments["message_id"]
-    attachment_id = _text(arguments["attachment_id"], "attachment_id", required=True, limit=4096)
-    if not attachment_id.startswith(f"{message_id}."):
+    mailbox, validity, uid = _decode_ref(message_id)
+    attachment_id = arguments["attachment_id"]
+    prefix = f"{message_id}."
+    if not isinstance(attachment_id, str) or not attachment_id.startswith(prefix):
         raise ValueError("attachment_id does not belong to message_id")
+    suffix = _text(attachment_id[len(prefix):], "attachment_id", required=True, limit=16)
     try:
-        index = int(
-            _decode_urlsafe_token(
-                attachment_id.rsplit(".", 1)[1], "attachment_id"
-            )
-        )
+        index = int(_decode_urlsafe_token(suffix, "attachment_id"))
     except (ValueError, UnicodeError) as error:
         raise ValueError("attachment_id is malformed") from error
-    mailbox, validity, uid = _decode_ref(message_id)
     deadline = _current_deadline()
     with _imap(deadline=deadline) as client:
         message, _, _ = _fetch_message(client, mailbox, validity, uid)

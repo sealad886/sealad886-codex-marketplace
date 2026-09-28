@@ -1585,6 +1585,22 @@ class ICloudMailTests(unittest.TestCase):
         self.assertIn(b"Subject: Attached", payload)
         self.assertIn(b"attached body", payload)
 
+    def test_read_attachment_accepts_advertised_id_for_long_unicode_mailbox(self) -> None:
+        message = EmailMessage()
+        message.set_content("body")
+        message.add_attachment(b"attachment bytes", maintype="application", subtype="octet-stream", filename="file.bin")
+        message_id = server._encode_ref("😀" * 500, 7, 9)
+        attachment_id = server._attachment_entries(message, message_id)[0]["attachment_id"]
+        self.assertGreater(len(attachment_id), 4096)
+        self.install_shared_imap_session()
+        with mock.patch.object(server, "_fetch_message", return_value=(message, b"", "")):
+            result = server.read_attachment({"message_id": message_id, "attachment_id": attachment_id})
+        self.assertEqual(base64.b64decode(result["content_base64"]), b"attachment bytes")
+        with mock.patch.object(server, "_imap") as connect:
+            with self.assertRaises(ValueError):
+                server.read_attachment({"message_id": message_id, "attachment_id": message_id + "." + "A" * 17})
+        connect.assert_not_called()
+
     def test_read_attachment_bounds_decoded_filename(self) -> None:
         outer = EmailMessage()
         outer.set_content("outer body")
