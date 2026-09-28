@@ -8,7 +8,7 @@ Contributions that make the sealad886 Codex Marketplace or one of its contained 
 - Plugin changes belong under the canonical `plugins/<plugin-id>/` package and must follow that plugin's documented contracts and validation workflow.
 - Do not create cross-plugin runtime dependencies merely to share prompts, assets, terminology, or implementation details.
 
-Project Delivery is currently the only published plugin. The guidance below is its contribution contract; future plugins must document an equivalent self-contained contract in their own package.
+Project Delivery, Conversation Visuals, and MLX Optimizer are published plugins. Each package owns its contribution contract: use the [Project Delivery guide](plugins/project-delivery/README.md) for lifecycle and routing changes, the [Conversation Visuals guide](plugins/conversation-visuals/README.md) plus its [security policy](plugins/conversation-visuals/SECURITY.md) for visual-selection, MCP, provenance, privacy, and consent changes, and the [MLX Optimizer guide](plugins/mlx-optimizer/README.md) for MLX skills, references, scripts, and measurement contracts. The Project Delivery-specific guidance below does not override another package's contract.
 
 ## Before changing Project Delivery
 
@@ -19,7 +19,7 @@ Project Delivery is currently the only published plugin. The guidance below is i
 
 ## Originality and provenance
 
-Submit original work. Do not copy another plugin's skill text, prompts, code, icons, templates, manifests, or proprietary schemas. Capability-level research may inform a contribution, but the result must be an independently written synthesis that fits Project Delivery's terminology and operating model. Any incorporated third-party code or asset must have a compatible license, retain required notices, and be identified in the pull request.
+Submit original work. Do not copy another plugin's skill text, prompts, code, icons, templates, manifests, or proprietary schemas. Capability-level research may inform a contribution, but the result must be an independently written synthesis that fits the owning plugin's terminology and operating model. Any incorporated third-party code or asset must have a compatible license, retain required notices, and be identified in the pull request.
 
 Do not include credentials, private repository material, personal data, generated session transcripts, downloaded binaries, or another project's branded state.
 
@@ -42,8 +42,14 @@ Run from the repository root:
 
 ```bash
 python3 scripts/check_plugin.py plugins/project-delivery --layout source
+python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
+python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
 python3 scripts/check_routes.py .
 python3 scripts/check_distribution_bundle.py plugins/project-delivery
+python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
+python3 scripts/check_distribution_bundle.py plugins/mlx-optimizer
+python3 plugins/conversation-visuals/mcp/server.py --self-test
+python3 scripts/check_marketplace.py .
 python3 scripts/check_installed_parity.py <prepared-plugin-source> <installed-cache-version-dir>
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
@@ -56,9 +62,4 @@ Record exact commands, results, revision, and any checks not run. Static route-c
 
 Use focused Conventional Commits. Explain the problem, user impact, design choice, validation evidence, compatibility, and residual risk in the pull request. Version releases with Semantic Versioning based on the public plugin contract. Only maintainers publish tags and releases.
 
-Publish a Git-backed plugin in two stages so the catalog never advertises a missing ref:
-
-1. Merge the validated artifact change while the marketplace remains pinned to the current release.
-2. Create the annotated version tag and GitHub release from the exact merged artifact commit.
-3. In a follow-up catalog change, advance the marketplace ref and displayed stable version to the new tag.
-4. Merge only after the marketplace validator resolves the tag and proves that its version matches the pinned manifest.
+Follow the current Codex marketplace workflow for the selected source declaration. Keep the package manifest, catalog entry, displayed stable version, and validation expectations coherent in every release. Create the annotated version tag from the exact validated merge commit, and verify the installed plugin in a fresh task before closing the release.

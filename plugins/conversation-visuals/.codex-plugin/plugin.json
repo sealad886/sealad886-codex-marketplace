@@ -1,6 +1,6 @@
 {
   "name": "conversation-visuals",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Enrich supported Codex and ChatGPT conversations with relevant, sourced or generated visuals while preserving attribution, accessibility, privacy, and user control.",
   "author": {
     "name": "Andrew Cox",

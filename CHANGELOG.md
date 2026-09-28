@@ -1,10 +1,46 @@
 # Changelog
 
-This file records user-visible marketplace, Project Delivery, and Conversation
-Visuals changes. Dates use ISO 8601 and plugin versions follow Semantic
-Versioning.
+This file records user-visible marketplace, Project Delivery, Conversation
+Visuals, and MLX Optimizer changes. Dates use ISO 8601 and plugin versions follow
+Semantic Versioning.
+
+## MLX Optimizer 0.2.3 - 2026-09-06
+
+### Added
+
+- Original slate, beveled-metal, and electrified-glass branding, including the
+  256-pixel composer icon and 1024-pixel plugin logo.
+- Editable Apple Icon Composer document and reproducible Swift artwork sources.
+
+### Changed
+
+- Plugin metadata and README now show the approved layered MLX Optimizer identity.
+  The six optimization skills and their runtime behavior are unchanged.
 
 ## Unreleased
+
+### Added
+
+- MLX Optimizer `0.2.2`, migrated from its standalone repository with six
+  progressive-disclosure skills, nine MLX reference guides, three stdlib helper
+  scripts, three verification templates, package tests, and immutable
+  marketplace distribution metadata.
+
+### Fixed
+
+- Included the required `.codexignore` file in clean Git checkouts after a
+  developer-global ignore rule omitted it from the superseded `0.2.0` tag.
+- Preserved MLX evaluation synchronization through an explicit callable lookup
+  so security scanners do not confuse `mx.eval` with Python dynamic evaluation.
+
+## 0.1.1 - 2026-07-30
+
+### Fixed
+
+- Made Conversation Visuals' complete manifest metadata, branding, starter
+  prompts, skills, and MCP capability visible in Codex before installation.
+
+## 0.1.0 - 2026-07-30
 
 ### Added
 

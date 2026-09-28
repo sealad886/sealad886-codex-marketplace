@@ -1,0 +1,70 @@
+{
+  "features": [
+    "refractivity"
+  ],
+  "fill": {
+    "solid": "extended-srgb:0.00000,0.00000,0.00000,0.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "mlx-rails.png",
+          "name": "mlx-rails"
+        }
+      ],
+      "name": "Glass \u2022 elevated",
+      "refractivity": {
+        "depth": 0.18,
+        "enabled": true,
+        "strength": 0.16
+      },
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.65
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.12
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "mlx-m-hook.png",
+          "name": "mlx-m-hook"
+        }
+      ],
+      "name": "Metal \u2022 raised",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.55
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    },
+    {
+      "layers": [
+        {
+          "glass": false,
+          "image-name": "mlx-tile.png",
+          "name": "mlx-tile"
+        }
+      ],
+      "name": "Slate \u2022 base",
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0
+      },
+      "translucency": {
+        "enabled": false,
+        "value": 0
+      }
+    }
+  ],
+  "supported-platforms": {
+    "squares": "shared"
+  }
+}
