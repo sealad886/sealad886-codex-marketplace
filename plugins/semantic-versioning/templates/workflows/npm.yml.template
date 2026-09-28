@@ -1,0 +1,115 @@
+# Inactive example. Read references/ci/github-actions.md before materializing.
+name: Publish npm
+on:
+  workflow_call:
+    inputs:
+      revision:
+        description: Approved full 40-character release commit SHA
+        type: string
+        required: true
+      tag:
+        description: Existing immutable release tag
+        type: string
+        required: true
+      version:
+        description: Expected native package version
+        type: string
+        required: true
+      dist_tag:
+        description: Authorized npm distribution channel; prereleases require a preview tag
+        type: string
+        default: latest
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Approved full 40-character release commit SHA
+        type: string
+        required: true
+      tag:
+        description: Existing immutable release tag
+        type: string
+        required: true
+      version:
+        description: Expected native package version
+        type: string
+        required: true
+      dist_tag:
+        description: Authorized npm distribution channel; prereleases require a preview tag
+        type: string
+        default: latest
+permissions:
+  contents: read
+concurrency:
+  group: publish-npm-main
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      RELEASE_SHA: ${{ inputs.revision }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ inputs.version }}
+      NPM_DIST_TAG: ${{ inputs.dist_tag }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_SHA"
+          git merge-base --is-ancestor "$RELEASE_SHA" refs/remotes/origin/main
+          test -n "$RELEASE_VERSION"
+          test "$RELEASE_TAG" = "v$RELEASE_VERSION"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22.14.0'
+          registry-url: https://registry.npmjs.org
+      - run: npm install --global npm@11.5.1
+      - name: Validate npm distribution channel
+        run: |
+          node <<'JS'
+          const tag = process.env.NPM_DIST_TAG;
+          const version = process.env.RELEASE_VERSION;
+          if (!/^[A-Za-z][A-Za-z0-9._-]*$/.test(tag || '')) {
+            throw new Error('Choose an explicit npm distribution tag beginning with a letter.');
+          }
+          if (version.split('+')[0].includes('-') && tag === 'latest') {
+            throw new Error('Prereleases require an explicitly authorized preview distribution tag.');
+          }
+          JS
+      - run: npm ci
+      - run: npm test
+      - run: npm run build --if-present
+      - name: Check package version and pack artifact
+        run: |
+          node -e 'if(require("./package.json").version!==process.env.RELEASE_VERSION)process.exit(1)'
+          npm pack --json > pack-result.json
+          node -e 'const p=require("./pack-result.json"); if(p.length!==1)process.exit(1); require("fs").writeFileSync("artifact-name.txt",p[0].filename)'
+          tar -xOf "$(cat artifact-name.txt)" package/package.json > /tmp/packed-package.json
+          node -e 'if(require("/tmp/packed-package.json").version!==process.env.RELEASE_VERSION)process.exit(1)'
+          mkdir -p release-artifacts
+          cp "$(cat artifact-name.txt)" release-artifacts/
+          printf '%s\n' "$RELEASE_SHA" > release-artifacts/source-revision.txt
+          (cd release-artifacts && sha256sum ./*.tgz > SHA256SUMS)
+          cat release-artifacts/SHA256SUMS
+      - name: Retain exact npm artifacts before publication
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-npm-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: release-artifacts/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish immutable package
+        run: npm publish "$(cat artifact-name.txt)" --access public --provenance --tag "$NPM_DIST_TAG"

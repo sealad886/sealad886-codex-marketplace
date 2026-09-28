@@ -280,7 +280,7 @@ class MarketplaceTests(unittest.TestCase):
             result = run_checker(root)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-            self.assertIn("plugins=4", result.stdout)
+            self.assertIn(f"plugins={len(marketplace['plugins'])}", result.stdout)
 
     def test_duplicate_marketplace_plugin_name_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

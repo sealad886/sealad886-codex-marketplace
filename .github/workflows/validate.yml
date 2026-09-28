@@ -55,6 +55,12 @@ jobs:
       - name: Validate MLX Optimizer structure
         run: python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
 
+      - name: Validate Semantic Versioning structure and examples
+        run: |
+          python3 scripts/check_plugin.py plugins/semantic-versioning --layout source
+          python3 scripts/check_distribution_bundle.py plugins/semantic-versioning
+          python3 scripts/check_semantic_versioning.py
+
       - name: Validate route contracts
         run: python3 scripts/check_routes.py .
 

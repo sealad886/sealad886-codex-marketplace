@@ -1,0 +1,10 @@
+[build-system]
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
+[project]
+name = "semver-example-python"
+version = "0.1.0"
+requires-python = ">=3.11"
+license = "MIT"
+[tool.hatch.build.targets.wheel]
+packages = ["src/semver_example"]

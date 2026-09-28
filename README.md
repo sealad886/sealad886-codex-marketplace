@@ -18,6 +18,10 @@ The repository and marketplace are both named `sealad886-codex-marketplace`. Ind
 
 Project Delivery is self-contained. It does not wrap, re-export, or require the generic workflow plugins it is designed to supersede. Provider connectors and specialist platform tools may still contribute authorized access or evidence without becoming lifecycle dependencies.
 
+## In development
+
+[Semantic Versioning](plugins/semantic-versioning/README.md) (`0.1.0`) adds continuous release assessment, native version ownership, and GitHub release workflow examples. Its catalog entry is unavailable pending immutable release validation.
+
 ## Install from the marketplace
 
 Add the hosted marketplace, then install the plugin you want:
@@ -92,12 +96,14 @@ The detailed product, lifecycle, installation, migration, and trust documentatio
 
 ## Validation
 
-The current checks use only Python's standard library:
+Core package checks use Python's standard library. Native example builds and workflow checks use the declared tools in their dedicated CI jobs:
 
 ```bash
 python3 scripts/check_plugin.py plugins/project-delivery --layout source
 python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
 python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
+python3 scripts/check_plugin.py plugins/semantic-versioning --layout source
+python3 scripts/check_semantic_versioning.py
 python3 scripts/check_routes.py .
 python3 scripts/check_route_receipts.py \
   tests/fixtures/blind-route-observations-v1.3.1.json \
@@ -105,6 +111,7 @@ python3 scripts/check_route_receipts.py \
 python3 scripts/check_distribution_bundle.py plugins/project-delivery
 python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
 python3 scripts/check_distribution_bundle.py plugins/mlx-optimizer
+python3 scripts/check_distribution_bundle.py plugins/semantic-versioning
 python3 plugins/conversation-visuals/mcp/server.py --self-test
 python3 scripts/check_marketplace.py .
 python3 -m unittest discover -s tests -p 'test_*.py' -v

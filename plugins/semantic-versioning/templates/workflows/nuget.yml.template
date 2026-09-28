@@ -1,0 +1,99 @@
+# Inactive example. Read references/ci/github-actions.md before materializing.
+name: Publish nuget
+on:
+  workflow_call:
+    inputs:
+      revision:
+        description: Approved full 40-character release commit SHA
+        type: string
+        required: true
+      tag:
+        description: Existing immutable release tag
+        type: string
+        required: true
+      version:
+        description: Expected native package version
+        type: string
+        required: true
+    secrets:
+      NUGET_API_KEY:
+        required: true
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Approved full 40-character release commit SHA
+        type: string
+        required: true
+      tag:
+        description: Existing immutable release tag
+        type: string
+        required: true
+      version:
+        description: Expected native package version
+        type: string
+        required: true
+permissions:
+  contents: read
+concurrency:
+  group: publish-nuget-main
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      contents: read
+    env:
+      RELEASE_SHA: ${{ inputs.revision }}
+      RELEASE_TAG: ${{ inputs.tag }}
+      RELEASE_VERSION: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ inputs.revision }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Verify immutable release source
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_SHA" =~ ^[0-9a-f]{40}$ ]]
+          git check-ref-format "refs/tags/$RELEASE_TAG"
+          test "$(git rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")" = "$RELEASE_SHA"
+          git merge-base --is-ancestor "$RELEASE_SHA" refs/remotes/origin/main
+          test -n "$RELEASE_VERSION"
+          test "$RELEASE_TAG" = "v$RELEASE_VERSION"
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
+        with:
+          dotnet-version: '8.0.408'
+      - run: dotnet restore --locked-mode
+      - run: dotnet test --configuration Release --no-restore
+      - run: dotnet pack --configuration Release --no-restore --output artifacts
+      - name: Check native package metadata
+        shell: python
+        run: |
+          import glob, os, xml.etree.ElementTree as ET, zipfile
+          packages = glob.glob('artifacts/*.nupkg')
+          assert packages
+          for path in packages:
+              with zipfile.ZipFile(path) as archive:
+                  root = ET.fromstring(archive.read(next(n for n in archive.namelist() if n.endswith('.nuspec'))))
+              assert root.find('.//{*}version').text == os.environ['RELEASE_VERSION']
+      - name: Retain package checksums and source identity
+        run: |
+          printf '%s\n' "$RELEASE_SHA" > artifacts/source-revision.txt
+          (cd artifacts && sha256sum ./*.nupkg > SHA256SUMS)
+          cat artifacts/SHA256SUMS
+      - name: Retain exact nuget artifacts before publication
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-nuget-${{ inputs.revision }}-${{ github.run_attempt }}
+          path: artifacts/
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish packages
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: dotnet nuget push 'artifacts/*.nupkg' --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json
