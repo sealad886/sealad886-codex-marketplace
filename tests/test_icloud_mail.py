@@ -247,20 +247,21 @@ class ICloudMailTests(unittest.TestCase):
     def test_read_and_thread_fall_back_from_unknown_body_charset(self) -> None:
         message_id = server._encode_ref("INBOX", 7, 9)
         self.install_shared_imap_session()
-        for kind in ("plain", "html"):
-            with self.subTest(kind=kind):
-                raw = (
-                    f'Content-Type: text/{kind}; charset=x-unknown-charset\r\n'
-                    'Content-Transfer-Encoding: 8bit\r\n\r\n'
-                ).encode() + b"Hello caf\xc3\xa9 \xff"
-                message = email.message_from_bytes(raw, policy=email.policy.default)
-                with mock.patch.object(server, "_fetch_message", return_value=(message, raw, "")):
-                    result = server.read_email({"message_id": message_id})
-                    thread = server.read_email_thread({"message_id": message_id})
-                field = "body_text" if kind == "plain" else "body_html"
-                for item in (result, thread["messages"][0]):
-                    self.assertEqual(item[field], "Hello café \ufffd")
-                    self.assertFalse(item[field + "_truncated"])
+        for charset in ("x-unknown-charset", "utf-8\x00"):
+            for kind in ("plain", "html"):
+                with self.subTest(kind=kind, charset=charset):
+                    raw = (
+                        f'Content-Type: text/{kind}; charset="{charset}"\r\n'
+                        'Content-Transfer-Encoding: 8bit\r\n\r\n'
+                    ).encode() + b"Hello caf\xc3\xa9 \xff"
+                    message = email.message_from_bytes(raw, policy=email.policy.default)
+                    with mock.patch.object(server, "_fetch_message", return_value=(message, raw, "")):
+                        result = server.read_email({"message_id": message_id})
+                        thread = server.read_email_thread({"message_id": message_id})
+                    field = "body_text" if kind == "plain" else "body_html"
+                    for item in (result, thread["messages"][0]):
+                        self.assertEqual(item[field], "Hello café \ufffd")
+                        self.assertFalse(item[field + "_truncated"])
 
     def test_read_and_thread_report_each_capped_body_representation(self) -> None:
         message_id = server._encode_ref("INBOX", 7, 9)
@@ -595,6 +596,20 @@ class ICloudMailTests(unittest.TestCase):
         self.assertEqual(
             client.sock.settimeout.call_args_list,
             [mock.call(25.0), mock.call(10.0), mock.call(10.0), mock.call(5.0)],
+        )
+
+    def test_thread_reference_search_encodes_unicode_identifiers(self) -> None:
+        client = mock.MagicMock()
+        client.select.return_value = ("OK", [b"0"])
+        client.response.return_value = ("UIDVALIDITY", [b"7"])
+        client.uid.return_value = ("OK", [b""])
+        result = server.search_emails(
+            {"_thread_reference_ids": ["<日本語@example.com>"]}, client=client
+        )
+        self.assertEqual(result["returned"], 0)
+        client.uid.assert_called_once_with(
+            "search", "CHARSET", "UTF-8", b"TEXT",
+            '"<日本語@example.com>"'.encode("utf-8"),
         )
 
     def test_attachment_filter_has_a_bounded_scan_budget(self) -> None:

@@ -411,7 +411,7 @@ def _decode_header(value: str | None) -> str:
         return ""
     try:
         return str(make_header(decode_header(value)))
-    except (LookupError, UnicodeError, email.errors.HeaderParseError):
+    except (LookupError, ValueError, email.errors.HeaderParseError):
         return value
 
 
@@ -778,11 +778,11 @@ def _message_bodies(message: Message) -> tuple[str, str]:
             return "", ""
         try:
             value = part.get_content()
-        except (LookupError, UnicodeError):
+        except (LookupError, ValueError):
             payload = part.get_payload(decode=True) or b""
             try:
                 value = payload.decode(part.get_content_charset() or "utf-8", errors="replace")
-            except LookupError:
+            except (LookupError, ValueError):
                 value = payload.decode("utf-8", errors="replace")
         return (str(value), "") if kind == "text/plain" else ("", str(value))
 
@@ -1284,7 +1284,7 @@ def _bodystructure_has_attachment(metadata: bytes) -> bool:
                     raw = urllib.parse.unquote_to_bytes(decoded)
                     try:
                         decoded = raw.decode(charset, errors="replace")
-                    except LookupError:
+                    except (LookupError, ValueError):
                         decoded = raw.decode("utf-8", errors="replace")
                 if _decode_header(decoded).strip():
                     return True
@@ -1785,6 +1785,15 @@ def _bounded_search_uids(value: bytes | str, limit: int) -> tuple[list[int], int
     return list(uids), total
 
 
+def _uid_search(client: imaplib.IMAP4_SSL, criteria: list[str]) -> tuple[str, Any]:
+    """Encode ordinary and thread search criteria with the same IMAP charset."""
+    if any(not item.isascii() for item in criteria):
+        return client.uid(
+            "search", "CHARSET", "UTF-8", *(item.encode("utf-8") for item in criteria)
+        )
+    return client.uid("search", *criteria)
+
+
 def search_emails(
     arguments: dict[str, Any],
     *,
@@ -1849,7 +1858,7 @@ def search_emails(
                 value = _text(
                     reference_id, "_thread_reference_ids", required=True, limit=500
                 )
-                status, data = client.uid("search", None, "TEXT", _quoted(value))
+                status, data = _uid_search(client, ["TEXT", _quoted(value)])
                 if status != "OK":
                     raise MailError("iCloud Mail thread search failed")
                 bounded, total = _bounded_search_uids(
@@ -1864,12 +1873,7 @@ def search_emails(
                 matched_count = max(matched_count, len(uids) + 1)
             matched_count_is_lower_bound = thread_matches_truncated
         else:
-            charset = "UTF-8" if any(not item.isascii() for item in criteria) else None
-            wire_criteria: list[str | bytes] = (
-                [item.encode("utf-8") for item in criteria] if charset else criteria
-            )
-            charset_options = ["CHARSET", charset] if charset else []
-            status, data = client.uid("search", *charset_options, *wire_criteria)
+            status, data = _uid_search(client, criteria)
             if status != "OK":
                 raise MailError("iCloud Mail search failed")
             uids, matched_count = _bounded_search_uids(
