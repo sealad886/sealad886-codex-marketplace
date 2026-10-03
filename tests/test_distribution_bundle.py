@@ -100,6 +100,53 @@ class DistributionBundleTests(unittest.TestCase):
                     path,
                 )
 
+    def test_icloud_materialized_bundle_launches_and_serves_setup(self) -> None:
+        # The installed runtime must resolve every setup dependency without the
+        # source checkout, and serve its packaged page without credential access.
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "icloud-mail"
+            source = Path(temporary) / "source" / "icloud-mail"
+            shutil.copytree(
+                REPOSITORY_ROOT / "plugins" / "icloud-mail", source,
+                ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
+            )
+            result = run_checker("--output", str(output), root=source)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            check = subprocess.run(
+                [sys.executable, "-E", "-B", str(output / "mcp" / "server.py"),
+                 "--self-test"],
+                cwd=temporary, capture_output=True, text=True,
+                timeout=SUBPROCESS_TIMEOUT_SECONDS,
+            )
+            self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+            probe = """
+import http.client
+import sys
+import threading
+sys.path.insert(0, sys.argv[1])
+import server
+import setup
+import keychain
+with setup.SetupServer(server, None, lifetime=5) as endpoint:
+    worker = threading.Thread(target=endpoint.handle_request)
+    worker.start()
+    client = http.client.HTTPConnection("127.0.0.1", endpoint.server_port, timeout=5)
+    client.request("GET", endpoint.path)
+    response = client.getresponse()
+    assert response.status == 200, response.status
+    assert response.getheader("Content-Type").startswith("text/html")
+    assert response.read(), "packaged setup page is empty"
+    client.close()
+    worker.join(timeout=5)
+    assert not worker.is_alive()
+"""
+            check = subprocess.run(
+                [sys.executable, "-I", "-B", "-c", probe, str(output / "mcp")],
+                cwd=temporary, capture_output=True, text=True,
+                timeout=SUBPROCESS_TIMEOUT_SECONDS,
+            )
+            self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+
     def test_missing_mcp_script_is_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             source = copy_conversation_visuals(temporary)

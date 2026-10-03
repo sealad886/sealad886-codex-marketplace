@@ -35,21 +35,32 @@ provider-specific mailbox API. This creates several honest differences:
 
 ## Configure securely
 
-No shell export is required. In Codex, ask:
+On macOS, ask Codex:
 
-> Set up iCloud Mail.
+> Connect iCloud Mail.
 
-The Apple Account that owns the mailbox must have two-factor authentication
-enabled before it can create an app-specific password. The plugin guides this
-sequence:
+`open_account_setup` opens one temporary page in your browser, running only on
+this Mac. Enter your **iCloud Mail address** and **Apple app-specific password**
+there, never in chat.
 
-1. `configure_account` saves non-secret account settings in a user-only file.
-2. `open_apple_password_page` opens Apple Account so the user can create an
-   app-specific password named `Codex iCloud Mail`.
-3. `open_keychain_access` opens Keychain Access and returns the exact item
-   fields. The user enters the app-specific password directly in Keychain
-   Access; it never enters chat or a tool argument.
-4. `validate_account` tests IMAP and SMTP authentication without sending mail.
+**Do not enter your normal Apple Account password.** Open
+[Apple Account settings](https://account.apple.com/account/manage), choose
+**Sign-In and Security → App-Specific Passwords**, and generate a password for
+`Codex iCloud Mail`. The Apple Account that owns the mailbox must have two-factor
+authentication enabled. Keep the setup page open while creating the password.
+
+The page checks both IMAP and SMTP without sending a message. Only after those
+checks succeed does it save the credential in macOS Keychain and the non-secret
+account settings. Reconnecting the same account preserves optional sender
+settings; choosing a different account resets those settings. A failed validation
+leaves the existing connection unchanged. If saving cannot be rolled back, the
+page reports that local connection settings need repair and asks you to reconnect.
+
+The page closes its local service after success or ten minutes. Reopen setup if
+it expires. No hosted login service, remote credential broker, or persistent
+setup daemon is used. Opening the page is not proof of connection:
+`get_account_status` reports saved settings, while `validate_account` checks
+current authentication. A password revoked at Apple requires reconnecting.
 
 The account address is the primary full iCloud Mail address used to authenticate
 SMTP—for example `name@icloud.com`. It is not necessarily the address used to
@@ -69,30 +80,43 @@ Saved non-secret settings live at:
 The file uses mode `0600`; its directory uses mode `0700`. Writes are atomic.
 It never contains the app-specific password.
 
-### Keychain fallback command
+### Manual setup
 
-If Keychain Access cannot create the generic-password item, `security` can
-prompt without echoing the value when `-w` is the final option:
+The guided page is macOS-only. `configure_account` remains available for
+non-secret settings, including optional outgoing identities. On macOS, use
+`open_keychain_access` if you need to manage the generic-password item manually:
+service `codex-icloud-mail`, account set to the primary full mailbox address.
+Enter the password in Keychain Access, never as a command argument or tool input.
 
-```bash
-security add-generic-password \
-  -U \
-  -a 'name@icloud.com' \
-  -s 'codex-icloud-mail' \
-  -l 'Codex iCloud Mail' \
-  -w
-```
-
-The MCP server retrieves that item at use time. For non-macOS hosts that lack
-an integrated credential store, `ICLOUD_MAIL_APP_PASSWORD` remains a fallback
-in the environment that launches Codex. Avoid shell history, checked-in `.env`
-files, and chat messages.
+The server reads the Keychain item at use time. A saved Keychain credential takes
+precedence over `ICLOUD_MAIL_APP_PASSWORD` in the launch environment. On hosts
+without macOS Keychain, that environment variable remains the manual credential
+source. Avoid shell history, checked-in `.env` files, and chat messages. An export
+in another shell does not update an already running Codex process.
 
 For IMAP, Apple documents the address's local part (for example, `name` for
 `name@icloud.com`) as the usual username and the full iCloud Mail address as
 the fallback. The plugin tries those forms in that order, using a new TLS
 connection for each attempt. Save `imap_username` only when an account needs
 an explicit override. SMTP always authenticates with the full account address.
+
+## Storage and privacy
+
+This plugin connects to the iCloud-hosted mailbox on demand. It creates no local
+mail repository: no mailbox replica, search index, message or attachment cache,
+offline mailbox, or background synchronization. Search runs against iCloud;
+requested messages, headers, attachments, and drafts are processed in bounded
+memory. Mail content is not written to diagnostic logs.
+
+Only connection settings, a settings lock file, and the Keychain credential
+persist locally. Mail content returned to Codex enters the conversation and is
+subject to Codex's own data handling. The plugin does not control conversation
+retention or operating-system memory management. Saving a message or attachment
+to disk requires an explicit user request; there is no automatic export.
+
+This release does not register a native Codex **Connected Accounts** entry or
+promise eligibility for **Reference my writing style**. Those platform integration
+contracts have not been verified for this local plugin.
 
 ## Fixed endpoints and optional settings
 
@@ -134,6 +158,7 @@ Read tools:
 
 Mutation tools:
 
+- `open_account_setup`
 - `configure_account`
 - `clear_account_configuration`
 - `open_apple_password_page`
@@ -167,9 +192,10 @@ accidentally remove attachments.
 Reply conversation headers are also preserved unless a nonempty
 `reply_message_id` selects a different reply target.
 
-Opening Apple Account or Keychain Access requires explicit user intent.
+Opening setup, Apple Account, or Keychain Access requires explicit user intent.
 Clearing configuration requires `confirm=true` and deliberately leaves the
-Keychain credential untouched.
+Keychain credential untouched. It does not revoke the password at Apple. Remove
+the item in Keychain Access or revoke it in Apple Account settings when wanted.
 
 ## Validation
 

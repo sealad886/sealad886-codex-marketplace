@@ -3,6 +3,24 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## iCloud Mail 0.2.0 - 2026-10-03
+
+### Added
+
+- A temporary local connection page with Apple password-generation guidance,
+  direct IMAP and SMTP validation, and native macOS Keychain storage.
+- Serialized account saves, stale-session rejection, credential rollback, and
+  clear recovery feedback when settings cannot be restored.
+- Bundle, privacy, and setup coverage for local authentication and the absence
+  of a plugin-managed email repository.
+
+### Changed
+
+- macOS credential reads and writes share the native Keychain helper; saved
+  credentials take precedence over an older launch-environment password.
+- Setup guidance now distinguishes saved configuration from live verification
+  and explains that requested mail enters Codex without local mailbox syncing.
+
 ## Plugin display updates - 2026-09-28
 
 ### Fixed

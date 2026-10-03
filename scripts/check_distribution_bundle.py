@@ -48,6 +48,7 @@ EXPECTED_SKILL_COUNTS = {
     "project-delivery": 13,
 }
 PLUGIN_RESOURCE_DIRECTORIES = {
+    "icloud-mail": ("mcp/setup.py", "mcp/setup.html", "mcp/keychain.py"),
     "semantic-versioning": ("references", "scripts", "templates", "examples"),
     "mlx-optimizer": (
         ".claude-plugin",

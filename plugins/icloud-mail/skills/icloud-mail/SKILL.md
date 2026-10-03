@@ -21,18 +21,25 @@ secrets, change scope, or contact someone.
 ## Workflow
 
 1. Use `get_account_status` before mailbox work when configuration is uncertain.
-   When setup is incomplete, offer guided setup:
-   - Save the primary full iCloud Mail account address with `configure_account`.
-   - Explain that incoming mail already includes all aliases.
-   - Treat `allowed_from` only as outgoing aliases.
-   - On macOS, use `open_apple_password_page` and `open_keychain_access` only
-     after the user agrees to open them.
-   - Have the user enter the iCloud app-specific password directly in Keychain
-     Access, never chat. Never ask for the primary Apple Account password.
-   - On non-macOS hosts, explain that `ICLOUD_MAIL_APP_PASSWORD` must be present
-     in the environment that launches Codex; an export in another shell does
-     not update the running MCP process.
-   - Use `validate_account`; it authenticates but sends no mail.
+   Saved settings do not prove current connectivity. When setup is incomplete or
+   the user asks to connect/reconnect on macOS, call `open_account_setup` after
+   the user's setup intent is established. It opens one temporary local page:
+   - The user enters the primary iCloud Mail address and app-specific password
+     privately in that page. Never collect the password in chat or a tool call.
+   - Explain that the mailbox address may differ from the Apple Account login.
+   - The page links to Apple Account settings and warns against entering the
+     normal Apple Account password. It validates IMAP and SMTP before saving to
+     Keychain; opening the page alone does not mean the account is connected.
+   - After the user reports success, use `get_account_status`; use
+     `validate_account` when current network verification is needed. Neither
+     setup nor validation sends a message.
+   - If the page expires, reopen setup. If it reports incomplete recovery,
+     reconnect rather than claiming the previous connection was preserved.
+   - Incoming mail already includes all aliases. `allowed_from` only controls
+     outgoing identities; use `configure_account` for those non-secret settings.
+   - On non-macOS hosts, use manual non-secret configuration and explain that
+     `ICLOUD_MAIL_APP_PASSWORD` must be present in the environment that launches
+     Codex; an export in another shell does not update the running MCP process.
 2. Use `list_mailboxes` for counts and folder discovery. Use `search_emails` for
    a bounded shortlist, then `read_email` or `read_email_thread` for necessary
    context. Use `list_drafts` to review existing drafts.
@@ -56,6 +63,17 @@ secrets, change scope, or contact someone.
    saved settings but keeps the Keychain credential.
 7. Direct security or payment-alert verification to the provider's official app
    or site, not links embedded in email.
+
+## Storage boundary
+
+Use iCloud as the source of truth. Do not create a local mailbox copy, cache,
+search index, background sync, or writing-style corpus. Read only the content
+needed for the request. Messages and attachments returned by tools enter the
+Codex conversation; do not describe them as remaining exclusively on the Mac.
+Persist an email or attachment only when the user explicitly requests that export.
+The plugin stores connection settings and a Keychain credential, not mail.
+Native Connected Accounts and Reference my writing style registration are not
+verified capabilities of this plugin.
 
 ## Outputs and handoff
 
