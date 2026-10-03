@@ -137,7 +137,7 @@ def _keychain():
         raise MailError("macOS Keychain support is unavailable")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
-    return module.Keychain(KEYCHAIN_SERVICE)
+    return module.KeychainReader(KEYCHAIN_SERVICE, timeout=_current_deadline().timeout(10.0))
 
 
 @contextmanager

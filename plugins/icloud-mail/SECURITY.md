@@ -79,3 +79,9 @@ browser isolation guarantee.
 Do not include credentials, mailbox content, or personal addresses in a public
 issue. Report security concerns through the repository's private
 [security-advisory form](https://github.com/sealad886/sealad886-codex-marketplace/security/advisories/new).
+
+Production Keychain reads run in a short-lived helper using the same native API.
+A private pipe returns the credential to the MCP process; no password is passed
+in arguments or environment. Reads are capped at ten seconds and the remaining
+operation deadline. Timeout kills and reaps the helper so an unanswered Keychain
+prompt cannot indefinitely block the MCP loop.

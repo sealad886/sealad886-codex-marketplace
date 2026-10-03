@@ -1,6 +1,42 @@
 """macOS Keychain access without putting credentials in process arguments."""
 import ctypes as C
+import json
+import os
+from pathlib import Path
+import subprocess
 import sys
+
+
+class KeychainReader:
+    """Keep potentially interactive native reads outside the MCP process."""
+
+    def __init__(self, service="codex-icloud-mail", timeout=10.0):
+        self.service = service
+        self.timeout = timeout
+
+    def get(self, account):
+        try:
+            result = subprocess.run(
+                [sys.executable, str(Path(__file__).resolve()), "--read"],
+                input=json.dumps({"service": self.service, "account": account}),
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=self.timeout,
+                check=False,
+                env={key: value for key, value in os.environ.items()
+                     if key != "ICLOUD_MAIL_APP_PASSWORD"},
+            )
+            if result.returncode != 0:
+                raise RuntimeError("macOS Keychain could not retrieve the credential")
+            password = json.loads(result.stdout)
+            if password is not None and not isinstance(password, str):
+                raise ValueError("Invalid credential response")
+            return password
+        except (OSError, subprocess.SubprocessError, ValueError):
+            # subprocess.run kills and reaps the helper after a timeout. Never
+            # include exception text: it can contain captured credential bytes.
+            raise RuntimeError("macOS Keychain could not retrieve the credential") from None
 
 
 class Keychain:
@@ -69,3 +105,24 @@ class Keychain:
                 self._check(self.sec.SecKeychainItemDelete(item))
             finally:
                 self.cf.CFRelease(item)
+
+
+def _read_main():
+    """Private stdin/stdout protocol; never called on the MCP transport."""
+    try:
+        request = json.loads(sys.stdin.read(4097))
+        if not isinstance(request, dict) or set(request) != {"account", "service"}:
+            return 1
+        if any(not isinstance(value, str) or not value or len(value) > 1024
+               for value in request.values()):
+            return 1
+        password = Keychain(request["service"]).get(request["account"])
+        sys.stdout.write(json.dumps(password))
+        sys.stdout.flush()
+        return 0
+    except Exception:
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(_read_main() if sys.argv[1:] == ["--read"] else 1)

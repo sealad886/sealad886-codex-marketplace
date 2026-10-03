@@ -136,9 +136,12 @@ Configuration is currently under `~/Library/Application Support/Codex/iCloud Mai
 on macOS, with the existing explicit path override. Existing non-macOS manual
 configuration is outside the new guided setup scope; add no compatibility layer.
 Do not put passwords in MCP inputs/results, shell arguments, setup-child environment,
-configuration, application logs, or browser storage. Process stdout carries only
-MCP protocol output or the child's fixed readiness signal. Mail returned through
-MCP is intentional output, not a diagnostic log.
+configuration, application logs, or browser storage. MCP stdout carries protocol
+output; the setup child emits only a fixed readiness signal. Production Keychain
+reads use the same native helper in a killable child with a ten-second cap bounded
+by the remaining operation deadline. Its credential response uses a private pipe,
+never the MCP transport or logs. Mail returned through MCP is intentional output,
+not a diagnostic log.
 
 The plugin cannot guarantee that the OS never swaps memory, that browser history
 never records the non-secret loopback address, or that Codex does not retain a
