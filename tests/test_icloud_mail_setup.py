@@ -110,6 +110,19 @@ class ConnectionTests(unittest.TestCase):
         store.get.assert_not_called()
         store.set.assert_not_called()
 
+    def test_smtp_unavailable_greeting_is_network_failure_without_persistence(self):
+        client = mock.MagicMock()
+        client.status.return_value = ("OK", [b"INBOX (MESSAGES 0)"])
+        store = mock.Mock()
+        with mock.patch.object(core.imaplib, "IMAP4_SSL", return_value=client), mock.patch.object(
+            core.smtplib, "SMTP", side_effect=smtplib.SMTPConnectError(421, b"synthetic outage")
+        ):
+            with self.assertRaises(setup.SetupError) as receipt:
+                setup.connect(core, store, ACCOUNT, PASSWORD)
+        self.assertEqual(receipt.exception.code, "network_failed")
+        store.get.assert_not_called()
+        store.set.assert_not_called()
+
     def test_network_keychain_and_auth_failures_are_distinct(self):
         for failure, expected in [(OSError(PASSWORD), "network_failed"), (RuntimeError(PASSWORD), "verification_failed"), (smtplib.SMTPAuthenticationError(535, PASSWORD.encode()), "verification_failed")]:
             with mock.patch.object(core, "_load_config", return_value={}), mock.patch.object(core, "validate_account", side_effect=failure):

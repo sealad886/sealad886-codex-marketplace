@@ -51,7 +51,7 @@ def _network_error(error):
         if isinstance(error, imaplib.IMAP4.abort):
             return True
         if isinstance(error, smtplib.SMTPException):
-            return isinstance(error, smtplib.SMTPServerDisconnected)
+            return isinstance(error, (smtplib.SMTPServerDisconnected, smtplib.SMTPConnectError))
         if isinstance(error, OSError):
             return True
         error = error.__cause__ or error.__context__

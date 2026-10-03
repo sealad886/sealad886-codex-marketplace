@@ -61,3 +61,16 @@ operation abort handlers are intentional separate outcomes. Add regression throu
 real candidate validation with a synthetic IMAP abort, asserting no persistence.
 Clean retired sources cover1d4a6b8; subsequent Copilot correction is outside their
 reviewed revision. Round3 will request only Copilot.
+
+## Round 3 — Copilot only
+
+Head `40d48ebd0e1be8e204017f2c0302c1a8f9d7cf54`; review5401653335
+confirmed both original comments resolved, but its summary carried one additional
+SMTPConnectError classification finding. Treat as actionable despite the summary
+also saying Findings: None. Same classifier pattern as wrapped IMAP disconnects;
+regional/global SMTP exception searches confirm connection-greeting rejection
+occurs before authentication. Classify SMTPConnectError as network failure and
+cover real candidate validation through a synthetic421 greeting, with no save.
+The general suggestion for human security review supplies no additional concrete
+defect; independent security-focused Codex review and tested rollback controls
+remain the evidence, with the documented crash-between-stores limitation.
