@@ -1,6 +1,6 @@
 {
   "name": "icloud-mail",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Read, search, organize, draft, and send iCloud Mail through a local, dependency-free MCP server.",
   "author": {
     "name": "Andrew Cox",
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "iCloud Mail",
     "shortDescription": "Read, organize, draft, and send iCloud email",
-    "longDescription": "iCloud Mail connects Codex to an iCloud mailbox through Apple's documented TLS IMAP and SMTP endpoints. It supports mailbox search and reading, attachments, folders, flags, archiving, Trash, drafts, replies, forwards, and sending while keeping the Apple app-specific password out of tool arguments and results.",
+    "longDescription": "iCloud Mail connects Codex directly to Apple's TLS IMAP and SMTP services. A temporary local setup page validates an app-specific password and saves it in macOS Keychain. Search, read, organize, draft, and send mail on demand without creating a local mailbox copy or email index. Requested mail returned to Codex enters the conversation.",
     "developerName": "Andrew Cox",
     "category": "Productivity",
     "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/icloud-mail",

@@ -14,17 +14,22 @@ import email.generator
 import email.policy
 import email.utils
 import html
+import hashlib
+import importlib.util
+import errno
 import imaplib
 import json
 import os
 from pathlib import Path
 import re
+import select
 import smtplib
 import ssl
 import stat
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 import urllib.parse
 from contextlib import contextmanager, nullcontext
@@ -36,7 +41,7 @@ from typing import Any, Iterator
 
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "icloud-mail", "version": "0.1.1"}
+SERVER_INFO = {"name": "icloud-mail", "version": "0.2.0"}
 IMAP_HOST = "imap.mail.me.com"
 IMAP_PORT = 993
 SMTP_HOST = "smtp.mail.me.com"
@@ -115,7 +120,87 @@ class OperationDeadline:
 _ACTIVE_DEADLINE: ContextVar[OperationDeadline | None] = ContextVar(
     "icloud_mail_operation_deadline", default=None
 )
+_ACCOUNT_SESSION: ContextVar[tuple[dict[str, Any], str] | None] = ContextVar(
+    "icloud_mail_account_session", default=None
+)
 _IMAP_LOGIN_CACHE: dict[str, str] = {}
+_CONFIG_LOCK_STATE = threading.local()
+
+
+def _keychain():
+    # Resolve the sibling explicitly: importlib-based consumers need not modify
+    # sys.path, and an unrelated installed module must never handle credentials.
+    spec = importlib.util.spec_from_file_location(
+        "icloud_mail_keychain", Path(__file__).with_name("keychain.py")
+    )
+    if spec is None or spec.loader is None:
+        raise MailError("macOS Keychain support is unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.Keychain(KEYCHAIN_SERVICE)
+
+
+@contextmanager
+def account_config_lock(timeout: float = 10.0) -> Iterator[None]:
+    """Serialize account mutations across processes; nested callers share a lock."""
+    import fcntl
+
+    deadline = _ACTIVE_DEADLINE.get()
+    if deadline is not None:
+        timeout = deadline.timeout(timeout)
+    path = _config_path().absolute()
+    locks = getattr(_CONFIG_LOCK_STATE, "locks", None)
+    if locks is None:
+        locks = _CONFIG_LOCK_STATE.locks = set()
+    if path in locks:
+        yield
+        return
+    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(str(path) + ".lock", flags, 0o600)
+    try:
+        metadata = os.fstat(descriptor)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.getuid():
+            raise MailError("Account configuration lock is not a private regular file")
+        os.fchmod(descriptor, 0o600)
+        expires = time.monotonic() + timeout
+        while True:
+            try:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except OSError as error:
+                if error.errno not in (errno.EAGAIN, errno.EACCES):
+                    raise
+                if time.monotonic() >= expires:
+                    raise MailError("Another iCloud Mail account update is in progress; try again") from None
+                time.sleep(0.05)
+        locks.add(path)
+        try:
+            yield
+        finally:
+            locks.remove(path)
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+    finally:
+        os.close(descriptor)
+
+
+def account_config_revision() -> str:
+    """Fingerprint saved settings for detecting a stale browser setup session."""
+    with account_config_lock():
+        path = _config_path()
+        try:
+            descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        except FileNotFoundError:
+            return "missing"
+        with os.fdopen(descriptor, "rb") as handle:
+            metadata = os.fstat(handle.fileno())
+            if not stat.S_ISREG(metadata.st_mode):
+                raise MailError("Saved iCloud Mail configuration must be a regular file")
+            content = handle.read(1024 * 1024 + 1)
+            if len(content) > 1024 * 1024:
+                raise MailError("Saved iCloud Mail configuration is too large")
+        identity = (metadata.st_dev, metadata.st_ino, metadata.st_mtime_ns, metadata.st_size)
+        return hashlib.sha256(repr(identity).encode() + b"\0" + content).hexdigest()
 
 
 def _current_deadline() -> OperationDeadline:
@@ -263,7 +348,29 @@ def _validate_config(payload: Any) -> dict[str, Any]:
     }
 
 
+@contextmanager
+def account_session(config: dict[str, Any], password: str) -> Iterator[None]:
+    """Use candidate credentials in this context without persisting them.
+
+    This is an internal Python boundary, never an MCP tool accepting secrets.
+    Nested sessions restore their caller's credentials even when validation fails.
+    """
+    validated = _validate_config(config)
+    if not isinstance(password, str) or not password or len(password) > 1024:
+        raise MailError("An app-specific password is required")
+    if any(character in password for character in ("\r", "\n", "\x00")):
+        raise MailError("The app-specific password contains invalid characters")
+    token = _ACCOUNT_SESSION.set((validated, password))
+    try:
+        yield
+    finally:
+        _ACCOUNT_SESSION.reset(token)
+
+
 def _load_config(*, required: bool = False) -> dict[str, Any]:
+    session = _ACCOUNT_SESSION.get()
+    if session is not None:
+        return copy.deepcopy(session[0])
     path = _config_path()
     if not path.exists():
         legacy = os.environ.get("ICLOUD_MAIL_USERNAME", "").strip()
@@ -313,33 +420,34 @@ def _load_config(*, required: bool = False) -> dict[str, Any]:
 
 def _write_config(payload: dict[str, Any]) -> Path:
     config = _validate_config(payload)
-    path = _config_path()
-    parent_existed = path.parent.exists()
-    path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-    if not parent_existed:
+    with account_config_lock():
+        path = _config_path()
+        parent_existed = path.parent.exists()
+        path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if not parent_existed:
+            try:
+                os.chmod(path.parent, 0o700)
+            except OSError:
+                pass
+        descriptor, temporary = tempfile.mkstemp(
+            prefix=".config-", suffix=".json", dir=str(path.parent)
+        )
+        temporary_path = Path(temporary)
         try:
-            os.chmod(path.parent, 0o700)
-        except OSError:
-            pass
-    descriptor, temporary = tempfile.mkstemp(
-        prefix=".config-", suffix=".json", dir=str(path.parent)
-    )
-    temporary_path = Path(temporary)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
-            json.dump(config, handle, indent=2, ensure_ascii=False)
-            handle.write("\n")
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.chmod(temporary_path, 0o600)
-        os.replace(temporary_path, path)
-    except Exception:
-        try:
-            temporary_path.unlink()
-        except OSError:
-            pass
-        raise
-    return path
+            with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+                json.dump(config, handle, indent=2, ensure_ascii=False)
+                handle.write("\n")
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.chmod(temporary_path, 0o600)
+            os.replace(temporary_path, path)
+        except Exception:
+            try:
+                temporary_path.unlink()
+            except OSError:
+                pass
+            raise
+        return path
 
 
 def _text(value: Any, name: str, *, required: bool = False, limit: int = 10_000) -> str:
@@ -464,34 +572,22 @@ def _imap_login_candidates(config: dict[str, Any] | None = None) -> list[str]:
 
 
 def _password(username: str) -> tuple[str, str]:
+    session = _ACCOUNT_SESSION.get()
+    if session is not None:
+        config, password = session
+        if username != config["account_address"]:
+            raise MailError("Credential account does not match the active session")
+        return password, "account session"
+    if sys.platform == "darwin":
+        try:
+            password = _keychain().get(username)
+        except (OSError, RuntimeError):
+            password = None
+        if password:
+            return password, "macOS Keychain"
     environment = os.environ.get("ICLOUD_MAIL_APP_PASSWORD")
     if environment:
         return environment, "environment"
-    if sys.platform == "darwin":
-        try:
-            result = subprocess.run(
-                [
-                    "/usr/bin/security",
-                    "find-generic-password",
-                    "-a",
-                    username,
-                    "-s",
-                    KEYCHAIN_SERVICE,
-                    "-w",
-                ],
-                check=False,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-        except (OSError, subprocess.SubprocessError):
-            result = None
-        if (
-            result is not None
-            and result.returncode == 0
-            and result.stdout.rstrip("\n")
-        ):
-            return result.stdout.rstrip("\n"), "macOS Keychain"
     raise MailError(
         "No app-specific password found; store service codex-icloud-mail in "
         "macOS Keychain or set ICLOUD_MAIL_APP_PASSWORD"
@@ -590,6 +686,8 @@ def _imap(
             f"Could not connect to iCloud IMAP: {type(error).__name__}"
         ) from None
     except imaplib.IMAP4.error as error:
+        if not authenticated:
+            raise MailError("iCloud IMAP rejected the request: authentication failed") from None
         raise MailError(f"iCloud IMAP rejected the request: {error}") from None
     except (OSError, TimeoutError) as error:
         if client is not None:
@@ -1452,19 +1550,20 @@ def configure_account(arguments: dict[str, Any]) -> dict[str, Any]:
 def clear_account_configuration(arguments: dict[str, Any]) -> dict[str, Any]:
     if set(arguments) != {"confirm"} or arguments.get("confirm") is not True:
         raise ValueError("clear_account_configuration requires confirm=true")
-    path = _config_path()
-    removed = False
-    if path.exists():
-        if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
-            raise MailError("Refusing to remove a non-regular configuration path")
-        path.unlink()
-        removed = True
-    return {
-        "status": "cleared",
-        "configuration_removed": removed,
-        "keychain_credential_removed": False,
-        "note": "Keychain credential is intentionally preserved.",
-    }
+    with account_config_lock():
+        path = _config_path()
+        removed = False
+        if path.exists():
+            if path.is_symlink() or not stat.S_ISREG(path.lstat().st_mode):
+                raise MailError("Refusing to remove a non-regular configuration path")
+            path.unlink()
+            removed = True
+        return {
+            "status": "cleared",
+            "configuration_removed": removed,
+            "keychain_credential_removed": False,
+            "note": "Keychain credential is intentionally preserved.",
+        }
 
 
 def validate_account(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -1555,6 +1654,56 @@ def open_apple_password_page(arguments: dict[str, Any]) -> dict[str, Any]:
     return _open_macos(
         arguments, ["https://account.apple.com/account/manage"], "Apple Account"
     )
+
+
+def open_account_setup(arguments: dict[str, Any]) -> dict[str, Any]:
+    """Launch the private local page; never relay its URL or credentials to MCP."""
+    if arguments:
+        raise ValueError("open_account_setup takes no arguments")
+    if sys.platform != "darwin":
+        raise MailError("The local connection page requires macOS Keychain")
+    child = None
+    try:
+        child = subprocess.Popen(
+            [sys.executable, str(Path(__file__).with_name("setup.py"))],
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            env={key: value for key, value in os.environ.items()
+                 if key != "ICLOUD_MAIL_APP_PASSWORD"},
+            start_new_session=True,
+        )
+        assert child.stdout is not None
+        ready, _, _ = select.select([child.stdout], [], [], 10)
+        if not ready or os.read(child.stdout.fileno(), 32).strip() != b"READY":
+            raise OSError("setup did not open")
+        child.stdout.close()
+        # Reap the bounded-lifetime child without keeping the MCP call open.
+        threading.Thread(target=child.wait, daemon=True).start()
+    except (OSError, subprocess.SubprocessError):
+        if child is not None:
+            try:
+                if child.poll() is None:
+                    child.terminate()
+                try:
+                    child.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    child.kill()
+                    child.wait(timeout=2)
+            except (OSError, subprocess.SubprocessError):
+                pass
+            finally:
+                if child.stdout is not None:
+                    child.stdout.close()
+        raise MailError("Could not open iCloud Mail setup. Try again on your Mac.") from None
+    return {
+        "status": "opened",
+        "target": "local iCloud Mail connection page",
+        "expires_in_seconds": 600,
+        "instructions": "Enter your iCloud Mail address and an Apple app-specific password in the browser page, never in chat. This is not your normal Apple Account password.",
+        "connected": False,
+        "next_step": "After the page confirms success, use get_account_status to check the saved account.",
+    }
 
 
 def open_keychain_access(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -3224,6 +3373,7 @@ def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 TOOLS = [
+    {"name": "open_account_setup", "description": "Open a temporary local connection page on macOS. The user enters an Apple app-specific password directly in the page; validates IMAP/SMTP and saves to Keychain without sending email. Never ask for a password in chat.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "get_account_status", "description": "Check local iCloud Mail configuration without connecting to Apple.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "configure_account", "description": "Persist non-secret iCloud Mail account, sender alias, and display settings. Incoming mail already includes every alias in the mailbox.", "inputSchema": {"type": "object", "properties": {"account_address": {"type": "string", "description": "Primary full iCloud Mail address used for SMTP authentication, not an alias or necessarily the Apple Account sign-in address."}, "imap_username": {"type": "string", "description": "Optional incoming-login override; normally leave blank."}, "default_from": {"type": "string", "description": "Default sender address; must be account_address or an allowed alias."}, "allowed_from": {"oneOf": [{"type": "array", "items": {"type": "string"}, "maxItems": 50}, {"type": "string"}], "description": "Optional iCloud Mail aliases allowed only for sending, as an array or comma-delimited string."}, "display_name": {"type": "string"}}, "required": ["account_address"], "additionalProperties": False}},
     {"name": "clear_account_configuration", "description": "Remove saved non-secret account settings while deliberately preserving the Keychain credential.", "inputSchema": {"type": "object", "properties": {"confirm": {"type": "boolean"}}, "required": ["confirm"], "additionalProperties": False}},
@@ -3248,6 +3398,7 @@ TOOLS = [
 ]
 
 HANDLERS = {
+    "open_account_setup": open_account_setup,
     "get_account_status": get_account_status,
     "configure_account": configure_account,
     "clear_account_configuration": clear_account_configuration,

@@ -28,6 +28,10 @@ SPEC.loader.exec_module(server)
 class ICloudMailTests(unittest.TestCase):
     def setUp(self) -> None:
         server._IMAP_LOGIN_CACHE.clear()
+        keychain = mock.patch.object(server, "_keychain")
+        self.keychain = keychain.start().return_value
+        self.keychain.get.return_value = None
+        self.addCleanup(keychain.stop)
 
     def install_shared_imap_session(self) -> tuple[mock.MagicMock, mock.MagicMock]:
         context = mock.MagicMock()
@@ -1423,10 +1427,9 @@ class ICloudMailTests(unittest.TestCase):
             server._load_config()
 
     def test_keychain_lookup_failure_is_normalized(self) -> None:
-        with mock.patch.object(server.sys, "platform", "darwin"), mock.patch.object(
-            server.subprocess,
-            "run",
-            side_effect=subprocess.TimeoutExpired("security", 10),
+        self.keychain.get.side_effect = RuntimeError("Keychain unavailable")
+        with mock.patch.object(server.sys, "platform", "darwin"), mock.patch.dict(
+            os.environ, {}, clear=True
         ), self.assertRaisesRegex(server.MailError, "No app-specific password"):
             server._password("primary@icloud.com")
 
