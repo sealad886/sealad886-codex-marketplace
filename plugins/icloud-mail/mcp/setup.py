@@ -1,5 +1,6 @@
 """Short-lived, loopback-only connection page. Never returns credentials to MCP."""
 import hmac
+import imaplib
 import json
 import re
 import secrets
@@ -47,6 +48,8 @@ def _network_error(error):
         if error is None or id(error) in seen:
             break
         seen.add(id(error))
+        if isinstance(error, imaplib.IMAP4.abort):
+            return True
         if isinstance(error, smtplib.SMTPException):
             return isinstance(error, smtplib.SMTPServerDisconnected)
         if isinstance(error, OSError):

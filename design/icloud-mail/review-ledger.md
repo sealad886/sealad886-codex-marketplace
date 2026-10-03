@@ -39,3 +39,25 @@ alphabet sequence used by `test_password_shape` as a Generic Password at test
 line41, incident37842720. Source confirms a synthetic normalization fixture, never
 an Apple-issued credential. Its check disposition remains pending; do not weaken
 scanning or rewrite history to hide it.
+
+## Round 2
+
+Head `1d4a6b876a0e34fce9fb817d559da6265a4bc40c`:
+
+- CodeRabbit CLI completed with zero findings, both exit codes0;
+  `/tmp/icloud-coderabbit-round2.9TWSuP`. Retired clean.
+- Independent Codex completed clean, independently ran six timeout tests;
+  `/tmp/icloud-codex-round2.md`. Retired clean.
+- Native synthetic production lookup repeated after process-boundary fix: passed,
+  test item removed. Focused iCloud suite269 passed.
+- Configured Copilot review arrived for original head783b4d9: comments4173891039
+  (same native timeout issue, already fixed) and4173891058 (IMAP disconnect
+  classified as authentication failure). Retain Copilot as active source.
+
+**Disconnect pattern:** Codanna `_network_error` symbol59883, callers/callees and
+impact queried; local/regional/global searches confirmed SMTP disconnects handled
+while wrapped IMAP aborts were omitted. Repair the one classifier; existing mail
+operation abort handlers are intentional separate outcomes. Add regression through
+real candidate validation with a synthetic IMAP abort, asserting no persistence.
+Clean retired sources cover1d4a6b8; subsequent Copilot correction is outside their
+reviewed revision. Round3 will request only Copilot.

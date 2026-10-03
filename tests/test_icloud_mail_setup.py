@@ -1,5 +1,6 @@
 """Connection page security and persistence contracts; never access real Keychain."""
 import http.client
+import imaplib
 import importlib.util
 import json
 import os
@@ -97,6 +98,17 @@ class ConnectionTests(unittest.TestCase):
                     setup.connect(core, store, ACCOUNT, PASSWORD)
             self.assertEqual(failure.exception.code, "repair_required")
             self.assertNotIn(PASSWORD, str(failure.exception))
+
+    def test_wrapped_imap_disconnect_is_network_failure_without_persistence(self):
+        client = mock.MagicMock()
+        client.login.side_effect = core.imaplib.IMAP4.abort("synthetic disconnect")
+        store = mock.Mock()
+        with mock.patch.object(core.imaplib, "IMAP4_SSL", return_value=client):
+            with self.assertRaises(setup.SetupError) as receipt:
+                setup.connect(core, store, ACCOUNT, PASSWORD)
+        self.assertEqual(receipt.exception.code, "network_failed")
+        store.get.assert_not_called()
+        store.set.assert_not_called()
 
     def test_network_keychain_and_auth_failures_are_distinct(self):
         for failure, expected in [(OSError(PASSWORD), "network_failed"), (RuntimeError(PASSWORD), "verification_failed"), (smtplib.SMTPAuthenticationError(535, PASSWORD.encode()), "verification_failed")]:
