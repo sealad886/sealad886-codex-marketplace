@@ -90,6 +90,10 @@ class MailError(RuntimeError):
     """Safe, user-actionable mail error."""
 
 
+class OperationTimeout(MailError):
+    """The shared operation budget expired before completion."""
+
+
 class SummaryTooLarge(MailError):
     """A search result cannot be represented within the summary limits."""
 
@@ -113,7 +117,7 @@ class OperationDeadline:
     def timeout(self, cap: float) -> float:
         remaining = self._expires_at - self._clock()
         if remaining <= 0.1:
-            raise MailError("iCloud Mail operation timed out before completion")
+            raise OperationTimeout("iCloud Mail operation timed out before completion")
         return min(cap, remaining)
 
 

@@ -123,6 +123,27 @@ class ConnectionTests(unittest.TestCase):
         store.get.assert_not_called()
         store.set.assert_not_called()
 
+    def test_budget_expiring_between_imap_and_smtp_saves_nothing(self):
+        now = [0.0]
+        deadline = core.OperationDeadline(seconds=10, clock=lambda: now[0])
+        client = mock.MagicMock()
+        def imap_status(*args):
+            now[0] = 11.0
+            return "OK", [b"INBOX (MESSAGES 0)"]
+        client.status.side_effect = imap_status
+        store = mock.Mock()
+        token = core._ACTIVE_DEADLINE.set(deadline)
+        try:
+            with mock.patch.object(core.imaplib, "IMAP4_SSL", return_value=client), mock.patch.object(core.smtplib, "SMTP") as smtp:
+                with self.assertRaises(setup.SetupError) as receipt:
+                    setup.connect(core, store, ACCOUNT, PASSWORD)
+            self.assertEqual(receipt.exception.code, "validation_timed_out")
+            smtp.assert_not_called()
+            store.get.assert_not_called()
+            store.set.assert_not_called()
+        finally:
+            core._ACTIVE_DEADLINE.reset(token)
+
     def test_network_keychain_and_auth_failures_are_distinct(self):
         for failure, expected in [(OSError(PASSWORD), "network_failed"), (RuntimeError(PASSWORD), "verification_failed"), (smtplib.SMTPAuthenticationError(535, PASSWORD.encode()), "verification_failed")]:
             with mock.patch.object(core, "_load_config", return_value={}), mock.patch.object(core, "validate_account", side_effect=failure):

@@ -74,3 +74,16 @@ cover real candidate validation through a synthetic421 greeting, with no save.
 The general suggestion for human security review supplies no additional concrete
 defect; independent security-focused Codex review and tested rollback controls
 remain the evidence, with the documented crash-between-stores limitation.
+
+## Round 4 — Copilot only
+
+Head `733d14b433ba984f6654d722e0a59e1d4ad08977`; review5401671274
+reported one deadline-expiry classification finding in its summary. Shared
+OperationDeadline raised untyped MailError, so setup treated budget exhaustion as
+credential failure. Codanna symbol62634 and depth2 impact plus local/regional/global
+text searches confirm one deadline owner. Add OperationTimeout as a MailError
+subclass, preserve existing caller handling, and give setup a timeout receipt.
+Regression expires the budget after successful IMAP status and before SMTP;
+assert SMTP is not called and no credential is persisted. Round5 requests Copilot
+only; CodeRabbit and independent Codex remain retired on their recorded clean head.
+User reports GitGuardian incident marked as a test credential; recheck next scan.
