@@ -34,9 +34,9 @@ Bring useful images, diagrams, and generated visuals into supported Codex and Ch
 
 ### [iCloud Mail](plugins/icloud-mail/README.md)
 
-Search, read, organize, draft, and send iCloud email through a local IMAP/SMTP integration. Guided setup uses an Apple app-specific password stored in macOS Keychain. Includes attachments, replies, forwarding, and recoverable mailbox actions.
+Connect iCloud Mail through one temporary setup page on your Mac, with an Apple app-specific password stored in macOS Keychain. Search, read, organize, draft, and send mail directly on iCloud, including attachments, replies, and forwarding. No local email repository, cache, search index, or background sync.
 
-**Release:** `0.1.1` · [Setup and usage](plugins/icloud-mail/README.md)
+**Release:** `0.2.0` · [Setup and usage](plugins/icloud-mail/README.md)
 
 ## Install
 
