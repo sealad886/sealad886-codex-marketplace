@@ -1,0 +1,43 @@
+{
+  "name": "build-multi-target-tauri-apps",
+  "version": "0.1.0",
+  "description": "Build, debug, test and prepare Tauri 2 apps across desktop and mobile targets with grounded security and platform evidence.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Build Multi-target Tauri Apps",
+    "shortDescription": "Build and validate Tauri apps across desktop and mobile.",
+    "longDescription": "Eight focused skills cover architecture, frontend UX, native builds, IPC security, device QA, performance and distribution, with dated primary-source research and target-specific evidence.",
+    "developerName": "Andrew Cox",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write",
+      "Interactive"
+    ],
+    "defaultPrompt": [
+      "Build this Tauri app for desktop, iOS and Android.",
+      "Verify this Tauri feature across native targets.",
+      "Review Tauri IPC permissions and prepare release artifacts."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/logo.svg",
+    "brandColor": "#147D92",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/build-multi-target-tauri-apps"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/build-multi-target-tauri-apps",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "tauri",
+    "rust",
+    "desktop",
+    "ios",
+    "android",
+    "cross-platform",
+    "webview"
+  ]
+}

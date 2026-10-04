@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tauri Capabilities and Security"
+  short_description: "Review IPC grants, CSP, scopes and secret storage"
+  brand_color: "#147D92"
+  default_prompt: "Use $tauri-security to review IPC grants, CSP, scopes and secret storage in this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

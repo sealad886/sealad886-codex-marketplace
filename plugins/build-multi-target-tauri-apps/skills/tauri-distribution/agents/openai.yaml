@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tauri Packaging and Distribution"
+  short_description: "Prepare native artifacts, signing and release gates"
+  brand_color: "#147D92"
+  default_prompt: "Use $tauri-distribution to prepare native artifacts, signing and release gates in this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

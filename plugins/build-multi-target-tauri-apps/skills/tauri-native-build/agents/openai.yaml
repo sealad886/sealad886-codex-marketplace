@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tauri Native Build and Debug"
+  short_description: "Build and debug desktop, iOS and Android targets"
+  brand_color: "#147D92"
+  default_prompt: "Use $tauri-native-build to build and debug desktop, iOS and Android targets in this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
