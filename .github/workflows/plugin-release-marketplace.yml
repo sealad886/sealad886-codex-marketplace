@@ -106,7 +106,7 @@ jobs:
           ]
           latest = max(
               stable_plugin_releases,
-              key=lambda release: (release["published_at"], release["tag_name"]),
+              key=lambda release: (release["published_at"], release["id"]),
               default=None,
           )
           if latest is None:

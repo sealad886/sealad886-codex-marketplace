@@ -126,7 +126,7 @@ class MarketplaceReleaseTests(unittest.TestCase):
 
     def test_outdated_run_recovers_owned_tag_but_skips_new_snapshot(self):
         code = next(s for s in heredocs() if 'stable_plugin_releases' in s)
-        pages = [[{'tag_name': 'new-plugin-v2.0.0', 'draft': False, 'prerelease': False,
+        pages = [[{'id': 1, 'tag_name': 'new-plugin-v2.0.0', 'draft': False, 'prerelease': False,
                    'published_at': '2026-10-04T00:00:00Z'}]]
         for recovering, expected in [('true', 'false true'), ('false', 'true false')]:
             with self.subTest(recovering=recovering):
@@ -144,6 +144,22 @@ class MarketplaceReleaseTests(unittest.TestCase):
         with patch.dict(os.environ, MARKETPLACE_TAG='marketplace-v1.0.0', STALE_RECOVERY='true'), patch('sys.stdin', io.StringIO('[[]]')), contextlib.redirect_stdout(output):
             exec(compile(code, str(AUTO), 'exec'), {})
         self.assertEqual(output.getvalue().strip(), 'false')
+
+    def test_equal_publication_times_use_provider_id_instead_of_tag_text(self):
+        code = next(s for s in heredocs() if 'stable_plugin_releases' in s)
+        pages = [[{'id': 20, 'tag_name': 'a-new-plugin-v1.0.0', 'draft': False, 'prerelease': False,
+                   'published_at': '2026-10-04T00:00:00Z'},
+                  {'id': 10, 'tag_name': 'z-old-plugin-v1.0.0', 'draft': False, 'prerelease': False,
+                   'published_at': '2026-10-04T00:00:00Z'}]]
+        for tag, expected in [('a-new-plugin-v1.0.0', 'false false'), ('z-old-plugin-v1.0.0', 'true false')]:
+            with self.subTest(tag=tag):
+                output = io.StringIO()
+                result = subprocess.CompletedProcess([], 0, stdout=json.dumps(pages))
+                with patch('subprocess.run', return_value=result), patch.dict(os.environ,
+                        GITHUB_REPOSITORY='owner/repo', PLUGIN_RELEASE_TAG=tag,
+                        RECOVERING_TAG='false'), contextlib.redirect_stdout(output):
+                    exec(compile(code, str(AUTO), 'exec'), {})
+                self.assertEqual(output.getvalue().strip(), expected)
 
 
 if __name__ == '__main__':
