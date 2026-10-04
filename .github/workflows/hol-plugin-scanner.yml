@@ -110,3 +110,23 @@ jobs:
           format: sarif
           upload_sarif: true
           sarif_category: semantic-versioning
+
+  scan-build-multi-target-tauri-apps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Scan Build Multi-target Tauri Apps
+        uses: hashgraph-online/ai-plugin-scanner-action@11ff35008c1dde7d7b0c2978b0cd4f6b495448e8 # v1.2.704
+        with:
+          plugin_dir: "plugins/build-multi-target-tauri-apps"
+          mode: scan
+          min_score: 80
+          fail_on_severity: high
+          format: sarif
+          profile: public-marketplace
+          upload_sarif: true
+          sarif_category: build-multi-target-tauri-apps

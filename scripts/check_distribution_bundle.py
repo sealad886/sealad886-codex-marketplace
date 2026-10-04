@@ -42,6 +42,7 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "build-multi-target-tauri-apps": 8,
     "semantic-versioning": 3,
     "conversation-visuals": 4,
     "mlx-optimizer": 6,

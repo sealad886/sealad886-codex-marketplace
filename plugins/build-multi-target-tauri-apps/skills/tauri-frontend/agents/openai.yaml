@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tauri Frontend and UX"
+  short_description: "Build accessible UI for desktop and mobile WebViews"
+  brand_color: "#147D92"
+  default_prompt: "Use $tauri-frontend to build accessible UI for desktop and mobile WebViews in this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

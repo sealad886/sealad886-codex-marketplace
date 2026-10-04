@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tauri Testing and Device QA"
+  short_description: "Verify native IPC, rendered flows and mobile behavior"
+  brand_color: "#147D92"
+  default_prompt: "Use $tauri-testing to verify native IPC, rendered flows and mobile behavior in this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

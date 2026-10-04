@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tauri Architecture and IPC"
+  short_description: "Design typed IPC, shared state and durable storage"
+  brand_color: "#147D92"
+  default_prompt: "Use $tauri-architecture to design typed IPC, shared state and durable storage in this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

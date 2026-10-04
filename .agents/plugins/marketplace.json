@@ -71,6 +71,18 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Productivity"
+    },
+    {
+      "name": "build-multi-target-tauri-apps",
+      "source": {
+        "source": "local",
+        "path": "./plugins/build-multi-target-tauri-apps"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
     }
   ]
 }

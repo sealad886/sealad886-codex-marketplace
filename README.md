@@ -38,6 +38,12 @@ Connect iCloud Mail through one temporary setup page on your Mac, with an Apple 
 
 **Release:** `0.2.0` · [Setup and usage](plugins/icloud-mail/README.md)
 
+### [Build Multi-target Tauri Apps](plugins/build-multi-target-tauri-apps/README.md)
+
+Build, debug, test and prepare Tauri 2 apps across Windows, Linux, macOS, iOS and Android. Eight skills cover architecture, frontend UX, native integration, IPC security, device QA, performance and distribution, grounded in dated primary-source research.
+
+**Initial package:** `0.1.0` · [Guide and target requirements](plugins/build-multi-target-tauri-apps/README.md)
+
 ## Install
 
 Add the marketplace once:
@@ -54,6 +60,7 @@ codex plugin add semantic-versioning@sealad886-codex-marketplace
 codex plugin add mlx-optimizer@sealad886-codex-marketplace
 codex plugin add conversation-visuals@sealad886-codex-marketplace
 codex plugin add icloud-mail@sealad886-codex-marketplace
+codex plugin add build-multi-target-tauri-apps@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.
