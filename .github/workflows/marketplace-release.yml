@@ -18,6 +18,7 @@ jobs:
     concurrency:
       group: marketplace-publication-${{ github.repository }}
       cancel-in-progress: false
+      queue: max
     permissions:
       contents: write
     steps:
