@@ -19,7 +19,7 @@ jobs:
     needs: validate
     runs-on: ubuntu-latest
     concurrency:
-      group: marketplace-snapshot-${{ github.repository }}
+      group: marketplace-publication-${{ github.repository }}
       cancel-in-progress: false
     permissions:
       contents: write
@@ -45,7 +45,7 @@ jobs:
           import subprocess
 
           releases = json.loads(subprocess.run(
-              ["gh", "release", "list", "--json", "tagName,publishedAt,isPrerelease", "--limit", "100"],
+              ["gh", "release", "list", "--json", "tagName,publishedAt,isPrerelease", "--exclude-drafts", "--limit", "100"],
               check=True, capture_output=True, text=True,
           ).stdout)
           stable_plugin_releases = [
@@ -73,27 +73,38 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
+          PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
         shell: bash
         run: |
           set -euo pipefail
           version="$(
             python3 - <<'PY'
-          import json
           import re
+          import os
           import subprocess
 
-          releases = json.loads(subprocess.run(
-              ["gh", "release", "list", "--json", "tagName", "--limit", "100"],
-              check=True, capture_output=True, text=True,
-          ).stdout)
+          subprocess.run(["git", "fetch", "origin", "--tags"], check=True)
+          tags = subprocess.run(["git", "tag", "--list", "marketplace-v*"],
+                                check=True, capture_output=True, text=True).stdout.splitlines()
           pattern = re.compile(r"^marketplace-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
-          versions = [
-              tuple(map(int, match.groups()))
-              for release in releases
-              if (match := pattern.fullmatch(release["tagName"]))
-          ]
-          if versions:
-              current = max(versions)
+          versions = {tag: tuple(map(int, match.groups())) for tag in tags
+                      if (match := pattern.fullmatch(tag))}
+          source = subprocess.run(["git", "rev-parse", "HEAD"], check=True,
+                                  capture_output=True, text=True).stdout.strip()
+          annotation = "Marketplace snapshot after " + os.environ["PLUGIN_RELEASE_TAG"]
+          reusable = []
+          for tag in versions:
+              target = subprocess.run(["git", "rev-parse", tag + "^{}"], check=True,
+                                      capture_output=True, text=True).stdout.strip()
+              message = subprocess.run(["git", "for-each-ref", "--format=%(contents)",
+                                        "refs/tags/" + tag], check=True,
+                                       capture_output=True, text=True).stdout.strip()
+              if target == source and message == annotation:
+                  reusable.append(tag)
+          if reusable:
+              print(max(reusable, key=versions.get).removeprefix("marketplace-v"))
+          elif versions:
+              current = max(versions.values())
               print(f"{current[0]}.{current[1]}.{current[2] + 1}")
           else:
               print("0.1.0")
@@ -113,9 +124,14 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           source_sha="$(git rev-parse HEAD)"
-          git tag --annotate "$MARKETPLACE_TAG" \
-            --message "Marketplace snapshot after $PLUGIN_RELEASE_TAG" \
-            "$source_sha"
+          if git show-ref --verify --quiet "refs/tags/$MARKETPLACE_TAG"; then
+            test "$(git rev-parse "$MARKETPLACE_TAG^{}")" = "$source_sha"
+            test "$(git for-each-ref --format='%(contents)' "refs/tags/$MARKETPLACE_TAG")" = "Marketplace snapshot after $PLUGIN_RELEASE_TAG"
+          else
+            git tag --annotate "$MARKETPLACE_TAG" \
+              --message "Marketplace snapshot after $PLUGIN_RELEASE_TAG" \
+              "$source_sha"
+          fi
           git push origin "$MARKETPLACE_TAG"
 
       - name: Publish marketplace snapshot as GitHub Latest
@@ -124,10 +140,26 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           MARKETPLACE_TAG: ${{ steps.version.outputs.tag }}
           PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
+        shell: bash
         run: |
+          set -euo pipefail
+          latest="$(
+            gh release list --exclude-drafts --json tagName --limit 100 | python3 -c '
+          import json, os, re, sys
+          pattern = re.compile(r"^marketplace-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+          versions = [tuple(map(int, m.groups())) for r in json.load(sys.stdin)
+                      if (m := pattern.fullmatch(r["tagName"]))]
+          current = tuple(map(int, pattern.fullmatch(os.environ["MARKETPLACE_TAG"]).groups()))
+          print(str(not versions or current >= max(versions)).lower())
+          '
+          )"
+          if gh release view "$MARKETPLACE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Marketplace release already exists; publication is complete."
+            exit 0
+          fi
           gh release create "$MARKETPLACE_TAG" \
             --verify-tag \
             --title "Marketplace ${MARKETPLACE_TAG#marketplace-v}" \
             --notes "Marketplace snapshot published after plugin release \`$PLUGIN_RELEASE_TAG\`. This release points to the repository files at that plugin release tag; contained plugins retain their independent versions. See the [marketplace changelog](https://github.com/${GITHUB_REPOSITORY}/blob/${MARKETPLACE_TAG}/CHANGELOG.md)." \
-            --latest \
+            --latest="$latest" \
             --repo "$GITHUB_REPOSITORY"

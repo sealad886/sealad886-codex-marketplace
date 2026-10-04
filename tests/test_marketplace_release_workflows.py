@@ -1,0 +1,76 @@
+"""Exercise release allocation/freshness contracts at their external command boundary."""
+import contextlib
+import io
+import json
+import os
+from pathlib import Path
+import re
+import subprocess
+import textwrap
+import unittest
+from unittest.mock import patch
+
+ROOT = Path(__file__).resolve().parents[1]
+AUTO = ROOT / '.github/workflows/plugin-release-marketplace.yml'
+MANUAL = ROOT / '.github/workflows/marketplace-release.yml'
+
+
+def heredocs():
+    return [textwrap.dedent(s) for s in re.findall(
+        r"python3 - <<'PY'\n(.*?)^          PY$", AUTO.read_text(), re.M | re.S)]
+
+
+def allocator():
+    return next(s for s in heredocs() if 'git' in s and 'fetch' in s)
+
+
+class MarketplaceReleaseTests(unittest.TestCase):
+    def allocate(self, tags):
+        # Git tags exist independently of GitHub Releases; values are peeled SHA/annotation.
+        def run(args, **kwargs):
+            if args[:2] == ['git', 'fetch']:
+                output = ''
+            elif args[:3] == ['git', 'tag', '--list']:
+                output = '\n'.join(tags)
+            elif args == ['git', 'rev-parse', 'HEAD']:
+                output = 'current-sha'
+            elif args[:2] == ['git', 'rev-parse']:
+                output = tags[args[-1][:-3]][0]
+            elif args[:2] == ['git', 'for-each-ref']:
+                output = tags[args[-1].removeprefix('refs/tags/')][1]
+            else:
+                raise AssertionError(args)
+            return subprocess.CompletedProcess(args, 0, stdout=output)
+        output = io.StringIO()
+        with patch('subprocess.run', side_effect=run), patch.dict(os.environ, PLUGIN_RELEASE_TAG='plugin-v1.0.0'), contextlib.redirect_stdout(output):
+            exec(compile(allocator(), str(AUTO), 'exec'), {})
+        return output.getvalue().strip()
+
+    def test_first_snapshot(self):
+        self.assertEqual(self.allocate({}), '0.1.0')
+
+    def test_tag_without_release_reserves_version(self):
+        self.assertEqual(self.allocate({'marketplace-v2.3.4': ('old-sha', 'manual')}), '2.3.5')
+
+    def test_partial_publication_reuses_owned_tag(self):
+        self.assertEqual(self.allocate({'marketplace-v0.1.0': ('current-sha', 'Marketplace snapshot after plugin-v1.0.0')}), '0.1.0')
+
+    def test_same_source_with_other_owner_is_not_reused(self):
+        self.assertEqual(self.allocate({'marketplace-v0.1.0': ('current-sha', 'manual')}), '0.1.1')
+
+    def test_same_owner_with_other_source_is_not_reused(self):
+        self.assertEqual(self.allocate({'marketplace-v0.1.0': ('old-sha', 'Marketplace snapshot after plugin-v1.0.0')}), '0.1.1')
+
+    def test_older_recovery_does_not_downgrade_latest(self):
+        for workflow, variable in [(AUTO, 'MARKETPLACE_TAG'), (MANUAL, 'RELEASE_TAG')]:
+            code = textwrap.dedent(re.search(r"python3 -c '\n(.*?)^          '", workflow.read_text(), re.M | re.S).group(1))
+            for tag, expected in [('marketplace-v1.0.0', 'false'), ('marketplace-v2.0.0', 'true')]:
+                with self.subTest(workflow=workflow.name, tag=tag):
+                    output = io.StringIO()
+                    with patch.dict(os.environ, {variable: tag}), patch('sys.stdin', io.StringIO(json.dumps([{'tagName': 'marketplace-v2.0.0'}, {'tagName': 'plugin-v99.0.0'}]))), contextlib.redirect_stdout(output):
+                        exec(compile(code, str(workflow), 'exec'), {})
+                    self.assertEqual(output.getvalue().strip(), expected)
+
+
+if __name__ == '__main__':
+    unittest.main()
