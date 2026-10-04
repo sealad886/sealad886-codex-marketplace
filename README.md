@@ -52,6 +52,11 @@ Add the marketplace once:
 codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
 ```
 
+Marketplace releases use their own `marketplace-vX.Y.Z` tags and GitHub releases.
+Plugin tags such as `icloud-mail-v0.2.0` are independent and do not identify a
+marketplace release. To install a pinned marketplace version, use its
+`marketplace-vX.Y.Z` tag as the `--ref`.
+
 Then install any plugin:
 
 ```bash

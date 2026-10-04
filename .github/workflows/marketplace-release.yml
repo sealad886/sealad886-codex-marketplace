@@ -1,0 +1,42 @@
+name: Release marketplace
+
+on:
+  push:
+    tags:
+      - 'marketplace-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Validate marketplace release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^marketplace-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Expected a stable marketplace tag like marketplace-v1.2.3" >&2
+            exit 1
+          fi
+
+      - name: Publish marketplace release as GitHub Latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$RELEASE_TAG" \
+            --verify-tag \
+            --title "Marketplace ${RELEASE_TAG#marketplace-v}" \
+            --notes "Marketplace source release. Contained plugins retain their independent release versions and tags. See the [marketplace changelog](https://github.com/${GITHUB_REPOSITORY}/blob/${RELEASE_TAG}/CHANGELOG.md)." \
+            --latest \
+            --repo "$GITHUB_REPOSITORY"
