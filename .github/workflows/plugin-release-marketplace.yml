@@ -12,7 +12,7 @@ jobs:
     if: ${{ !startsWith(github.event.release.tag_name, 'marketplace-v') && !github.event.release.prerelease }}
     uses: ./.github/workflows/validate.yml
     with:
-      ref: ${{ github.event.release.tag_name }}
+      ref: ${{ github.sha }}
 
   publish:
     if: ${{ !startsWith(github.event.release.tag_name, 'marketplace-v') && !github.event.release.prerelease }}
@@ -29,7 +29,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ github.sha }}
 
       - name: Check whether this is the newest stable plugin release
         id: release
@@ -46,22 +46,23 @@ jobs:
           import subprocess
 
           releases = json.loads(subprocess.run(
-              ["gh", "release", "list", "--json", "tagName,publishedAt,isPrerelease", "--exclude-drafts", "--limit", "100"],
+              ["gh", "api", "--paginate", "--slurp",
+               "repos/" + os.environ["GITHUB_REPOSITORY"] + "/releases?per_page=100"],
               check=True, capture_output=True, text=True,
           ).stdout)
           stable_plugin_releases = [
-              release for release in releases
-              if not release["tagName"].startswith("marketplace-v")
-              and not release["isPrerelease"]
+              release for page in releases for release in page
+              if not release["tag_name"].startswith("marketplace-v")
+              and not release["prerelease"] and not release["draft"]
           ]
           latest = max(
               stable_plugin_releases,
-              key=lambda release: (release["publishedAt"], release["tagName"]),
+              key=lambda release: (release["published_at"], release["tag_name"]),
               default=None,
           )
           if latest is None:
               raise SystemExit("No published stable plugin release was found")
-          print(str(latest["tagName"] != os.environ["PLUGIN_RELEASE_TAG"]).lower())
+          print(str(latest["tag_name"] != os.environ["PLUGIN_RELEASE_TAG"]).lower())
           PY
           )"
           echo "stale=$stale" >> "$GITHUB_OUTPUT"
@@ -145,11 +146,11 @@ jobs:
         run: |
           set -euo pipefail
           latest="$(
-            gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --json tagName --limit 100 | python3 -c '
+            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" | python3 -c '
           import json, os, re, sys
           pattern = re.compile(r"^marketplace-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
-          versions = [tuple(map(int, m.groups())) for r in json.load(sys.stdin)
-                      if (m := pattern.fullmatch(r["tagName"]))]
+          versions = [tuple(map(int, m.groups())) for page in json.load(sys.stdin) for r in page
+                      if not r["draft"] and (m := pattern.fullmatch(r["tag_name"]))]
           current = tuple(map(int, pattern.fullmatch(os.environ["MARKETPLACE_TAG"]).groups()))
           print(str(not versions or current >= max(versions)).lower())
           '

@@ -25,11 +25,23 @@ jobs:
       - name: Validate marketplace release tag
         env:
           RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
           if [[ ! "$RELEASE_TAG" =~ ^marketplace-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
             echo "Expected a stable marketplace tag like marketplace-v1.2.3" >&2
+            exit 1
+          fi
+          tag_object="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object | select(.type == "tag") | .sha')"
+          if [[ -z "$tag_object" ]]; then
+            echo "Marketplace release requires an annotated tag" >&2
+            exit 1
+          fi
+          source_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_object" --jq '.object | select(.type == "commit") | .sha')"
+          if [[ "$source_sha" != "$RELEASE_SHA" ]]; then
+            echo "Marketplace tag no longer matches the validated event commit" >&2
             exit 1
           fi
 
@@ -41,11 +53,11 @@ jobs:
         run: |
           set -euo pipefail
           latest="$(
-            gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --json tagName --limit 100 | python3 -c '
+            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" | python3 -c '
           import json, os, re, sys
           pattern = re.compile(r"^marketplace-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
-          versions = [tuple(map(int, m.groups())) for r in json.load(sys.stdin)
-                      if (m := pattern.fullmatch(r["tagName"]))]
+          versions = [tuple(map(int, m.groups())) for page in json.load(sys.stdin) for r in page
+                      if not r["draft"] and (m := pattern.fullmatch(r["tag_name"]))]
           current = tuple(map(int, pattern.fullmatch(os.environ["RELEASE_TAG"]).groups()))
           print(str(not versions or current >= max(versions)).lower())
           '

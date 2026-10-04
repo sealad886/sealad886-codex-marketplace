@@ -67,7 +67,7 @@ class MarketplaceReleaseTests(unittest.TestCase):
             for tag, expected in [('marketplace-v1.0.0', 'false'), ('marketplace-v2.0.0', 'true')]:
                 with self.subTest(workflow=workflow.name, tag=tag):
                     output = io.StringIO()
-                    with patch.dict(os.environ, {variable: tag}), patch('sys.stdin', io.StringIO(json.dumps([{'tagName': 'marketplace-v2.0.0'}, {'tagName': 'plugin-v99.0.0'}]))), contextlib.redirect_stdout(output):
+                    with patch.dict(os.environ, {variable: tag}), patch('sys.stdin', io.StringIO(json.dumps([[{'tag_name': 'plugin-v99.0.0', 'draft': False}], [{'tag_name': 'marketplace-v2.0.0', 'draft': False}]]))), contextlib.redirect_stdout(output):
                         exec(compile(code, str(workflow), 'exec'), {})
                     self.assertEqual(output.getvalue().strip(), expected)
 
@@ -76,10 +76,10 @@ class MarketplaceReleaseTests(unittest.TestCase):
         script = next(textwrap.dedent(run) for run in runs if 'gh release create' in run)
         fake_gh = r"""
         gh() {
+          [[ " $* " == *" --repo $GITHUB_REPOSITORY "* || " $* " == *" repos/$GITHUB_REPOSITORY/"* ]] || return 42
           case "$1 $2" in
-            "release list")
-              [[ " $* " == *" --repo $GITHUB_REPOSITORY "* ]] || return 42
-              echo '[{"tagName":"marketplace-v2.0.0"}]' ;;
+            "api --paginate")
+              echo '[[{"tag_name":"plugin-v9.0.0","draft":false}],[{"tag_name":"marketplace-v2.0.0","draft":false}]]' ;;
             "release view") [[ "$ALREADY_EXISTS" == true ]] ;;
             "release create") printf '%s\n' "$@" ;;
             *) return 43 ;;
@@ -103,6 +103,26 @@ class MarketplaceReleaseTests(unittest.TestCase):
                 output = self.publish(workflow, already_exists=True)
                 self.assertNotIn('--verify-tag', output)
                 self.assertIn('already exists', output)
+
+    def test_manual_tag_must_be_annotated_and_match_validated_sha(self):
+        runs = re.findall(r"^        run: \|\n((?:^          .*\n|^\n)+)", MANUAL.read_text(), re.M)
+        script = next(textwrap.dedent(run) for run in runs if 'requires an annotated tag' in run)
+        fake_gh = r"""
+        gh() {
+          if [[ "$2" == */git/ref/tags/* ]]; then
+            printf '%s\n' "$TAG_OBJECT"
+          else
+            printf '%s\n' "$TAG_SOURCE"
+          fi
+        }
+        """
+        for tag_object, source, success in [('tag-object', 'event-sha', True), ('', 'event-sha', False), ('tag-object', 'moved-sha', False)]:
+            with self.subTest(annotated=bool(tag_object), source=source):
+                env = dict(os.environ, GITHUB_REPOSITORY='owner/repo', RELEASE_TAG='marketplace-v1.0.0',
+                           RELEASE_SHA='event-sha', TAG_OBJECT=tag_object, TAG_SOURCE=source)
+                result = subprocess.run(['bash', '-c', textwrap.dedent(fake_gh) + script], env=env,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode == 0, success)
 
 
 if __name__ == '__main__':
