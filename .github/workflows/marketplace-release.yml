@@ -1,0 +1,74 @@
+name: Release marketplace
+
+on:
+  push:
+    tags:
+      - 'marketplace-v*'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    concurrency:
+      group: marketplace-publication-${{ github.repository }}
+      cancel-in-progress: false
+      queue: max
+    permissions:
+      contents: write
+    steps:
+      - name: Validate marketplace release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^marketplace-v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "Expected a stable marketplace tag like marketplace-v1.2.3" >&2
+            exit 1
+          fi
+          tag_object="$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" --jq '.object | select(.type == "tag") | .sha')"
+          if [[ -z "$tag_object" ]]; then
+            echo "Marketplace release requires an annotated tag" >&2
+            exit 1
+          fi
+          source_sha="$(gh api "repos/$GITHUB_REPOSITORY/git/tags/$tag_object" --jq '.object | select(.type == "commit") | .sha')"
+          if [[ "$source_sha" != "$RELEASE_SHA" ]]; then
+            echo "Marketplace tag no longer matches the validated event commit" >&2
+            exit 1
+          fi
+
+      - name: Publish marketplace release as GitHub Latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          latest="$(
+            gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/releases?per_page=100" | python3 -c '
+          import json, os, re, sys
+          pattern = re.compile(r"^marketplace-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+          versions = [tuple(map(int, m.groups())) for page in json.load(sys.stdin) for r in page
+                      if not r["draft"] and (m := pattern.fullmatch(r["tag_name"]))]
+          current = tuple(map(int, pattern.fullmatch(os.environ["RELEASE_TAG"]).groups()))
+          print(str(not versions or current >= max(versions)).lower())
+          '
+          )"
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Marketplace release already exists; publication is complete."
+            exit 0
+          fi
+          gh release create "$RELEASE_TAG" \
+            --verify-tag \
+            --title "Marketplace ${RELEASE_TAG#marketplace-v}" \
+            --notes "Marketplace source release. Contained plugins retain their independent release versions and tags. See the [marketplace changelog](https://github.com/${GITHUB_REPOSITORY}/blob/${RELEASE_TAG}/CHANGELOG.md)." \
+            --latest="$latest" \
+            --repo "$GITHUB_REPOSITORY"
