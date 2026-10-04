@@ -1,0 +1,92 @@
+name: Publish marketplace snapshot after plugin release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    if: ${{ !startsWith(github.event.release.tag_name, 'marketplace-v') && !github.event.release.prerelease }}
+    uses: ./.github/workflows/validate.yml
+    with:
+      ref: ${{ github.event.release.tag_name }}
+
+  publish:
+    if: ${{ !startsWith(github.event.release.tag_name, 'marketplace-v') && !github.event.release.prerelease }}
+    needs: validate
+    runs-on: ubuntu-latest
+    concurrency:
+      group: marketplace-snapshot-${{ github.repository }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+    steps:
+      - name: Check out plugin release source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.release.tag_name }}
+
+      - name: Calculate next marketplace version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(
+            python3 - <<'PY'
+          import json
+          import re
+          import subprocess
+
+          releases = json.loads(subprocess.run(
+              ["gh", "release", "list", "--json", "tagName", "--limit", "100"],
+              check=True, capture_output=True, text=True,
+          ).stdout)
+          pattern = re.compile(r"^marketplace-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+          versions = [
+              tuple(map(int, match.groups()))
+              for release in releases
+              if (match := pattern.fullmatch(release["tagName"]))
+          ]
+          if versions:
+              current = max(versions)
+              print(f"{current[0]}.{current[1]}.{current[2] + 1}")
+          else:
+              print("0.1.0")
+          PY
+          )"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=marketplace-v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create marketplace snapshot tag
+        env:
+          MARKETPLACE_TAG: ${{ steps.version.outputs.tag }}
+          PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          source_sha="$(git rev-parse HEAD)"
+          git tag --annotate "$MARKETPLACE_TAG" \
+            --message "Marketplace snapshot after $PLUGIN_RELEASE_TAG" \
+            "$source_sha"
+          git push origin "$MARKETPLACE_TAG"
+
+      - name: Publish marketplace snapshot as GitHub Latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MARKETPLACE_TAG: ${{ steps.version.outputs.tag }}
+          PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release create "$MARKETPLACE_TAG" \
+            --verify-tag \
+            --title "Marketplace ${MARKETPLACE_TAG#marketplace-v}" \
+            --notes "Marketplace snapshot published after plugin release \`$PLUGIN_RELEASE_TAG\`. This release points to the repository files at that plugin release tag; contained plugins retain their independent versions. See the [marketplace changelog](https://github.com/${GITHUB_REPOSITORY}/blob/${MARKETPLACE_TAG}/CHANGELOG.md)." \
+            --latest \
+            --repo "$GITHUB_REPOSITORY"
