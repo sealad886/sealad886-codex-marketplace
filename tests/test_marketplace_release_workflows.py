@@ -44,7 +44,7 @@ class MarketplaceReleaseTests(unittest.TestCase):
         output = io.StringIO()
         with patch('subprocess.run', side_effect=run), patch.dict(os.environ, PLUGIN_RELEASE_TAG='plugin-v1.0.0'), contextlib.redirect_stdout(output):
             exec(compile(allocator(), str(AUTO), 'exec'), {})
-        return output.getvalue().strip()
+        return output.getvalue().strip().split()[-1]
 
     def test_first_snapshot(self):
         self.assertEqual(self.allocate({}), '0.1.0')
@@ -123,6 +123,27 @@ class MarketplaceReleaseTests(unittest.TestCase):
                 result = subprocess.run(['bash', '-c', textwrap.dedent(fake_gh) + script], env=env,
                                         capture_output=True, text=True)
                 self.assertEqual(result.returncode == 0, success)
+
+    def test_outdated_run_recovers_owned_tag_but_skips_new_snapshot(self):
+        code = next(s for s in heredocs() if 'stable_plugin_releases' in s)
+        pages = [[{'tag_name': 'new-plugin-v2.0.0', 'draft': False, 'prerelease': False,
+                   'published_at': '2026-10-04T00:00:00Z'}]]
+        for recovering, expected in [('true', 'false true'), ('false', 'true false')]:
+            with self.subTest(recovering=recovering):
+                output = io.StringIO()
+                result = subprocess.CompletedProcess([], 0, stdout=json.dumps(pages))
+                with patch('subprocess.run', return_value=result), patch.dict(os.environ,
+                        GITHUB_REPOSITORY='owner/repo', PLUGIN_RELEASE_TAG='old-plugin-v1.0.0',
+                        RECOVERING_TAG=recovering), contextlib.redirect_stdout(output):
+                    exec(compile(code, str(AUTO), 'exec'), {})
+                self.assertEqual(output.getvalue().strip(), expected)
+
+    def test_stale_recovery_cannot_become_latest_without_newer_snapshot(self):
+        code = textwrap.dedent(re.search(r"python3 -c '\n(.*?)^          '", AUTO.read_text(), re.M | re.S).group(1))
+        output = io.StringIO()
+        with patch.dict(os.environ, MARKETPLACE_TAG='marketplace-v1.0.0', STALE_RECOVERY='true'), patch('sys.stdin', io.StringIO('[[]]')), contextlib.redirect_stdout(output):
+            exec(compile(code, str(AUTO), 'exec'), {})
+        self.assertEqual(output.getvalue().strip(), 'false')
 
 
 if __name__ == '__main__':

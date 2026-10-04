@@ -31,47 +31,7 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.sha }}
 
-      - name: Check whether this is the newest stable plugin release
-        id: release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          stale="$(
-            python3 - <<'PY'
-          import json
-          import os
-          import subprocess
-
-          releases = json.loads(subprocess.run(
-              ["gh", "api", "--paginate", "--slurp",
-               "repos/" + os.environ["GITHUB_REPOSITORY"] + "/releases?per_page=100"],
-              check=True, capture_output=True, text=True,
-          ).stdout)
-          stable_plugin_releases = [
-              release for page in releases for release in page
-              if not release["tag_name"].startswith("marketplace-v")
-              and not release["prerelease"] and not release["draft"]
-          ]
-          latest = max(
-              stable_plugin_releases,
-              key=lambda release: (release["published_at"], release["tag_name"]),
-              default=None,
-          )
-          if latest is None:
-              raise SystemExit("No published stable plugin release was found")
-          print(str(latest["tag_name"] != os.environ["PLUGIN_RELEASE_TAG"]).lower())
-          PY
-          )"
-          echo "stale=$stale" >> "$GITHUB_OUTPUT"
-          if [[ "$stale" == "true" ]]; then
-            echo "A newer stable plugin release exists; skipping this outdated marketplace snapshot."
-          fi
-
       - name: Calculate next marketplace version
-        if: steps.release.outputs.stale != 'true'
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -79,7 +39,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          version="$(
+          allocation="$(
             python3 - <<'PY'
           import re
           import os
@@ -104,16 +64,64 @@ jobs:
               if target == source and message == annotation:
                   reusable.append(tag)
           if reusable:
-              print(max(reusable, key=versions.get).removeprefix("marketplace-v"))
+              print("true", max(reusable, key=versions.get).removeprefix("marketplace-v"))
           elif versions:
               current = max(versions.values())
-              print(f"{current[0]}.{current[1]}.{current[2] + 1}")
+              print("false", f"{current[0]}.{current[1]}.{current[2] + 1}")
           else:
-              print("0.1.0")
+              print("false", "0.1.0")
           PY
           )"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=marketplace-v$version" >> "$GITHUB_OUTPUT"
+          read -r recovering version <<< "$allocation"
+          {
+            echo "recovering=$recovering"
+            echo "version=$version"
+            echo "tag=marketplace-v$version"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Check whether this is the newest stable plugin release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RECOVERING_TAG: ${{ steps.version.outputs.recovering }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          decision="$(
+            python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          releases = json.loads(subprocess.run(
+              ["gh", "api", "--paginate", "--slurp",
+               "repos/" + os.environ["GITHUB_REPOSITORY"] + "/releases?per_page=100"],
+              check=True, capture_output=True, text=True,
+          ).stdout)
+          stable_plugin_releases = [
+              release for page in releases for release in page
+              if not release["tag_name"].startswith("marketplace-v")
+              and not release["prerelease"] and not release["draft"]
+          ]
+          latest = max(
+              stable_plugin_releases,
+              key=lambda release: (release["published_at"], release["tag_name"]),
+              default=None,
+          )
+          if latest is None:
+              raise SystemExit("No published stable plugin release was found")
+          outdated = latest["tag_name"] != os.environ["PLUGIN_RELEASE_TAG"]
+          recovering = os.environ["RECOVERING_TAG"] == "true"
+          print(str(outdated and not recovering).lower(), str(outdated and recovering).lower())
+          PY
+          )"
+          read -r stale stale_recovery <<< "$decision"
+          echo "stale_recovery=$stale_recovery" >> "$GITHUB_OUTPUT"
+          echo "stale=$stale" >> "$GITHUB_OUTPUT"
+          if [[ "$stale" == "true" ]]; then
+            echo "A newer stable plugin release exists; skipping this outdated marketplace snapshot."
+          fi
 
       - name: Create marketplace snapshot tag
         if: steps.release.outputs.stale != 'true'
@@ -139,6 +147,7 @@ jobs:
       - name: Publish marketplace snapshot as GitHub Latest
         if: steps.release.outputs.stale != 'true'
         env:
+          STALE_RECOVERY: ${{ steps.release.outputs.stale_recovery }}
           GH_TOKEN: ${{ github.token }}
           MARKETPLACE_TAG: ${{ steps.version.outputs.tag }}
           PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -152,7 +161,7 @@ jobs:
           versions = [tuple(map(int, m.groups())) for page in json.load(sys.stdin) for r in page
                       if not r["draft"] and (m := pattern.fullmatch(r["tag_name"]))]
           current = tuple(map(int, pattern.fullmatch(os.environ["MARKETPLACE_TAG"]).groups()))
-          print(str(not versions or current >= max(versions)).lower())
+          print(str((not versions or current >= max(versions)) and os.environ.get("STALE_RECOVERY") != "true").lower())
           '
           )"
           if gh release view "$MARKETPLACE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
