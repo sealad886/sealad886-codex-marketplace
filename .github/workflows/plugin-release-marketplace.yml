@@ -30,7 +30,46 @@ jobs:
           fetch-depth: 0
           ref: ${{ github.event.release.tag_name }}
 
+      - name: Check whether this is the newest stable plugin release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          stale="$(
+            python3 - <<'PY'
+          import json
+          import os
+          import subprocess
+
+          releases = json.loads(subprocess.run(
+              ["gh", "release", "list", "--json", "tagName,publishedAt,isPrerelease", "--limit", "100"],
+              check=True, capture_output=True, text=True,
+          ).stdout)
+          stable_plugin_releases = [
+              release for release in releases
+              if not release["tagName"].startswith("marketplace-v")
+              and not release["isPrerelease"]
+          ]
+          latest = max(
+              stable_plugin_releases,
+              key=lambda release: (release["publishedAt"], release["tagName"]),
+              default=None,
+          )
+          if latest is None:
+              raise SystemExit("No published stable plugin release was found")
+          print(str(latest["tagName"] != os.environ["PLUGIN_RELEASE_TAG"]).lower())
+          PY
+          )"
+          echo "stale=$stale" >> "$GITHUB_OUTPUT"
+          if [[ "$stale" == "true" ]]; then
+            echo "A newer stable plugin release exists; skipping this outdated marketplace snapshot."
+          fi
+
       - name: Calculate next marketplace version
+        if: steps.release.outputs.stale != 'true'
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,6 +103,7 @@ jobs:
           echo "tag=marketplace-v$version" >> "$GITHUB_OUTPUT"
 
       - name: Create marketplace snapshot tag
+        if: steps.release.outputs.stale != 'true'
         env:
           MARKETPLACE_TAG: ${{ steps.version.outputs.tag }}
           PLUGIN_RELEASE_TAG: ${{ github.event.release.tag_name }}
@@ -79,6 +119,7 @@ jobs:
           git push origin "$MARKETPLACE_TAG"
 
       - name: Publish marketplace snapshot as GitHub Latest
+        if: steps.release.outputs.stale != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
           MARKETPLACE_TAG: ${{ steps.version.outputs.tag }}
