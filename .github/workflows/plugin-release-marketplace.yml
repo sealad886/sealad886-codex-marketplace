@@ -144,7 +144,7 @@ jobs:
         run: |
           set -euo pipefail
           latest="$(
-            gh release list --exclude-drafts --json tagName --limit 100 | python3 -c '
+            gh release list --repo "$GITHUB_REPOSITORY" --exclude-drafts --json tagName --limit 100 | python3 -c '
           import json, os, re, sys
           pattern = re.compile(r"^marketplace-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
           versions = [tuple(map(int, m.groups())) for r in json.load(sys.stdin)

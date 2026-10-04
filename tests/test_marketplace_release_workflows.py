@@ -71,6 +71,39 @@ class MarketplaceReleaseTests(unittest.TestCase):
                         exec(compile(code, str(workflow), 'exec'), {})
                     self.assertEqual(output.getvalue().strip(), expected)
 
+    def publish(self, workflow, already_exists=False):
+        runs = re.findall(r"^        run: \|\n((?:^          .*\n|^\n)+)", workflow.read_text(), re.M)
+        script = next(textwrap.dedent(run) for run in runs if 'gh release create' in run)
+        fake_gh = r"""
+        gh() {
+          case "$1 $2" in
+            "release list")
+              [[ " $* " == *" --repo $GITHUB_REPOSITORY "* ]] || return 42
+              echo '[{"tagName":"marketplace-v2.0.0"}]' ;;
+            "release view") [[ "$ALREADY_EXISTS" == true ]] ;;
+            "release create") printf '%s\n' "$@" ;;
+            *) return 43 ;;
+          esac
+        }
+        """
+        env = dict(os.environ, GITHUB_REPOSITORY='owner/repo', RELEASE_TAG='marketplace-v1.0.0',
+                   MARKETPLACE_TAG='marketplace-v1.0.0', PLUGIN_RELEASE_TAG='plugin-v1.0.0',
+                   ALREADY_EXISTS=str(already_exists).lower())
+        return subprocess.run(['bash', '-c', textwrap.dedent(fake_gh) + script], env=env,
+                              check=True, capture_output=True, text=True).stdout
+
+    def test_publish_without_checkout_uses_explicit_repository(self):
+        for workflow in (AUTO, MANUAL):
+            with self.subTest(workflow=workflow.name):
+                self.assertIn('--latest=false', self.publish(workflow))
+
+    def test_existing_release_retry_skips_creation(self):
+        for workflow in (AUTO, MANUAL):
+            with self.subTest(workflow=workflow.name):
+                output = self.publish(workflow, already_exists=True)
+                self.assertNotIn('--verify-tag', output)
+                self.assertIn('already exists', output)
+
 
 if __name__ == '__main__':
     unittest.main()
