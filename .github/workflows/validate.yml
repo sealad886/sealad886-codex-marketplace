@@ -64,6 +64,11 @@ jobs:
           python3 scripts/check_distribution_bundle.py plugins/semantic-versioning
           python3 scripts/check_semantic_versioning.py
 
+      - name: Validate Build Multi-target Tauri Apps package
+        run: |
+          python3 scripts/check_plugin.py plugins/build-multi-target-tauri-apps --layout source
+          python3 scripts/check_distribution_bundle.py plugins/build-multi-target-tauri-apps
+
       - name: Validate route contracts
         run: python3 scripts/check_routes.py .
 

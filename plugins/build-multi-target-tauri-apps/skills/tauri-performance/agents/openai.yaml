@@ -1,0 +1,7 @@
+interface:
+  display_name: "Tauri Performance and Memory"
+  short_description: "Profile renderer, Rust and native lifetime problems"
+  brand_color: "#147D92"
+  default_prompt: "Use $tauri-performance to profile renderer, Rust and native lifetime problems in this project."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

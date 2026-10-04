@@ -3,6 +3,19 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Build Multi-target Tauri Apps 0.1.0 - 2026-10-04
+
+### Added
+
+- Eight original Tauri 2 skills for architecture, frontend UX, native builds,
+  IPC security, target QA, performance and release preparation.
+- Shared target-specific references and a dated 43-source primary research
+  ledger mapping capabilities from the four platform build/test plugins.
+- Plugin and skill display metadata, original artwork, catalog discovery,
+  self-contained distribution validation and hosted security scanning.
+- Explicit browser/native evidence boundaries and current macOS embedded
+  WebdriverIO guidance with production instrumentation exclusion.
+
 ## iCloud Mail 0.2.0 - 2026-10-03
 
 ### Added

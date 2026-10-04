@@ -12,6 +12,8 @@ Project Delivery, Conversation Visuals, MLX Optimizer, and iCloud Mail are marke
 
 Semantic Versioning follows the same release and validation requirements. Its [package guide](plugins/semantic-versioning/README.md) describes native examples, helper contracts, progressive disclosure, and release boundaries. Its catalog entry uses the package in this marketplace checkout so Codex can show its details before installation. Immutable Git tags still identify published releases; validate the package before publishing a new version.
 
+Build Multi-target Tauri Apps follows the same package and release contracts. Its [guide](plugins/build-multi-target-tauri-apps/README.md) and [research ledger](plugins/build-multi-target-tauri-apps/skills/.shared/research.md) define original capability adaptation, target evidence and source freshness. Keep shared references inside its skill tree so the distribution remains self-contained.
+
 ## Before changing Project Delivery
 
 1. Open or reference an issue when the change affects lifecycle semantics, artifact contracts, compatibility, or safety.
@@ -82,6 +84,8 @@ python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
 python3 scripts/check_plugin.py plugins/icloud-mail --layout source
 python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
 python3 scripts/check_plugin.py plugins/semantic-versioning --layout source
+python3 scripts/check_plugin.py plugins/build-multi-target-tauri-apps --layout source
+python3 scripts/check_distribution_bundle.py plugins/build-multi-target-tauri-apps
 python3 scripts/check_semantic_versioning.py
 python3 scripts/check_routes.py .
 python3 scripts/check_route_receipts.py \

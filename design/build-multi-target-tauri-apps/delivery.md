@@ -1,12 +1,12 @@
 # Build Multi-target Tauri Apps delivery
 
-Scope: a self-contained Codex skills plugin for building and validating Tauri 2 applications on Windows, Linux, macOS, iOS and Android, with an optional browser deployment. User authorized implementation and local milestone commits; publication, installation and provider writes remain separate.
+Scope: a self-contained Codex skills plugin for building and validating Tauri 2 applications on Windows, Linux, macOS, iOS and Android, with an optional browser deployment. User authorized implementation and local milestone commits, then authorized push, PR creation/updates and live marketplace publication after iterating-pr-bot-fixes. That skill grants task PR merge and scoped post-merge cleanup when reviews and CI gates pass. Installation remains isolated validation only.
 
 Baseline: clean `main` at `3c5d13c`, matching `origin/main`; existing checkout only. No worktree or dependencies needed. Repository provenance policy requires original synthesis, not copied source-plugin text or assets.
 
 ## Route and gates
 
-Profile: `medium-feature-change`; scale medium, risk medium because instructions guide privileged IPC and release tooling. Orchestrator 1.5.0 used because requested 1.4.1 installation is absent. Required owners: context, acceptance, solution design, delivery planning, implementation, quality, documentation, independent review, release preparation. Security/operations activated for IPC, credentials and automation boundaries. External coordination not applicable: research is read-only and no provider synchronization requested. Retrospective planned-future: no consumer outcome observed yet.
+Profile: `medium-feature-change`; scale medium, risk medium because instructions guide privileged IPC and release tooling. Orchestrator 1.5.0 used because requested 1.4.1 installation is absent. Required owners: context, acceptance, solution design, delivery planning, implementation, quality, documentation, independent review, release preparation. Security/operations activated for IPC, credentials and automation boundaries. External coordination activated after publication authorization for exact GitHub PR, review and marketplace receipts. Retrospective planned-future: no consumer outcome observed yet.
 
 Ready: requested plugin, source capability inventory, repository contracts and packaging validators inspected. Design: eight focused skills, shared references inside the skill tree to survive distribution, no MCP servers or required companion plugins. Repository checks remain canonical. Existing plugins remain unchanged.
 
