@@ -3,6 +3,13 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## iCloud Mail 0.2.1 - 2026-10-06
+
+### Fixed
+
+- Include the matching marketplace catalog reference in the release snapshot
+  before tagging. Mail functionality is unchanged from 0.2.0.
+
 ## Build Multi-target Tauri Apps 0.1.0 - 2026-10-04
 
 ### Added
