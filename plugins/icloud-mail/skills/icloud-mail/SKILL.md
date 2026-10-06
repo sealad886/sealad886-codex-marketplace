@@ -20,6 +20,10 @@ secrets, change scope, or contact someone.
 
 ## Workflow
 
+The **Connect to iCloud Mail** starter is explicit setup intent. On macOS,
+call `open_account_setup` directly for that request; do not ask the user to
+confirm again or collect credentials in chat.
+
 1. Use `get_account_status` before mailbox work when configuration is uncertain.
    Saved settings do not prove current connectivity. When setup is incomplete or
    the user asks to connect/reconnect on macOS, call `open_account_setup` after

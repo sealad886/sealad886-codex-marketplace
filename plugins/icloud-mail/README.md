@@ -35,7 +35,8 @@ provider-specific mailbox API. This creates several honest differences:
 
 ## Configure securely
 
-On macOS, ask Codex:
+On macOS, select **Connect to iCloud Mail** on the plugin page. This starts a
+chat that opens the local setup page. You can also ask Codex:
 
 > Connect iCloud Mail.
 

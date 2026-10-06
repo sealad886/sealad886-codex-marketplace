@@ -3,6 +3,13 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## iCloud Mail 0.2.2 - 2026-10-06
+
+### Fixed
+
+- Put a Connect to iCloud Mail starter first on the plugin page. It starts a
+  chat that opens private local setup for the Apple app-specific password.
+
 ## iCloud Mail 0.2.1 - 2026-10-06
 
 ### Fixed

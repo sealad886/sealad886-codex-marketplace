@@ -1,6 +1,6 @@
 {
   "name": "icloud-mail",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Read, search, organize, draft, and send iCloud Mail through a local, dependency-free MCP server.",
   "author": {
     "name": "Andrew Cox",
@@ -30,9 +30,9 @@
       "Write"
     ],
     "defaultPrompt": [
+      "Connect to iCloud Mail.",
       "Summarize important unread iCloud Mail.",
-      "Find recent iCloud email and draft a reply.",
-      "Review iCloud Mail attachments that need attention."
+      "Find recent iCloud email and draft a reply."
     ],
     "brandColor": "#1687F8",
     "composerIcon": "./assets/icloud-mail-icon.svg",
