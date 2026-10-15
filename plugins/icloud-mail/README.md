@@ -176,6 +176,70 @@ Mutation tools:
 
 No tool permanently deletes or expunges messages.
 
+### Paged results
+
+`search_emails`, `list_drafts`, `list_mailboxes`, and `read_email_thread` return
+fixed pages of **10 results**. The final page can contain fewer. Each response
+includes `page_size` (10), `returned`, `has_more`, and `next_page_token` (a string
+when continuation is available, otherwise JSON `null`). Existing result arrays
+remain `emails`, `mailboxes`, and `messages` respectively.
+
+Omit `page_token` for the first page. To continue, call the same tool with the
+returned `next_page_token` as `page_token`, repeating the same search filters or
+thread `message_id`. Stop when `has_more` is false. Fetch only the pages needed
+for the user's request; do not automatically walk the whole mailbox.
+
+For example, the first search is:
+
+```json
+{"mailbox": "INBOX", "unread": true}
+```
+
+If its response has `has_more: true`, the next call is:
+
+```json
+{"mailbox": "INBOX", "unread": true, "page_token": "<next_page_token from the response>"}
+```
+
+Treat tokens as opaque, untrusted continuation values. They contain no mail
+bodies or credentials, require the normal account authentication on every call,
+and create no local paging state or mail cache. Never edit or fabricate them.
+Invalid tokens or changed query/mailbox UIDVALIDITY return an error asking you
+to restart without the token.
+
+Search and draft pages use descending IMAP UID order (newest assigned UID
+first, which can differ from the message's Date header). Continuation searches
+only older UIDs, so new arrivals do not shift subsequent pages. Filters and
+counts are evaluated live; moved, deleted, or newly nonmatching messages may
+vanish between calls. `matched_before_attachment_filter` counts candidates
+remaining in the current UID range, not a snapshot total for all pages.
+Each call scans at most 80 summaries. Attachment filtering, oversized summaries,
+or disappearing messages can produce a short or empty page with `has_more: true`;
+follow its token to continue past the scanned candidates.
+
+Folders sort by name and fetch counts for only the current page. Thread pages
+sort by parsed Date, then UID and identifier. The requested anchor appears once
+in that order, on the page containing it. Folder and thread tokens bind to their
+bounded discovery results: if those results change, restart from the first page.
+Thread reconstruction remains best effort (up to ten reference searches, 50
+summaries per batch, and 80 candidates per search); paging does not make it an
+exhaustive conversation search. Folder discovery keeps its 1,000-entry and
+512 KiB scan bounds.
+
+`has_more` describes available continuation. `truncated` independently reports
+scan/discovery omissions, skipped oversized summaries, or thread body-processing
+limits; `has_more: false` with `truncated: true` is not exhaustive coverage.
+Thread pages also retain the 2 MiB serialized response budget and can be shorter
+than ten; their continuation retries the next message. A single message that
+cannot fit returns an error directing callers to `read_email` or their mail app.
+Body truncation flags still apply to each returned message.
+
+**Migration from 0.2.x:** `max_results` is removed from these public tools.
+Refresh tool discovery, remove that argument, and follow continuation tokens.
+Existing account configuration and message identifiers need no data migration.
+Version 0.3.0 is the pending source version; the marketplace catalog continues to
+point to the published 0.2.2 package until a separate release is authorized.
+
 Message reads, including messages returned in threads, cap each body representation
 at 100,000 characters. `body_text_truncated` and `body_html_truncated` identify
 incomplete representations; read the complete message in your mail app when either
@@ -203,6 +267,7 @@ the item in Keychain Access or revoke it in Apple Account settings when wanted.
 From the repository root:
 
 ```bash
+export PYTHONDONTWRITEBYTECODE=1
 python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_plugin.py plugins/icloud-mail --layout source
 python3 scripts/check_distribution_bundle.py plugins/icloud-mail

@@ -63,7 +63,15 @@ browser isolation guarantee.
 - Logs and errors exclude authentication material.
 - Attachment reads are capped at 5 MiB of decoded data.
 - Full-message downloads are rejected above a 20 MiB MIME processing limit.
-- Tool results cap message bodies and result counts.
+- Collection tools return at most ten results per page. Stateless continuation
+  tokens are scoped to the search and mailbox UIDVALIDITY or bounded discovery
+  result. Tokens carry no bodies or credentials and grant no account access;
+  each call authenticates normally. Tokens are not signed authorization grants.
+- Search scans at most 80 summaries per call; folder discovery retains its
+  1,000-entry/512 KiB limits and thread responses retain their 2 MiB output limit.
+  Short or empty filtered pages can still have a continuation token. Omitted
+  oversized data and bounded discovery remain explicitly marked as truncated.
+- Tool results cap message bodies and attachment metadata.
 - Outgoing local-file attachments require explicit absolute paths, reject
   symbolic links, and are capped at 5 MiB each and 10 MiB total.
 - No tool permanently expunges mail. Trash is recoverable through iCloud Mail.

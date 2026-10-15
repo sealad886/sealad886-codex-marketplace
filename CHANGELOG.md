@@ -3,6 +3,22 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## iCloud Mail 0.3.0 - Unreleased
+
+### Changed
+
+- Return fixed ten-result pages from search, draft listing, folder listing, and
+  thread reads, with `page_token`, `next_page_token`, `has_more`, `page_size`, and
+  `returned`. Replace the public `max_results` argument; callers must refresh
+  tool discovery and follow tokens while retaining their original filters.
+- Continue search through older UIDs beyond the former newest-80 candidate
+  window, preserving bounded work per call and progress after empty filtered
+  pages. New arrivals do not displace later pages.
+- Sort folders by name and page thread messages chronologically, including the
+  requested anchor once on its chronological page. Reject stale discovery
+  tokens and keep truncation/processing limits distinct from continuation.
+- Retain stateless, dependency-free operation without a local mail cache.
+
 ## iCloud Mail 0.2.2 - 2026-10-06
 
 ### Fixed
