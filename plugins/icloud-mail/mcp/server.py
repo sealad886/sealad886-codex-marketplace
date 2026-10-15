@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import base64
 import binascii
-from collections import deque
 import copy
 import datetime as dt
 import email
@@ -15,6 +14,7 @@ import email.policy
 import email.utils
 import html
 import hashlib
+import heapq
 import importlib.util
 import errno
 import imaplib
@@ -41,7 +41,7 @@ from typing import Any, Iterator
 
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "icloud-mail", "version": "0.2.2"}
+SERVER_INFO = {"name": "icloud-mail", "version": "0.3.0"}
 IMAP_HOST = "imap.mail.me.com"
 IMAP_PORT = 993
 SMTP_HOST = "smtp.mail.me.com"
@@ -49,17 +49,15 @@ SMTP_PORT = 587
 KEYCHAIN_SERVICE = "codex-icloud-mail"
 CONFIG_VERSION = 1
 MAX_RESULTS = 50
+PAGE_SIZE = 10
 MAX_MOVE_RESULTS = 5
 MAX_FLAG_RESULTS = 5
-MAX_MAILBOX_RESULTS = 100
-MAX_MAILBOX_STATUS = MAX_MAILBOX_RESULTS
 MAX_MAILBOX_SCAN_ENTRIES = 1_000
 MAX_MAILBOX_SCAN_BYTES = 512 * 1024
 MAX_MAILBOX_ENTRY_BYTES = 8 * 1024
 MAX_MAILBOX_NAME_CHARS = 500
 MAX_MAILBOX_FLAGS = 50
 MAX_MAILBOX_FLAG_CHARS = 1_000
-MAX_MAILBOX_OUTPUT_BYTES = 128 * 1024
 MAX_RECIPIENTS = 20
 MAX_SEARCH_SCAN = 80
 MAX_SEARCH_UID_BYTES = 8 * 1024 * 1024
@@ -1725,9 +1723,7 @@ def open_keychain_access(arguments: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _mailboxes(
-    client: imaplib.IMAP4_SSL, *, limit: int | None = None
-) -> tuple[list[dict[str, Any]], bool]:
+def _mailboxes(client: imaplib.IMAP4_SSL) -> tuple[list[dict[str, Any]], bool]:
     _set_socket_timeout(client, 25.0)
     status, data = client.list()
     if status != "OK":
@@ -1793,53 +1789,77 @@ def _mailboxes(
             incomplete = True
             continue
         result.append({"name": name, "flags": flags})
-        if limit is not None and len(result) > limit:
-            incomplete = True
-            break
     return result, incomplete
 
 
+def _page_scope(kind: str, scope: Any) -> str:
+    return hashlib.sha256(
+        json.dumps([kind, scope], sort_keys=True, ensure_ascii=False).encode()
+    ).hexdigest()
+
+
+def _page_position(arguments: dict[str, Any], scope: str) -> int | None:
+    if "page_token" not in arguments:
+        return None
+    token = _text(arguments["page_token"], "page_token", required=True, limit=1024)
+    try:
+        payload = json.loads(_decode_urlsafe_token(token, "page_token"))
+    except (ValueError, UnicodeError) as error:
+        raise ValueError("Invalid page_token; restart without it") from error
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"v", "scope", "position"}
+        or type(payload["v"]) is not int
+        or payload["v"] != 1
+        or payload["scope"] != scope
+        or type(payload["position"]) is not int
+        or not 1 <= payload["position"] <= 0xFFFFFFFF
+    ):
+        raise ValueError("Invalid or stale page_token; restart without it")
+    return payload["position"]
+
+
+def _page_metadata(scope: str, position: int | None, returned: int) -> dict[str, Any]:
+    token = None
+    if position is not None:
+        token = base64.urlsafe_b64encode(json.dumps(
+            {"v": 1, "scope": scope, "position": position}, separators=(",", ":")
+        ).encode()).decode().rstrip("=")
+    return {
+        "page_size": PAGE_SIZE,
+        "returned": returned,
+        "has_more": token is not None,
+        "next_page_token": token,
+    }
+
+
 def list_mailboxes(arguments: dict[str, Any]) -> dict[str, Any]:
-    if arguments:
-        raise ValueError("list_mailboxes takes no arguments")
+    if set(arguments) - {"page_token"}:
+        raise ValueError("unsupported list_mailboxes fields")
     with _imap(socket_timeout=4.0) as client:
-        mailboxes, truncated = _mailboxes(client, limit=MAX_MAILBOX_RESULTS)
-        mailboxes = mailboxes[:MAX_MAILBOX_RESULTS]
+        mailboxes, truncated = _mailboxes(client)
+        mailboxes.sort(key=lambda item: item["name"])
+        scope = _page_scope("mailboxes", mailboxes)
+        offset = _page_position(arguments, scope) or 0
         bounded_mailboxes: list[dict[str, Any]] = []
-        for index, item in enumerate(mailboxes):
-            if index >= MAX_MAILBOX_STATUS:
-                item["messages"] = None
-                item["unread"] = None
-                continue
+        for item in mailboxes[offset:offset + PAGE_SIZE]:
             _set_socket_timeout(client, 4.0)
             status, data = client.status(
                 _quoted_mailbox(item["name"]), "(MESSAGES UNSEEN)"
             )
             first = data[0] if status == "OK" and data else None
-            text = (
-                first.decode("ascii", errors="replace")
-                if isinstance(first, bytes)
-                else ""
-            )
+            text = first.decode("ascii", errors="replace") if isinstance(first, bytes) else ""
             counts = dict(re.findall(r"(MESSAGES|UNSEEN) (\d+)", text))
-            item["messages"] = (
-                int(counts["MESSAGES"]) if "MESSAGES" in counts else None
-            )
-            item["unread"] = (
-                int(counts["UNSEEN"]) if "UNSEEN" in counts else None
-            )
-            candidate = {
-                "mailboxes": bounded_mailboxes + [item],
-                "truncated": False,
-            }
-            if (
-                len(json.dumps(candidate, ensure_ascii=False).encode("utf-8"))
-                > MAX_MAILBOX_OUTPUT_BYTES
-            ):
-                truncated = True
-                break
+            item["messages"] = int(counts["MESSAGES"]) if "MESSAGES" in counts else None
+            item["unread"] = int(counts["UNSEEN"]) if "UNSEEN" in counts else None
             bounded_mailboxes.append(item)
-        return {"mailboxes": bounded_mailboxes, "truncated": truncated}
+        following = offset + len(bounded_mailboxes)
+        return {
+            "mailboxes": bounded_mailboxes,
+            "truncated": truncated,
+            **_page_metadata(scope, following if following < len(mailboxes) else None,
+                             len(bounded_mailboxes)),
+        }
 
 
 def _quoted(value: str) -> str:
@@ -1902,7 +1922,13 @@ def _decode_imap_utf7(value: bytes) -> str:
 def _bounded_search_uids(value: bytes | str, limit: int) -> tuple[list[int], int]:
     if len(value) > MAX_SEARCH_UID_BYTES:
         raise MailError("iCloud Mail search result exceeds the processing limit")
-    uids: deque[int] = deque(maxlen=limit)
+    uids: list[int] = []
+
+    def retain(uid: int) -> None:
+        heapq.heappush(uids, uid)
+        if len(uids) > limit:
+            heapq.heappop(uids)
+
     token_value = 0
     token_digits = 0
     total = 0
@@ -1918,7 +1944,7 @@ def _bounded_search_uids(value: bytes | str, limit: int) -> tuple[list[int], int
     for symbol in value:
         if is_space(symbol):
             if token_digits:
-                uids.append(token_value)
+                retain(token_value)
                 total += 1
                 token_value = 0
                 token_digits = 0
@@ -1933,9 +1959,9 @@ def _bounded_search_uids(value: bytes | str, limit: int) -> tuple[list[int], int
             if token_value > 0xFFFFFFFF:
                 raise MailError("iCloud Mail search returned malformed UIDs")
     if token_digits:
-        uids.append(token_value)
+        retain(token_value)
         total += 1
-    return list(uids), total
+    return sorted(uids), total
 
 
 def _uid_search(client: imaplib.IMAP4_SSL, criteria: list[str]) -> tuple[str, Any]:
@@ -1947,7 +1973,7 @@ def _uid_search(client: imaplib.IMAP4_SSL, criteria: list[str]) -> tuple[str, An
     return client.uid("search", *criteria)
 
 
-def search_emails(
+def _search_emails(
     arguments: dict[str, Any],
     *,
     socket_timeout: float | None = 5.0,
@@ -1956,7 +1982,7 @@ def search_emails(
 ) -> dict[str, Any]:
     allowed = {
         "mailbox", "query", "from", "to", "subject", "after", "before",
-        "unread", "flagged", "has_attachment", "max_results",
+        "unread", "flagged", "has_attachment", "max_results", "page_token",
         "_thread_reference_ids",
     }
     unknown = set(arguments) - allowed
@@ -1997,6 +2023,10 @@ def search_emails(
     connection = _imap(**imap_options) if client is None else nullcontext(client)
     with connection as client:
         validity = _select(client, mailbox, readonly=True)
+        scope = _page_scope("search", [mailbox, validity, criteria, arguments.get("has_attachment")])
+        upper_uid = _page_position(arguments, scope)
+        if upper_uid is not None:
+            criteria.extend(["UID", f"1:{upper_uid}"])
         thread_reference_ids = _list(
             arguments.get("_thread_reference_ids", []),
             "_thread_reference_ids",
@@ -2037,9 +2067,7 @@ def search_emails(
         results = []
         scanned = 0
         skipped_oversized = 0
-        scan_limit = min(
-            len(uids), MAX_SEARCH_SCAN, max(maximum * 5, MAX_RESULTS)
-        )
+        scan_limit = min(len(uids), MAX_SEARCH_SCAN)
         for uid in uids[:scan_limit]:
             if len(results) >= maximum:
                 break
@@ -2067,11 +2095,27 @@ def search_emails(
             "scanned": scanned,
             "truncated": scanned < matched_count or skipped_oversized > 0,
         }
+        following = uids[scanned - 1] - 1 if scanned and scanned < matched_count else None
+        result.update(_page_metadata(scope, following if following else None, len(results)))
         if skipped_oversized:
             result["skipped_oversized_summaries"] = skipped_oversized
         if matched_count_is_lower_bound:
             result["matched_before_attachment_filter_is_lower_bound"] = True
         return result
+
+
+def search_emails(
+    arguments: dict[str, Any], *, socket_timeout: float | None = 5.0
+) -> dict[str, Any]:
+    if set(arguments) & {"max_results", "_thread_reference_ids"}:
+        raise ValueError("Use page_token for fixed 10-result pages")
+    result = _search_emails(
+        {**arguments, "max_results": PAGE_SIZE}, socket_timeout=socket_timeout
+    )
+    # Remaining candidates are reachable through the token; only omissions
+    # within the scanned page are truncation in the public paging contract.
+    result["truncated"] = result.get("skipped_oversized_summaries", 0) > 0
+    return result
 
 
 def _read_email_result(
@@ -2200,16 +2244,12 @@ def read_attachment(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
-    if set(arguments) - {"message_id", "max_results"}:
+    if set(arguments) - {"message_id", "page_token"}:
         raise ValueError("unsupported read_email_thread fields")
     deadline = _current_deadline()
     anchor = read_email(
         {"message_id": arguments.get("message_id")}, deadline=deadline
     )
-    maximum = arguments.get("max_results", 20)
-    if isinstance(maximum, bool) or not isinstance(maximum, int) or not 1 <= maximum <= MAX_RESULTS:
-        raise ValueError(f"max_results must be between 1 and {MAX_RESULTS}")
-
     def internet_id(message: dict[str, Any]) -> str:
         return message.get("internet_message_id", "").strip()
 
@@ -2241,7 +2281,7 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
                 batch = pending[: min(5, 10 - len(searched))]
                 del pending[: len(batch)]
                 searched.update(batch)
-                result = search_emails(
+                result = _search_emails(
                     {
                         "mailbox": anchor["mailbox"],
                         "_thread_reference_ids": batch,
@@ -2303,53 +2343,59 @@ def read_email_thread(arguments: dict[str, Any]) -> dict[str, Any]:
         return parsed, uid, message.get("id", "")
 
     connected.sort(key=chronological_key)
-    selected = connected[:maximum]
-    if anchor["id"] not in {item["id"] for item in selected}:
-        selected = sorted(
-            connected[: maximum - 1] + [anchor], key=chronological_key
-        )
+    scope = _page_scope("thread", [anchor["id"], [item["id"] for item in connected]])
+    offset = _page_position(arguments, scope) or 0
+    selected = connected[offset:offset + PAGE_SIZE]
     other_ids = [item["id"] for item in selected if item["id"] != anchor["id"]]
     loaded = {
         item["id"]: item
         for item in _read_emails_shared(other_ids, deadline)
     }
-    messages = [
-        anchor if item["id"] == anchor["id"] else loaded[item["id"]]
-        for item in selected
-        if item["id"] == anchor["id"] or item["id"] in loaded
-    ]
+    loaded[anchor["id"]] = anchor
     threading = "RFC Message-ID, References, and In-Reply-To relationships"
     base_truncated = (
         discovery_truncated
-        or len(connected_ids) > maximum
-        or len(loaded) < len(other_ids)
+        or any(message_id not in loaded for message_id in other_ids)
     )
-    budgeted = [anchor]
+    budgeted: list[dict[str, Any]] = []
     output_truncated = False
-    for message in messages:
-        if message["id"] == anchor["id"]:
+    consumed = 0
+    for item in selected:
+        message = loaded.get(item["id"])
+        if message is None:
+            consumed += 1
             continue
-        candidate_messages = sorted([*budgeted, message], key=chronological_key)
+        candidate_messages = [*budgeted, message]
         candidate = {
             "messages": candidate_messages,
             "threading": threading,
             "truncated": False,
+            **_page_metadata(
+                scope,
+                offset + consumed + 1 if offset + consumed + 1 < len(connected) else None,
+                len(candidate_messages),
+            ),
         }
         if (
             len(json.dumps(candidate, ensure_ascii=False).encode("utf-8"))
             > MAX_THREAD_OUTPUT_BYTES
         ):
+            if not budgeted:
+                raise MailError("Thread message exceeds the result limit; use read_email or your mail app")
             output_truncated = True
             break
         budgeted.append(message)
+        consumed += 1
     budgeted.sort(key=chronological_key)
     result = {
         "messages": budgeted,
         "threading": threading,
         "truncated": base_truncated or output_truncated,
+        **_page_metadata(scope, offset + consumed if offset + consumed < len(connected) else None,
+                         len(budgeted)),
     }
     if len(json.dumps(result, ensure_ascii=False).encode("utf-8")) > MAX_THREAD_OUTPUT_BYTES:
-        raise MailError("Thread anchor exceeds the result limit")
+        raise MailError("Thread message exceeds the result limit; use read_email or your mail app")
     return result
 
 
@@ -3195,14 +3241,11 @@ def update_draft(arguments: dict[str, Any]) -> dict[str, Any]:
 
 
 def list_drafts(arguments: dict[str, Any]) -> dict[str, Any]:
-    maximum = arguments.get("max_results", 20)
-    if set(arguments) - {"max_results"}:
+    if set(arguments) - {"page_token"}:
         raise ValueError("unsupported list_drafts fields")
     with _imap(socket_timeout=10.0) as client:
         drafts = _special_mailbox(client, "Drafts", ["Drafts"])
-    return search_emails(
-        {"mailbox": drafts, "max_results": maximum}, socket_timeout=10.0
-    )
+    return search_emails({"mailbox": drafts, **arguments}, socket_timeout=10.0)
 
 
 def send_draft(arguments: dict[str, Any]) -> dict[str, Any]:
@@ -3384,12 +3427,12 @@ TOOLS = [
     {"name": "validate_account", "description": "Authenticate to iCloud IMAP and SMTP without sending email.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "open_apple_password_page", "description": "On macOS, open Apple Account so the user can create an app-specific password. This does not read credentials.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
     {"name": "open_keychain_access", "description": "On macOS, open Keychain Access and return fields for manually saving the app-specific password.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
-    {"name": "list_mailboxes", "description": "List up to 100 iCloud Mail folders with total and unread counts; truncated is true when more folders exist.", "inputSchema": {"type": "object", "properties": {}, "additionalProperties": False}},
-    {"name": "search_emails", "description": "Search one mailbox using bounded structured IMAP fields.", "inputSchema": {"type": "object", "properties": {"mailbox": {"type": "string", "default": "INBOX"}, "query": {"type": "string"}, "from": {"type": "string"}, "to": {"type": "string"}, "subject": {"type": "string"}, "after": {"type": "string", "description": "YYYY-MM-DD"}, "before": {"type": "string", "description": "YYYY-MM-DD"}, "unread": {"type": "boolean"}, "flagged": {"type": "boolean"}, "has_attachment": {"type": "boolean"}, "max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "additionalProperties": False}},
+    {"name": "list_mailboxes", "description": "List iCloud Mail folders with counts in fixed pages of 10. Follow next_page_token while has_more is true; truncated reports scan omissions.", "inputSchema": {"type": "object", "properties": {"page_token": {"type": "string", "description": "Opaque next_page_token; omit for the first page."}}, "additionalProperties": False}},
+    {"name": "search_emails", "description": "Search one mailbox in fixed pages of 10, newest UID first. Repeat filters with next_page_token; has_more can be true for short or empty filtered pages.", "inputSchema": {"type": "object", "properties": {"mailbox": {"type": "string", "default": "INBOX"}, "query": {"type": "string"}, "from": {"type": "string"}, "to": {"type": "string"}, "subject": {"type": "string"}, "after": {"type": "string", "description": "YYYY-MM-DD"}, "before": {"type": "string", "description": "YYYY-MM-DD"}, "unread": {"type": "boolean"}, "flagged": {"type": "boolean"}, "has_attachment": {"type": "boolean"}, "page_token": {"type": "string", "description": "Opaque next_page_token from the preceding response; omit for the first page."}}, "additionalProperties": False}},
     {"name": "read_email", "description": "Read one message and list its attachments.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "include_raw_mime": {"type": "boolean", "default": False}}, "required": ["message_id"], "additionalProperties": False}},
-    {"name": "read_email_thread", "description": "Read a best-effort conversation reconstructed within the message mailbox.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "required": ["message_id"], "additionalProperties": False}},
+    {"name": "read_email_thread", "description": "Read a best-effort conversation in chronological pages of 10 within the message mailbox. Repeat message_id with next_page_token; truncated reports discovery or processing omissions.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "page_token": {"type": "string", "description": "Opaque next_page_token from the preceding response; omit for the first page."}}, "required": ["message_id"], "additionalProperties": False}},
     {"name": "read_attachment", "description": "Read one advertised attachment up to 5 MiB as base64.", "inputSchema": {"type": "object", "properties": {"message_id": {"type": "string"}, "attachment_id": {"type": "string"}}, "required": ["message_id", "attachment_id"], "additionalProperties": False}},
-    {"name": "list_drafts", "description": "List iCloud Mail drafts.", "inputSchema": {"type": "object", "properties": {"max_results": {"type": "integer", "minimum": 1, "maximum": MAX_RESULTS, "default": 20}}, "additionalProperties": False}},
+    {"name": "list_drafts", "description": "List iCloud Mail drafts in fixed pages of 10, newest UID first. Follow next_page_token while has_more is true.", "inputSchema": {"type": "object", "properties": {"page_token": {"type": "string", "description": "Opaque next_page_token from the preceding response; omit for the first page."}}, "additionalProperties": False}},
     {"name": "set_email_flags", "description": "Explicitly mark up to five messages read/unread or flagged/unflagged.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "maxItems": MAX_FLAG_RESULTS}, "read": {"type": "boolean"}, "flagged": {"type": "boolean"}}, "required": ["message_ids"], "additionalProperties": False}},
     {"name": "move_emails", "description": "Explicitly move up to five messages to a named iCloud Mail folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": MAX_MOVE_RESULTS}, "destination": {"type": "string"}}, "required": ["message_ids", "destination"], "additionalProperties": False}},
     {"name": "archive_emails", "description": "Explicitly move up to five messages to the iCloud Archive folder.", "inputSchema": {"type": "object", "properties": {"message_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1, "maxItems": MAX_MOVE_RESULTS}}, "required": ["message_ids"], "additionalProperties": False}},

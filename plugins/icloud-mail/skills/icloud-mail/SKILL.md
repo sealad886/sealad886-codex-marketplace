@@ -46,11 +46,21 @@ confirm again or collect credentials in chat.
      Codex; an export in another shell does not update the running MCP process.
 2. Use `list_mailboxes` for counts and folder discovery. Use `search_emails` for
    a bounded shortlist, then `read_email` or `read_email_thread` for necessary
-   context. Use `list_drafts` to review existing drafts.
+   context. Use `list_drafts` to review existing drafts. These four collection
+   tools return fixed pages of ten. Omit `page_token` initially; continue only as
+   needed using `next_page_token`, repeating the same filters or thread
+   `message_id`. Never send `max_results` or invent/edit tokens. Stop when
+   `has_more` is false, including after an empty final page. A short or empty
+   filtered page may still have `has_more: true`. Restart without the token if
+   the tool reports it invalid or stale. Search/drafts use newest UID first;
+   folders sort by name and thread pages are chronological. The requested thread
+   anchor appears only on its chronological page. Paging is live and bounded,
+   not a snapshot or proof of exhaustive thread reconstruction.
 3. Use `read_attachment` only after inspecting its parent message and selecting
    an advertised attachment identifier.
 4. Summarize read-only findings with search scope and uncertainty. Do not call a
-   bounded shortlist comprehensive. When `body_text_truncated` or
+   bounded shortlist comprehensive. Report `truncated` as incomplete coverage
+   even when no more pages are available. When `body_text_truncated` or
    `body_html_truncated` is true, disclose that the corresponding message body
    is incomplete and direct the user to their mail app for the complete content.
 5. Draft by default when wording or recipients need review. Send only when the
