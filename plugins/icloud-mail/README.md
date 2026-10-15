@@ -237,8 +237,17 @@ Body truncation flags still apply to each returned message.
 **Migration from 0.2.x:** `max_results` is removed from these public tools.
 Refresh tool discovery, remove that argument, and follow continuation tokens.
 Existing account configuration and message identifiers need no data migration.
-Version 0.3.0 is the pending source version; the marketplace catalog continues to
-point to the published 0.2.2 package until a separate release is authorized.
+The marketplace advertises and installs version **0.3.0**, pinned to the immutable
+source commit containing this release's package. The `icloud-mail-v0.3.0` release
+tag contains the same package files. Refresh and install through the marketplace:
+
+```bash
+codex plugin marketplace upgrade sealad886-codex-marketplace
+codex plugin add icloud-mail@sealad886-codex-marketplace
+```
+
+Start a fresh Codex chat after installation to load the updated tools and skill.
+Existing chats can retain the earlier tool schema.
 
 Message reads, including messages returned in threads, cap each body representation
 at 100,000 characters. `body_text_truncated` and `body_html_truncated` identify

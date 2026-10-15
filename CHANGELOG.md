@@ -3,7 +3,7 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
-## iCloud Mail 0.3.0 - Unreleased
+## iCloud Mail 0.3.0 - 2026-10-15
 
 ### Changed
 
