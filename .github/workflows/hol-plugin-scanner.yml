@@ -20,7 +20,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan Project Delivery plugin
-        uses: hashgraph-online/ai-plugin-scanner-action@11ff35008c1dde7d7b0c2978b0cd4f6b495448e8 # v1.2.704
+        uses: hashgraph-online/ai-plugin-scanner-action@71874f7686eeb808af573bc74d9cda333707f08d # v1.2.742
         with:
           plugin_dir: "plugins/project-delivery"
           mode: scan
@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan Conversation Visuals plugin
-        uses: hashgraph-online/ai-plugin-scanner-action@11ff35008c1dde7d7b0c2978b0cd4f6b495448e8 # v1.2.704
+        uses: hashgraph-online/ai-plugin-scanner-action@71874f7686eeb808af573bc74d9cda333707f08d # v1.2.742
         with:
           plugin_dir: "plugins/conversation-visuals"
           mode: scan
@@ -64,7 +64,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan iCloud Mail plugin
-        uses: hashgraph-online/ai-plugin-scanner-action@11ff35008c1dde7d7b0c2978b0cd4f6b495448e8 # v1.2.704
+        uses: hashgraph-online/ai-plugin-scanner-action@71874f7686eeb808af573bc74d9cda333707f08d # v1.2.742
         with:
           plugin_dir: "plugins/icloud-mail"
           mode: scan
@@ -84,7 +84,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Scan MLX Optimizer
-        uses: hashgraph-online/ai-plugin-scanner-action@11ff35008c1dde7d7b0c2978b0cd4f6b495448e8 # v1.2.704
+        uses: hashgraph-online/ai-plugin-scanner-action@71874f7686eeb808af573bc74d9cda333707f08d # v1.2.742
         with:
           plugin_dir: "plugins/mlx-optimizer"
           mode: scan
@@ -101,7 +101,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Scan Semantic Versioning
-        uses: hashgraph-online/ai-plugin-scanner-action@11ff35008c1dde7d7b0c2978b0cd4f6b495448e8 # v1.2.704
+        uses: hashgraph-online/ai-plugin-scanner-action@71874f7686eeb808af573bc74d9cda333707f08d # v1.2.742
         with:
           plugin_dir: "plugins/semantic-versioning"
           mode: scan
@@ -120,7 +120,7 @@ jobs:
           persist-credentials: false
 
       - name: Scan Build Multi-target Tauri Apps
-        uses: hashgraph-online/ai-plugin-scanner-action@11ff35008c1dde7d7b0c2978b0cd4f6b495448e8 # v1.2.704
+        uses: hashgraph-online/ai-plugin-scanner-action@71874f7686eeb808af573bc74d9cda333707f08d # v1.2.742
         with:
           plugin_dir: "plugins/build-multi-target-tauri-apps"
           mode: scan
