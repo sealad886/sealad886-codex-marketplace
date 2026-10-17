@@ -38,6 +38,12 @@ Current WebdriverIO embedded automation supports desktop macOS, Windows and Linu
 
 Signing, notarization, store submission, release publication, deployment and device/data reset need exact authority. Build/test requests do not imply them. See [security policy](SECURITY.md) and [operating contract](skills/.shared/operating-model.md).
 
+## Optional current-source research
+
+To refresh Tauri or platform guidance, you can configure [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp) in your Codex host for free web search and page fetching without an account or API key. Anonymous search uses Fast mode. Follow the [setup and Tauri research example](skills/.shared/research.md#optional-web-research-with-parallel).
+
+This is an optional host capability; the plugin remains instruction-only. Keep your existing tools and settings. Source research supports version checks and does not replace native target evidence.
+
 ## Validation and contribution
 
 From marketplace repository root, using its selected Python environment:
