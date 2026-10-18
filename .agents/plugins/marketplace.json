@@ -63,7 +63,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "76ef5c6280b40c7e7618abda0adcdbdf8f432fca",
+        "ref": "b8df085ab03ee0b878cbe94eab1aadeac599dc4e",
         "path": "./plugins/icloud-mail"
       },
       "policy": {
