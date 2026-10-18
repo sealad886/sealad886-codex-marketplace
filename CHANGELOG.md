@@ -3,6 +3,32 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## MLX Optimizer 0.2.5 - 2026-10-18
+
+### Security
+
+- Isolate environment-probe child imports from repository files and inherited
+  Python search paths while preserving the selected virtual environment.
+- Reject symlink and non-regular audit inputs, and bound each source read to
+  2 MiB so crafted files cannot block or exhaust the scanner.
+
+## iCloud Mail 0.3.1 - 2026-10-18
+
+### Security
+
+- Replace backtracking HTML stripping with bounded forward-only conversion.
+  Malformed message markup no longer monopolizes read, thread-read or forward
+  processing; operation deadlines and visible message content are preserved.
+
+## Marketplace tooling - 2026-10-18
+
+### Security
+
+- Bound validator input reads and reject symlinks and special files across
+  marketplace, package and route-evidence checks.
+- Build artwork helpers in private temporary directories and stop on compiler
+  failure instead of reusing executables at predictable temporary paths.
+
 ## iCloud Mail 0.3.0 - 2026-10-15
 
 ### Changed

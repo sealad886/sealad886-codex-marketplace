@@ -9,6 +9,8 @@ import sys
 import time
 from pathlib import Path
 
+from safe_files import read_text
+
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -27,7 +29,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def build_prompt_manifest(root: Path) -> dict[str, object]:
     contract_path = root / "tests" / "route-contracts.json"
-    contract = json.loads(contract_path.read_text(encoding="utf-8"))
+    contract = json.loads(read_text(contract_path, root=root))
     scenarios = contract.get("scenarios")
     if not isinstance(scenarios, list) or not scenarios:
         raise ValueError("route contracts must contain a non-empty scenarios list")

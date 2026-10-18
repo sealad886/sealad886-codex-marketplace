@@ -11,6 +11,8 @@ import time
 from pathlib import Path
 from urllib.parse import urlparse
 
+from safe_files import MAX_TEXT_BYTES, read_text
+
 
 EXCLUDED_DIRS = {".git", ".venv", "__pycache__", "node_modules"}
 TEXT_SUFFIXES = {
@@ -66,7 +68,8 @@ def collect_files(root: Path) -> list[Path]:
     return sorted(
         path
         for path in root.rglob("*")
-        if path.is_file() and not EXCLUDED_DIRS.intersection(path.relative_to(root).parts)
+        if (path.is_symlink() or path.is_file())
+        and not EXCLUDED_DIRS.intersection(path.relative_to(root).parts)
     )
 
 
@@ -95,7 +98,7 @@ def validate(root: Path, layout: str = "auto") -> tuple[list[str], int, int]:
         return [f"missing manifest: {manifest_path}"], 0, len(collect_files(root))
 
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(read_text(manifest_path, root=root))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         return [f"invalid manifest: {error}"], 0, len(collect_files(root))
 
@@ -126,10 +129,13 @@ def validate(root: Path, layout: str = "auto") -> tuple[list[str], int, int]:
             f"CHECK [{index}/{len(files)}] file={path.relative_to(root)} eta={eta:.1f}s",
             flush=True,
         )
+        if path.is_symlink():
+            errors.append(f"unsupported symlink: {path}")
+            continue
         if path.suffix.lower() not in TEXT_SUFFIXES:
             continue
         try:
-            text = path.read_text(encoding="utf-8")
+            text = read_text(path, root=root, max_bytes=MAX_TEXT_BYTES)
         except (OSError, UnicodeError) as error:
             errors.append(f"unreadable text file: {path}: {error}")
             continue

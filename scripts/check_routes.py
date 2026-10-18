@@ -10,6 +10,8 @@ import sys
 import time
 from pathlib import Path
 
+from safe_files import read_text
+
 
 ALLOWED_SCALES = {
     "large",
@@ -208,7 +210,7 @@ def validate(root: Path) -> tuple[list[str], int, set[str]]:
     if not plugin_root.is_dir():
         plugin_root = root
     try:
-        contract = json.loads(contract_path.read_text(encoding="utf-8"))
+        contract = json.loads(read_text(contract_path, root=root))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         return [f"invalid route contract file: {error}"], 0, set()
 
@@ -257,7 +259,7 @@ def validate(root: Path) -> tuple[list[str], int, set[str]]:
         else:
             try:
                 profile_document = json.loads(
-                    profile_path.read_text(encoding="utf-8")
+                    read_text(profile_path, root=root)
                 )
             except (OSError, UnicodeError, json.JSONDecodeError) as error:
                 errors.append(f"invalid installed route profile file: {error}")

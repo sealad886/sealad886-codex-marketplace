@@ -37,7 +37,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "mlx-optimizer-v0.2.4",
+        "ref": "f2392b62b2012b4f0ff86afc26a786b94de57afa",
         "path": "./plugins/mlx-optimizer"
       },
       "policy": {
@@ -63,7 +63,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "fe8ecfa35f5aa6df7221b6f981443a5232e1b2ba",
+        "ref": "b8df085ab03ee0b878cbe94eab1aadeac599dc4e",
         "path": "./plugins/icloud-mail"
       },
       "policy": {

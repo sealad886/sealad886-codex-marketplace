@@ -8,7 +8,10 @@ from __future__ import annotations
 
 import argparse
 import ast
+import io
 import json
+import os
+import stat
 import sys
 import time
 import tokenize
@@ -31,6 +34,7 @@ EXCLUDED_DIRS = {
     "node_modules",
     "site-packages",
 }
+MAX_SOURCE_BYTES = 2 * 1024 * 1024
 
 
 @dataclass
@@ -62,7 +66,7 @@ class Progress:
 
 
 def iter_python_files(root: Path) -> list[Path]:
-    if root.is_file() and root.suffix == ".py":
+    if root.is_symlink() or (not root.is_dir() and root.suffix == ".py"):
         return [root]
     files: list[Path] = []
     for path in sorted(root.rglob("*.py")):
@@ -228,9 +232,47 @@ class FileAnalyzer(ast.NodeVisitor):
                     "medium",
                 )
 
+def read_source(path: Path, root: Path) -> str:
+    """Read bounded regular source without following links below the scan root."""
+    try:
+        parts = path.relative_to(root).parts
+    except ValueError as exc:
+        raise OSError("Source is outside the selected scan root.") from exc
+    if not parts or any(part in (".", "..") for part in parts):
+        raise OSError("Source must be a file below the selected scan root.")
+
+    directory_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in parts[:-1]:
+            next_fd = os.open(
+                part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=directory_fd
+            )
+            os.close(directory_fd)
+            directory_fd = next_fd
+        source_fd = os.open(
+            parts[-1], os.O_RDONLY | os.O_NONBLOCK | os.O_NOFOLLOW, dir_fd=directory_fd
+        )
+    finally:
+        os.close(directory_fd)
+
+    try:
+        metadata = os.fstat(source_fd)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise OSError("Source must be a regular file.")
+        if metadata.st_size > MAX_SOURCE_BYTES:
+            raise OSError(f"Source exceeds the {MAX_SOURCE_BYTES}-byte limit.")
+        with os.fdopen(source_fd, "rb", closefd=False) as handle:
+            data = handle.read(MAX_SOURCE_BYTES + 1)
+    finally:
+        os.close(source_fd)
+    if len(data) > MAX_SOURCE_BYTES:
+        raise OSError(f"Source exceeds the {MAX_SOURCE_BYTES}-byte limit.")
+    encoding, _ = tokenize.detect_encoding(io.BytesIO(data).readline)
+    return data.decode(encoding)
+
+
 def analyze_file(path: Path, root: Path) -> tuple[bool, list[Finding]]:
-    with tokenize.open(path) as handle:
-        source = handle.read()
+    source = read_source(path, root)
     tree = ast.parse(source, filename=str(path))
     analyzer = FileAnalyzer(path, source, root)
     analyzer.visit(tree)
@@ -283,8 +325,11 @@ def render_markdown(payload: dict) -> str:
 
 
 def build_payload(target: Path) -> dict:
-    root = target.resolve()
-    scan_root = root if root.is_dir() else root.parent
+    # Canonicalize the selected location's parents, but inspect its final component
+    # before resolving links so a direct symlink cannot become an ordinary file.
+    target = target.absolute()
+    root = target.parent.resolve() / target.name
+    scan_root = root if not root.is_symlink() and root.is_dir() else root.parent
     files = iter_python_files(root)
     progress = Progress(len(files))
     findings: list[Finding] = []
@@ -316,7 +361,7 @@ def build_payload(target: Path) -> dict:
                     line=1,
                     evidence=f"{type(exc).__name__}: {exc}",
                     candidate_impact="File could not be read or decoded.",
-                    recommendation="Check file permissions and Python source encoding before relying on audit output.",
+                    recommendation="Use regular non-symlink Python files up to 2 MiB; check permissions and source encoding before relying on audit output.",
                     confidence="high",
                 )
             )

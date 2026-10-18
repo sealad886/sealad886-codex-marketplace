@@ -42,8 +42,21 @@ material, and local Python helper scripts. Security-relevant areas include:
 - Guidance that could cause unsafe agent behavior in downstream repos.
 - CI and repository automation.
 
-The audit and probe scripts are designed to inspect files and environments
-without modifying target repositories. If a script can be made to write outside
+The audit reads source without importing the inspected project. Reads are limited
+to regular files up to 2 MiB, with symlink files and directory components below
+the selected scan root rejected. A symlink supplied directly as the target is
+also rejected. Explicit parent-path aliases such as macOS /var remain usable.
+Oversized, linked, non-regular, and unreadable sources become read-error findings.
+
+The environment probe executes the user-selected Python interpreter and imports
+its installed MLX package. That interpreter and its installed packages must be
+trusted. Child isolated mode excludes the caller's working directory,
+PYTHONPATH, and user site packages; it retains the selected virtual environment
+and uses the plugin script directory as its working directory. It is not an
+execution sandbox for a malicious interpreter or installed package. The benchmark
+template likewise executes code and must run only in a trusted environment.
+
+The helpers do not modify target repositories. If a script can be made to write outside
 its intended output path, execute unexpected code, or leak sensitive local
 information, report it privately.
 

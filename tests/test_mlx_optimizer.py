@@ -1,11 +1,15 @@
 import json
 import os
 import platform
+import runpy
 import struct
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
+import venv
+from unittest import mock
 from pathlib import Path
 
 
@@ -62,7 +66,7 @@ class MlxAuditTests(unittest.TestCase):
             self.assertIn("Scanning", result.stderr)
             return json.loads(output.read_text())
 
-    def run_audit_stdout_json(self, target):
+    def run_audit_stdout_json(self, target, timeout=10):
         result = subprocess.run(
             [
                 sys.executable,
@@ -75,6 +79,7 @@ class MlxAuditTests(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
+            timeout=timeout,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("Scanning", result.stderr)
@@ -196,6 +201,112 @@ class MlxAuditTests(unittest.TestCase):
         categories = {finding["category"] for finding in payload["findings"]}
         self.assertIn("benchmark-missing-eval", categories)
 
+    def test_audit_rejects_symlink_sources_and_linked_ancestors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            fixture = Path(tmp).resolve()
+            outside = fixture / "outside"
+            outside.mkdir()
+            source = outside / "source.py"
+            source.write_text("import mlx.core as mx\n", encoding="utf-8")
+            project = fixture / "project"
+            project.mkdir()
+            linked_file = project / "linked.py"
+            linked_file.symlink_to(source)
+            linked_dir = fixture / "linked-dir"
+            linked_dir.symlink_to(outside, target_is_directory=True)
+
+            for target in (linked_file, project, linked_dir):
+                with self.subTest(target=target):
+                    payload = self.run_audit_stdout_json(target)
+
+                    self.assertEqual(payload["summary"]["mlx_files"], 0)
+                    self.assertEqual([item["category"] for item in payload["findings"]], ["read-error"])
+
+            module = runpy.run_path(str(AUDIT))
+            with self.assertRaises(OSError):
+                module["analyze_file"](linked_dir / "source.py", fixture)
+
+    def test_audit_rejects_oversized_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp).resolve() / "large.py"
+            target.write_bytes(b"#" + b" " * (2 * 1024 * 1024))
+
+            payload = self.run_audit_stdout_json(target)
+
+        self.assertEqual([item["category"] for item in payload["findings"]], ["read-error"])
+
+    def test_audit_accepts_source_at_byte_limit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp).resolve() / "at-limit.py"
+            target.write_bytes(b"#" + b" " * (2 * 1024 * 1024 - 1))
+
+            payload = self.run_audit_stdout_json(target)
+
+        self.assertEqual(payload["summary"]["files_scanned"], 1)
+        self.assertEqual(payload["findings"], [])
+
+    @unittest.skipUnless(Path("/dev/zero").exists(), "requires /dev/zero")
+    def test_audit_rejects_device_symlink_and_continues_scanning(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp).resolve()
+            (project / "device.py").symlink_to("/dev/zero")
+            (project / "valid.py").write_text("import mlx.core as mx\n", encoding="utf-8")
+
+            payload = self.run_audit_stdout_json(project, timeout=2)
+
+        self.assertEqual(payload["summary"]["files_scanned"], 2)
+        self.assertEqual(payload["summary"]["mlx_files"], 1)
+        self.assertEqual([item["category"] for item in payload["findings"]], ["read-error"])
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFO requires POSIX")
+    def test_audit_rejects_fifo_without_waiting_for_a_writer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp).resolve()
+            os.mkfifo(project / "blocked.py")
+
+            payload = self.run_audit_stdout_json(project, timeout=1)
+
+        self.assertEqual([item["category"] for item in payload["findings"]], ["read-error"])
+
+    def test_audit_accepts_utf8_bom_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp).resolve() / "bom.py"
+            target.write_bytes(b"\xef\xbb\xbfimport mlx.core as mx\n")
+
+            payload = self.run_audit_stdout_json(target)
+
+        self.assertEqual(payload["summary"]["mlx_files"], 1)
+        self.assertEqual(payload["findings"], [])
+
+    @unittest.skipUnless(os.name == "posix", "requires POSIX descriptor limits")
+    def test_audit_closes_nonregular_source_descriptors(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp).resolve()
+            for index in range(40):
+                (project / f"directory-{index:02}.py").mkdir()
+            (project / "z-valid.py").write_text("import mlx.core as mx\n", encoding="utf-8")
+            driver = (
+                "import resource, runpy, sys; "
+                "resource.setrlimit(resource.RLIMIT_NOFILE, (32, resource.getrlimit(resource.RLIMIT_NOFILE)[1])); "
+                f"sys.argv = [{str(AUDIT)!r}, {str(project)!r}, '--format', 'json']; "
+                f"runpy.run_path({str(AUDIT)!r}, run_name='__main__')"
+            )
+
+            result = subprocess.run(
+                [sys.executable, "-I", "-c", driver],
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+                timeout=10,
+            )
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["summary"]["mlx_files"], 1)
+        self.assertEqual(len(payload["findings"]), 40)
+        self.assertNotIn("Too many open files", result.stdout)
+
     def test_audit_writes_json_to_stdout_without_output(self):
         payload = self.run_audit_stdout_json(PLAIN_FIXTURE)
 
@@ -204,6 +315,42 @@ class MlxAuditTests(unittest.TestCase):
 
 
 class MlxEnvProbeTests(unittest.TestCase):
+    def test_env_probe_ignores_working_directory_and_pythonpath_modules(self):
+        for injection in ("cwd", "pythonpath"):
+            with self.subTest(injection=injection), tempfile.TemporaryDirectory() as tmp:
+                fixture = Path(tmp)
+                hostile = fixture / "hostile"
+                hostile.mkdir()
+                marker = fixture / "unexpected-import"
+                poison = f"from pathlib import Path\nPath({str(marker)!r}).touch()\nraise RuntimeError('untrusted import')\n"
+                (hostile / "json.py").write_text(poison, encoding="utf-8")
+                (hostile / "runpy.py").write_text(poison, encoding="utf-8")
+                mlx = hostile / "mlx"
+                mlx.mkdir()
+                (mlx / "__init__.py").write_text(poison, encoding="utf-8")
+                env = os.environ.copy()
+                env["PYTHONPATH"] = str(hostile) if injection == "pythonpath" else ""
+                driver = (
+                    "import json, pathlib, runpy, sys; "
+                    f"module = runpy.run_path({str(ENV_PROBE)!r}); "
+                    "print(json.dumps(module['run_child'](pathlib.Path(sys.executable))))"
+                )
+
+                result = subprocess.run(
+                    [sys.executable, "-I", "-c", driver],
+                    cwd=hostile if injection == "cwd" else fixture,
+                    env=env,
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    check=False,
+                    timeout=15,
+                )
+
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertFalse(marker.exists(), "probe imported attacker-controlled Python")
+                self.assertEqual(json.loads(result.stdout)["status"], "ok")
+
     def run_env_probe_json(self, *args):
         result = subprocess.run(
             [
@@ -218,6 +365,7 @@ class MlxEnvProbeTests(unittest.TestCase):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             check=False,
+            cwd=ROOT,
         )
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout)
@@ -263,31 +411,34 @@ class MlxEnvProbeTests(unittest.TestCase):
         self.assertEqual(Path(payload["python"]["executable"]).resolve(), Path(sys.executable).resolve())
 
     def test_env_probe_preserves_explicit_venv_python_symlink(self):
-        venv_python = ROOT / ".venv" / "bin" / "python"
-        if not venv_python.exists():
-            self.skipTest("repo-local .venv is required for symlink preservation check")
+        with tempfile.TemporaryDirectory() as tmp:
+            venv_root = Path(tmp).resolve() / ".venv"
+            venv.create(venv_root, with_pip=False, symlinks=True)
+            venv_python = venv_root / "bin" / "python"
+            # Isolation must retain the selected environment's installed packages.
+            site_packages = Path(subprocess.check_output(
+                [str(venv_python), "-I", "-c", "import sysconfig; print(sysconfig.get_path('purelib'))"],
+                text=True,
+            ).strip())
+            fake_mlx = site_packages / "mlx"
+            fake_mlx.mkdir()
+            (fake_mlx / "__init__.py").write_text("", encoding="utf-8")
+            (fake_mlx / "core.py").write_text(
+                "__version__ = 'trusted-fixture'\n"
+                "def device_info(): return {'device_name': 'venv-fixture'}\n",
+                encoding="utf-8",
+            )
 
-        result = subprocess.run(
-            [
-                sys.executable,
-                str(ENV_PROBE),
-                str(ROOT),
-                "--python",
-                str(venv_python),
-                "--format",
-                "json",
-            ],
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            check=False,
-        )
+            for selected in (str(venv_python), os.path.relpath(venv_python, ROOT)):
+                with self.subTest(selected=selected):
+                    payload = self.run_env_probe_json("--python", selected)
 
-        self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["status"], "ok")
-        self.assertEqual(payload["python"]["executable"], str(venv_python))
-        self.assertEqual(payload["python"]["prefix"], str(ROOT / ".venv"))
+                    self.assertEqual(payload["status"], "ok")
+                    self.assertEqual(payload["python"]["executable"], str(venv_python))
+                    self.assertEqual(payload["python"]["prefix"], str(venv_root))
+                    self.assertTrue(payload["mlx"]["available"])
+                    self.assertEqual(payload["mlx"]["version"], "trusted-fixture")
+                    self.assertEqual(payload["mlx"]["device_info"], {"device_name": "venv-fixture"})
 
     def test_env_probe_reports_invalid_explicit_python_as_probe_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -339,60 +490,23 @@ class MlxEnvProbeTests(unittest.TestCase):
             self.assertIn("import_error", payload["mlx"])
 
     def test_env_probe_prefers_core_device_info(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            fake_root = Path(tmp)
-            fake_mlx = fake_root / "mlx"
-            fake_mlx.mkdir()
-            (fake_mlx / "__init__.py").write_text("", encoding="utf-8")
-            (fake_mlx / "core.py").write_text(
-                "\n".join(
-                    [
-                        "__version__ = 'fake-mlx'",
-                        "",
-                        "",
-                        "def device_info():",
-                        "    return {'device_name': 'modern-api'}",
-                        "",
-                        "",
-                        "class metal:",
-                        "    @staticmethod",
-                        "    def is_available():",
-                        "        return True",
-                        "",
-                        "    @staticmethod",
-                        "    def device_info():",
-                        "        raise RuntimeError('deprecated metal.device_info used')",
-                        "",
-                    ]
-                )
-                + "\n",
-                encoding="utf-8",
-            )
-            env = os.environ.copy()
-            env["PYTHONPATH"] = str(fake_root)
+        module = runpy.run_path(str(ENV_PROBE))
+        fake_mlx = types.ModuleType("mlx")
+        fake_core = types.ModuleType("mlx.core")
+        fake_mlx.core = fake_core
+        fake_core.__version__ = "fake-mlx"
+        fake_core.device_info = lambda: {"device_name": "modern-api"}
+        fake_core.metal = types.SimpleNamespace(
+            is_available=lambda: True,
+            device_info=mock.Mock(side_effect=RuntimeError("deprecated metal.device_info used")),
+        )
+        with mock.patch.dict(sys.modules, {"mlx": fake_mlx, "mlx.core": fake_core}):
+            payload = module["child_probe"]()
 
-            result = subprocess.run(
-                [
-                    sys.executable,
-                    str(ENV_PROBE),
-                    str(PLAIN_FIXTURE),
-                    "--python",
-                    sys.executable,
-                    "--format",
-                    "json",
-                ],
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                check=False,
-                env=env,
-            )
-
-        self.assertEqual(result.returncode, 0, result.stderr)
-        payload = json.loads(result.stdout)
-        self.assertEqual(payload["status"], "ok")
+        self.assertTrue(payload["mlx"]["available"])
         self.assertEqual(payload["mlx"]["device_info"], {"device_name": "modern-api"})
         self.assertNotIn("device_info_error", payload["mlx"])
+        fake_core.metal.device_info.assert_not_called()
 
 
 class MlxBenchmarkTemplateTests(unittest.TestCase):

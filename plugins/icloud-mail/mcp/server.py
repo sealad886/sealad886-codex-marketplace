@@ -18,6 +18,7 @@ import heapq
 import importlib.util
 import errno
 import imaplib
+import io
 import json
 import os
 from pathlib import Path
@@ -41,7 +42,7 @@ from typing import Any, Iterator
 
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "icloud-mail", "version": "0.3.0"}
+SERVER_INFO = {"name": "icloud-mail", "version": "0.3.1"}
 IMAP_HOST = "imap.mail.me.com"
 IMAP_PORT = 993
 SMTP_HOST = "smtp.mail.me.com"
@@ -3303,9 +3304,145 @@ def _format_addresses(addresses: list[dict[str, str]]) -> str:
 
 
 def _html_to_text(value: str) -> str:
-    text = re.sub(r"(?is)<(script|style).*?>.*?</\1>", "", value)
-    text = re.sub(r"(?i)<br\s*/?>|</p\s*>|</div\s*>", "\n", text)
-    return html.unescape(re.sub(r"(?s)<[^>]+>", "", text)).strip()
+    """Convert bounded markup in one forward pass, including malformed input.
+
+    Keep complete text until the callers apply their result/forwarding limits;
+    trimming an input prefix could silently lose later visible content.
+    """
+    if len(value) > MAX_MESSAGE_BYTES:
+        raise MailError("HTML body exceeds the message processing limit")
+    deadline = _ACTIVE_DEADLINE.get()
+    next_check = 0
+
+    def check_budget(position: int) -> None:
+        nonlocal next_check
+        if deadline is not None and position >= next_check:
+            deadline.timeout(1.0)
+            next_check = position + 4096
+
+    text = io.StringIO()
+    length = len(value)
+    cursor = 0
+    text_start = 0
+    raw_tag: str | None = None
+    check_budget(0)
+    while cursor < length:
+        opening = value.find("<", cursor)
+        if opening < 0:
+            break
+        check_budget(opening)
+        closing = value.startswith("</", opening)
+        name_start = opening + (2 if closing else 1)
+
+        # Within script/style, only that element's closing tag has meaning.
+        # Do not parse arbitrary '<' content or search repeatedly for its end.
+        if raw_tag is not None:
+            end = name_start + len(raw_tag)
+            if (
+                not closing
+                or value[name_start:end].lower() != raw_tag
+                or (end < length and value[end] not in " \t\r\n\f/>")
+            ):
+                cursor = opening + 1
+                continue
+        elif value.startswith("<!--", opening):
+            text.write(value[text_start:opening])
+            end = opening + 4
+            # Abrupt empty comments and the comment-end-bang state also close
+            # the token. Scan once so a missing terminator cannot cause retries.
+            if value.startswith(">", end):
+                end += 1
+            elif value.startswith("->", end):
+                end += 2
+            else:
+                while end < length:
+                    check_budget(end)
+                    if value.startswith("-->", end):
+                        end += 3
+                        break
+                    if value.startswith("--!>", end):
+                        end += 4
+                        break
+                    end += 1
+            cursor = end
+            text_start = cursor
+            continue
+        elif value.startswith(("<!", "<?"), opening):
+            # Non-element markup does not have HTML attribute quote states.
+            text.write(value[text_start:opening])
+            end = value.find(">", opening + 2)
+            cursor = length if end < 0 else end + 1
+            text_start = cursor
+            continue
+
+        if closing and name_start < length and not (
+            value[name_start].isascii() and value[name_start].isalpha()
+        ):
+            # Empty/invalid end-tag openers are discarded as non-element markup.
+            text.write(value[text_start:opening])
+            end = value.find(">", name_start)
+            cursor = length if end < 0 else end + 1
+            text_start = cursor
+            continue
+
+        if (
+            name_start >= length or not value[name_start].isascii()
+            or not value[name_start].isalpha()
+        ):
+            cursor = opening + 1
+            continue
+        name_end = name_start
+        while name_end < length and value[name_end] not in " \t\r\n\f/>":
+            name_end += 1
+            check_budget(name_end)
+        # Only short known names affect rendering; unknown tags still consume
+        # exactly one token without retaining an arbitrarily long tag name.
+        name = value[name_start:min(name_end, name_start + 8)].lower()
+        end = name_end
+        quote = ""
+        attribute_state = "name"
+        while end < length:
+            character = value[end]
+            check_budget(end)
+            if quote:
+                if character == quote:
+                    quote = ""
+            elif character == ">":
+                break
+            elif attribute_state == "unquoted":
+                if character in " \t\r\n\f":
+                    attribute_state = "name"
+            elif attribute_state == "value":
+                if character in "\"'":
+                    quote = character
+                    attribute_state = "name"
+                elif character not in " \t\r\n\f":
+                    attribute_state = "unquoted"
+            elif character == "=":
+                attribute_state = "value"
+            end += 1
+        if end == length:
+            # An unfinished token is literal text outside raw-text elements.
+            # Stop once; retrying each later '<' would reintroduce quadratic work.
+            break
+        if raw_tag is None:
+            text.write(value[text_start:opening])
+            if not closing and name in {"script", "style"}:
+                raw_tag = name
+            elif name == "br" or closing and name in {"p", "div"}:
+                text.write("\n")
+        else:
+            raw_tag = None
+        cursor = end + 1
+        text_start = cursor
+    if raw_tag is None:
+        text.write(value[text_start:])
+    # Token removal, line breaks and entity decoding cannot expand beyond the
+    # bounded source length. Check the operation budget after final conversion.
+    result = html.unescape(text.getvalue()).strip()
+    if deadline is not None:
+        deadline.timeout(1.0)
+    return result
 
 
 def forward_emails(arguments: dict[str, Any]) -> dict[str, Any]:
