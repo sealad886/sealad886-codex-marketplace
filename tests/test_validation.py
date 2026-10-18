@@ -55,7 +55,96 @@ def run_checker(root: Path, layout: str = "auto") -> subprocess.CompletedProcess
     )
 
 
+def add_portable_manifest(root: Path) -> dict:
+    overlay = json.loads((root / ".codex-plugin/plugin.json").read_text())
+    portable = {key: value for key, value in overlay.items() if key != "interface"}
+    portable["$schema"] = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
+    portable["extensions"] = {"com.openai": {"interface": overlay["interface"]}}
+    (root / "plugin.json").write_text(json.dumps(portable), encoding="utf-8")
+    return portable
+
+
 class PluginCheckerTests(unittest.TestCase):
+    def test_matching_portable_manifest_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "example-plugin"
+            create_minimal_plugin(root, name="example-plugin")
+            add_portable_manifest(root)
+            result = run_checker(root)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_portable_identity_and_presentation_drift_fail(self) -> None:
+        for field, value in (("name", "other"), ("version", "9.0.0"),
+                             ("description", "Different purpose"),
+                             ("extensions", {"com.openai": {"interface": {}}})):
+            with self.subTest(field=field), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "example-plugin"
+                create_minimal_plugin(root, name="example-plugin")
+                portable = add_portable_manifest(root)
+                portable[field] = value
+                (root / "plugin.json").write_text(json.dumps(portable))
+                result = run_checker(root)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn("portable manifest", result.stdout)
+
+    def test_invalid_portable_manifest_fails(self) -> None:
+        for content in ("{", "[]", '{"$schema": "wrong"}'):
+            with self.subTest(content=content), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "example-plugin"
+                create_minimal_plugin(root, name="example-plugin")
+                (root / "plugin.json").write_text(content)
+                result = run_checker(root)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn("portable manifest", result.stdout)
+
+    def test_portable_cannot_use_legacy_component_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "example-plugin"
+            create_minimal_plugin(root, name="example-plugin")
+            portable = add_portable_manifest(root)
+            portable["skills"] = "./skills/"
+            (root / "plugin.json").write_text(json.dumps(portable))
+            result = run_checker(root)
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn("portable manifest", result.stdout)
+
+    def test_portable_schema_types_and_unknown_fields_are_rejected(self) -> None:
+        changes = ({"unknown": 1}, {"description": []}, {"author": "Someone"},
+                   {"author": {"name": 7}}, {"author": {"unknown": "field"}},
+                   {"keywords": [2]}, {"extensions": {"example.org": []}})
+        for change in changes:
+            with self.subTest(change=change), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "example-plugin"
+                create_minimal_plugin(root, name="example-plugin")
+                overlay_path = root / ".codex-plugin/plugin.json"
+                overlay = json.loads(overlay_path.read_text())
+                overlay.update(change)
+                overlay_path.write_text(json.dumps(overlay))
+                portable = add_portable_manifest(root)
+                portable.update(change)
+                (root / "plugin.json").write_text(json.dumps(portable))
+                result = run_checker(root)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn("portable manifest", result.stdout)
+
+    def test_portable_artwork_must_be_contained_regular_file(self) -> None:
+        for target in ("../outside.svg", "./missing.svg", "./linked.svg"):
+            with self.subTest(target=target), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary) / "example-plugin"
+                create_minimal_plugin(root, name="example-plugin")
+                outside = Path(temporary) / "outside.svg"
+                outside.write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+                if target == "./linked.svg":
+                    (root / "linked.svg").symlink_to(outside)
+                overlay_path = root / ".codex-plugin/plugin.json"
+                overlay = json.loads(overlay_path.read_text())
+                overlay["interface"]["logo"] = target
+                overlay_path.write_text(json.dumps(overlay))
+                add_portable_manifest(root)
+                result = run_checker(root)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn("portable manifest", result.stdout)
+
     def test_source_layout_passes(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary) / "project-delivery"

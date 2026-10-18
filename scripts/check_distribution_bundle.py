@@ -21,6 +21,7 @@ from safe_files import MAX_PAYLOAD_BYTES, read_bytes, read_text
 
 
 OPTIONAL_ROOT_FILES = {
+    "plugin.json",
     ".codexignore",
     "LICENSE",
     "LICENSE.md",
@@ -43,6 +44,12 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "iterating-pr-bot-fixes": 1,
+    "repo-consolidation": 1,
+    "conventional-commit": 1,
+    "simplify-code": 1,
+    "adversarial-audit": 1,
+    "web-research": 1,
     "build-multi-target-tauri-apps": 8,
     "semantic-versioning": 3,
     "conversation-visuals": 4,
@@ -227,7 +234,7 @@ def select_paths(root: Path) -> set[Path]:
 
     interface = manifest.get("interface", {})
     if isinstance(interface, dict):
-        for field in ("composerIcon", "logo"):
+        for field in ("composerIcon", "logo", "composerIconDark", "logoDark"):
             value = interface.get(field)
             if isinstance(value, str):
                 add_declared_path(root, selected, value)
