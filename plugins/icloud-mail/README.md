@@ -237,8 +237,8 @@ Body truncation flags still apply to each returned message.
 **Migration from 0.2.x:** `max_results` is removed from these public tools.
 Refresh tool discovery, remove that argument, and follow continuation tokens.
 Existing account configuration and message identifiers need no data migration.
-The marketplace advertises and installs version **0.3.0**, pinned to the immutable
-source commit containing this release's package. The `icloud-mail-v0.3.0` release
+The marketplace advertises and installs version **0.3.1**, pinned to the immutable
+source commit containing this release's package. The `icloud-mail-v0.3.1` release
 tag contains the same package files. Refresh and install through the marketplace:
 
 ```bash

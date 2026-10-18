@@ -63,6 +63,10 @@ browser isolation guarantee.
 - Logs and errors exclude authentication material.
 - Attachment reads are capped at 5 MiB of decoded data.
 - Full-message downloads are rejected above a 20 MiB MIME processing limit.
+- HTML-to-text conversion uses a forward-only tokenizer within the message-size
+  budget, suppresses script/style content, and checks the operation deadline.
+  Complete text is converted before result truncation or forwarding checks, so
+  later visible content is not silently lost by processing only an input prefix.
 - Collection tools return at most ten results per page. Stateless continuation
   tokens are scoped to the search and mailbox UIDVALIDITY or bounded discovery
   result. Tokens carry no bodies or credentials and grant no account access;
@@ -71,6 +75,10 @@ browser isolation guarantee.
   1,000-entry/512 KiB limits and thread responses retain their 2 MiB output limit.
   Short or empty filtered pages can still have a continuation token. Omitted
   oversized data and bounded discovery remain explicitly marked as truncated.
+- These are application processing and retention limits. Python's `imaplib`
+  collects provider-generated BODYSTRUCTURE, LIST, and SEARCH responses before
+  the corresponding checks; they are not transport-allocation budgets. The
+  connection uses the fixed Apple endpoint with certificate validation.
 - Tool results cap message bodies and attachment metadata.
 - Outgoing local-file attachments require explicit absolute paths, reject
   symbolic links, and are capped at 5 MiB each and 10 MiB total.
