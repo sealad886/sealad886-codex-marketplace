@@ -31,6 +31,9 @@ from route_canary_protocol import PUBLIC_RECEIPT
 from route_canary_protocol import RAW_HASH_METHOD
 from route_canary_protocol import TASK_PROMPT_PROTOCOL
 from route_canary_protocol import render_task_prompt
+from safe_files import MAX_CONTROL_BYTES, MAX_PAYLOAD_BYTES, MAX_TEXT_BYTES
+from safe_files import read_bytes as safe_read_bytes
+from safe_files import read_text as safe_read_text
 
 
 ALLOWED_CONDITIONAL_STATES = {
@@ -376,25 +379,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def read_regular_bytes(path: Path, label: str) -> tuple[bytes | None, list[str]]:
+def read_regular_bytes(
+    path: Path, label: str, *, root: Path | None = None,
+    max_bytes: int = MAX_CONTROL_BYTES,
+) -> tuple[bytes | None, list[str]]:
     """Read one immutable regular-file snapshot without following a final symlink."""
-    if path.is_symlink():
-        return None, [f"{label} must be a regular non-symlink file"]
-    descriptor: int | None = None
     try:
-        flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-        descriptor = os.open(path, flags)
-        metadata = os.fstat(descriptor)
-        if not stat.S_ISREG(metadata.st_mode):
-            os.close(descriptor)
-            descriptor = None
-            return None, [f"{label} must be a regular non-symlink file"]
-        with os.fdopen(descriptor, "rb") as handle:
-            descriptor = None
-            return handle.read(), []
+        return safe_read_bytes(path, root=root, max_bytes=max_bytes), []
     except OSError as error:
-        if descriptor is not None:
-            os.close(descriptor)
+        if "non-symlink" in str(error):
+            return None, [f"{label} must be a regular non-symlink file: {error}"]
         return None, [f"invalid {label}: {error}"]
 
 
@@ -431,8 +425,10 @@ def parse_json_bytes(
     return value, []
 
 
-def read_json(path: Path, label: str) -> tuple[dict[str, object] | None, list[str]]:
-    raw, errors = read_regular_bytes(path, label)
+def read_json(
+    path: Path, label: str, *, root: Path | None = None,
+) -> tuple[dict[str, object] | None, list[str]]:
+    raw, errors = read_regular_bytes(path, label, root=root)
     if raw is None:
         return None, errors
     return parse_json_bytes(raw, label)
@@ -614,7 +610,8 @@ def snapshot_installed_plugin(
             )
             continue
         raw, read_errors = read_regular_bytes(
-            entry, f"installed plugin file {relative.as_posix()}"
+            entry, f"installed plugin file {relative.as_posix()}",
+            root=installed_plugin_root, max_bytes=MAX_PAYLOAD_BYTES,
         )
         errors.extend(read_errors)
         if raw is not None:
@@ -1503,7 +1500,7 @@ def required_instruction_paths(
     skill_relative = Path("skills") / skill / "SKILL.md"
     skill_path = plugin_root / skill_relative
     try:
-        text = skill_path.read_text(encoding="utf-8")
+        text = safe_read_text(skill_path, root=plugin_root, max_bytes=MAX_TEXT_BYTES)
     except (OSError, UnicodeError) as error:
         return {skill_relative.as_posix()}, [
             f"loaded specialist {skill} instruction closure cannot be derived: {error}"
@@ -1511,17 +1508,19 @@ def required_instruction_paths(
     required = {skill_relative.as_posix()}
     errors: list[str] = []
     for reference in BACKTICKED_SHARED_REFERENCE.findall(text):
-        resolved = (skill_path.parent / reference).resolve()
+        resolved = Path(os.path.abspath(skill_path.parent / reference))
         try:
-            relative = resolved.relative_to(plugin_root.resolve())
+            relative = resolved.relative_to(plugin_root.absolute())
         except ValueError:
             errors.append(
                 f"loaded specialist {skill} instruction reference escapes the installed plugin: {reference}"
             )
             continue
-        if not resolved.is_file():
+        try:
+            safe_read_bytes(resolved, root=plugin_root, max_bytes=MAX_TEXT_BYTES)
+        except OSError as error:
             errors.append(
-                f"loaded specialist {skill} instruction reference does not exist: {relative.as_posix()}"
+                f"loaded specialist {skill} instruction reference cannot be read: {relative.as_posix()}: {error}"
             )
             continue
         required.add(relative.as_posix())
@@ -1576,7 +1575,7 @@ def validate_installed_identity(
 
     manifest_path = installed_plugin_root / ".codex-plugin" / "plugin.json"
     try:
-        manifest_bytes = manifest_path.read_bytes()
+        manifest_bytes = safe_read_bytes(manifest_path, root=installed_plugin_root)
         manifest = json_from_bytes(manifest_bytes)
     except (OSError, UnicodeError, json.JSONDecodeError, DuplicateJSONKey) as error:
         return errors + [f"installed plugin manifest cannot be inspected: {error}"]
@@ -1667,7 +1666,7 @@ def validate(
     receipts = receipts_snapshot
     if contracts is None:
         contracts, contract_errors = read_json(
-            root / "tests" / "route-contracts.json", "route contracts"
+            root / "tests" / "route-contracts.json", "route contracts", root=root
         )
         errors.extend(contract_errors)
     if receipts is None:
@@ -1675,6 +1674,11 @@ def validate(
         errors.extend(receipt_errors)
     if contracts is None or receipts is None:
         return errors, 0, "unknown"
+
+    if receipts.get("evidence_class") == FRESH_EVIDENCE_CLASS:
+        _, installed_errors = snapshot_installed_plugin(installed_plugin_root)
+        if installed_errors:
+            return errors + installed_errors, 0, FRESH_EVIDENCE_CLASS
 
     if contracts.get("schema_version") != 3:
         errors.append("route contracts must use schema version 3")
@@ -1691,7 +1695,7 @@ def validate(
     if evidence_class == HISTORICAL_EVIDENCE_CLASS:
         historical_contracts, historical_contract_errors = read_json(
             root / HISTORICAL_CONTRACT_FIXTURE,
-            "historical route contracts",
+            "historical route contracts", root=root,
         )
         errors.extend(historical_contract_errors)
         if historical_contracts is not None:
@@ -2035,8 +2039,10 @@ def validate(
         loaded_skills.add(skill)
         if skill not in available_skills:
             errors.append(f"loaded specialist is unknown: {skill}")
+            continue
         if relative_path != f"skills/{skill}/SKILL.md":
             errors.append(f"loaded specialist {skill} has an invalid relative path")
+            continue
         if state != "loaded":
             errors.append(f"loaded specialist {skill} was not successfully loaded")
         if is_fresh:
@@ -2050,7 +2056,9 @@ def validate(
             else:
                 skill_path = evidence_plugin_root / "skills" / skill / "SKILL.md"
                 try:
-                    expected_skill_sha256 = hashlib.sha256(skill_path.read_bytes()).hexdigest()
+                    expected_skill_sha256 = hashlib.sha256(safe_read_bytes(
+                        skill_path, root=evidence_plugin_root, max_bytes=MAX_TEXT_BYTES,
+                    )).hexdigest()
                 except OSError as error:
                     errors.append(f"loaded specialist {skill} cannot be hashed: {error}")
                 else:
@@ -2144,7 +2152,10 @@ def validate(
                         instruction_path = evidence_plugin_root / closure_path
                         try:
                             actual_sha = hashlib.sha256(
-                                instruction_path.read_bytes()
+                                safe_read_bytes(
+                                    instruction_path, root=evidence_plugin_root,
+                                    max_bytes=MAX_TEXT_BYTES,
+                                )
                             ).hexdigest()
                         except OSError as error:
                             errors.append(
@@ -2856,7 +2867,7 @@ def main(argv: list[str] | None = None) -> int:
     contract_path = root / "tests" / "route-contracts.json"
     checker_path = Path(__file__).absolute()
     contract_raw, contract_read_errors = read_regular_bytes(
-        contract_path, "route contracts"
+        contract_path, "route contracts", root=root
     )
     receipt_raw, receipt_read_errors = read_regular_bytes(
         receipt_path, "route receipts"
@@ -2890,7 +2901,10 @@ def main(argv: list[str] | None = None) -> int:
         errors.extend(installed_snapshot_errors)
     scenario_count = 0
     evidence_class = "unknown"
-    if contracts is not None and receipts is not None:
+    if (
+        contracts is not None and receipts is not None
+        and not (is_sealed_v3 and not args.allow_unattested_v3 and installed_snapshot is None)
+    ):
         semantic_errors, scenario_count, evidence_class = validate(
             root,
             receipt_path,

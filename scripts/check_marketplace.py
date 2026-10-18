@@ -12,6 +12,8 @@ import sys
 import time
 from pathlib import Path
 
+from safe_files import read_bytes, read_text
+
 
 MARKETPLACE_NAME = "sealad886-codex-marketplace"
 MARKETPLACE_DISPLAY_NAME = "sealad886 Codex Marketplace"
@@ -60,7 +62,7 @@ def safe_source_path(root: Path, value: object) -> tuple[Path | None, list[str]]
     resolved = (root / relative).resolve()
     if not resolved.is_relative_to(root):
         return None, [f"marketplace source.path resolves outside the repository: {value}"]
-    return resolved, []
+    return root / relative, []
 
 
 def is_immutable_ref(value: object) -> bool:
@@ -347,7 +349,7 @@ def validate_entry(
 
     manifest_path = plugin_root / ".codex-plugin" / "plugin.json"
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(read_text(manifest_path, root=root))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         errors.append(f"cannot read {label} target manifest: {error}")
         manifest = {}
@@ -386,7 +388,7 @@ def validate_entry(
 
     package_license = plugin_root / "LICENSE"
     try:
-        current_license_bytes = package_license.read_bytes()
+        current_license_bytes = read_bytes(package_license, root=root)
     except OSError as error:
         errors.append(f"cannot read {label} package license: {error}")
     else:
@@ -396,8 +398,8 @@ def validate_entry(
     if name == PROJECT_DELIVERY_PLUGIN_NAME:
         root_license = root / "LICENSE"
         try:
-            root_bytes = root_license.read_bytes()
-            package_bytes = package_license.read_bytes()
+            root_bytes = read_bytes(root_license, root=root)
+            package_bytes = read_bytes(package_license, root=root)
         except OSError as error:
             errors.append(f"cannot read required Project Delivery MIT license copy: {error}")
         else:
@@ -429,7 +431,7 @@ def validate_repository_marketplace(root: Path) -> list[str]:
     errors: list[str] = []
     marketplace_path = root / ".agents" / "plugins" / "marketplace.json"
     try:
-        marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
+        marketplace = json.loads(read_text(marketplace_path, root=root))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         return [f"cannot read repository marketplace: {error}"]
 
@@ -485,11 +487,13 @@ def main(argv: list[str] | None = None) -> int:
     if errors:
         print("\n".join(f"ERROR {error}" for error in errors))
         return 1
-    marketplace = json.loads(
-        (root / ".agents" / "plugins" / "marketplace.json").read_text(
-            encoding="utf-8"
+    try:
+        marketplace = json.loads(
+            read_text(root / ".agents" / "plugins" / "marketplace.json", root=root)
         )
-    )
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        print(f"ERROR cannot read repository marketplace: {error}")
+        return 1
     project_delivery_entry = next(
         entry
         for entry in marketplace["plugins"]

@@ -17,6 +17,7 @@ import uuid
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from check_plugin import validate
+from safe_files import MAX_PAYLOAD_BYTES, read_bytes, read_text
 
 
 OPTIONAL_ROOT_FILES = {
@@ -144,7 +145,7 @@ def add_local_python_mcp_dependencies(
         raise ValueError(f"local MCP config contains non-standard JSON constant: {value}")
 
     config = json.loads(
-        config_path.read_text(encoding="utf-8"),
+        read_text(config_path, root=root),
         parse_constant=reject_nonstandard_constant,
     )
     if not isinstance(config, dict):
@@ -200,7 +201,7 @@ def add_local_python_mcp_dependencies(
 
 def select_paths(root: Path) -> set[Path]:
     manifest_path = root / ".codex-plugin" / "plugin.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(read_text(manifest_path, root=root))
     if not isinstance(manifest, dict):
         raise ValueError("plugin manifest must contain an object")
     selected = {Path(".codex-plugin/plugin.json")}
@@ -242,7 +243,7 @@ def payload_sha256(root: Path, relative_paths: list[Path]) -> str:
     digest = hashlib.sha256()
     for relative in relative_paths:
         encoded_path = relative.as_posix().encode("utf-8")
-        contents = (root / relative).read_bytes()
+        contents = read_bytes(root / relative, root=root, max_bytes=MAX_PAYLOAD_BYTES)
         digest.update(len(encoded_path).to_bytes(8, "big"))
         digest.update(encoded_path)
         digest.update(len(contents).to_bytes(8, "big"))
@@ -252,7 +253,7 @@ def payload_sha256(root: Path, relative_paths: list[Path]) -> str:
 
 def read_plugin_name(root: Path) -> str:
     manifest_path = root / ".codex-plugin" / "plugin.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(read_text(manifest_path, root=root))
     if not isinstance(manifest, dict):
         raise ValueError("plugin manifest must contain an object")
     plugin_name = manifest.get("name")
@@ -274,7 +275,9 @@ def copy_selected(root: Path, destination: Path, selected: list[Path]) -> None:
         source = root / relative
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, target)
+        contents = read_bytes(source, root=root, max_bytes=MAX_PAYLOAD_BYTES)
+        target.write_bytes(contents)
+        shutil.copystat(source, target, follow_symlinks=False)
 
 
 def expected_directories(relative_paths: list[Path] | set[Path]) -> set[Path]:
@@ -413,7 +416,10 @@ def build_runtime_closure(root: Path, destination: Path) -> tuple[list[str], lis
     errors.extend(validate_source_boundary(root, selected, forbidden_parts))
     if errors:
         return errors, selected, ""
-    copy_selected(root, destination, selected)
+    try:
+        copy_selected(root, destination, selected)
+    except OSError as error:
+        return [f"cannot read runtime closure source: {error}"], selected, ""
     errors.extend(
         validate_distribution_tree(
             destination,
@@ -454,7 +460,7 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
 
     manifest_path = output / ".codex-plugin" / "plugin.json"
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(read_text(manifest_path, root=output))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         errors.append(f"refusing to replace output with unreadable identity: {error}")
     else:
