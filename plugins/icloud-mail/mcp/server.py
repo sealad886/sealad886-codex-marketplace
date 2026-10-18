@@ -3371,16 +3371,26 @@ def _html_to_text(value: str) -> str:
         name = value[name_start:min(name_end, name_start + 8)].lower()
         end = name_end
         quote = ""
+        attribute_state = "name"
         while end < length:
             character = value[end]
             check_budget(end)
             if quote:
                 if character == quote:
                     quote = ""
-            elif character in "\"'":
-                quote = character
             elif character == ">":
                 break
+            elif attribute_state == "unquoted":
+                if character in " \t\r\n\f":
+                    attribute_state = "name"
+            elif attribute_state == "value":
+                if character in "\"'":
+                    quote = character
+                    attribute_state = "name"
+                elif character not in " \t\r\n\f":
+                    attribute_state = "unquoted"
+            elif character == "=":
+                attribute_state = "value"
             end += 1
         if end == length:
             # An unfinished token is literal text outside raw-text elements.

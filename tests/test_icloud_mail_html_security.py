@@ -80,6 +80,15 @@ with mock.patch.object(server, "_imap"), mock.patch.object(
                     "Visible",
                 )
 
+    def test_quotes_in_unquoted_attributes_preserve_visible_text(self) -> None:
+        for markup in (
+            "<img alt=Don't src=x><p>Visible</p>",
+            "<img alt=Don't src=x><p title='later'>Visible</p>",
+            "<img data-note=foo='bar src=x><p>Visible</p>",
+        ):
+            with self.subTest(markup=markup):
+                self.assertEqual(server._html_to_text(markup), "Visible")
+
     def test_conversion_rejects_input_outside_message_budget(self) -> None:
         with mock.patch.object(server, "MAX_MESSAGE_BYTES", 1024):
             with self.assertRaises(server.MailError):
