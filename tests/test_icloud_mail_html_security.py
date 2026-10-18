@@ -110,6 +110,17 @@ with mock.patch.object(server, "_imap"), mock.patch.object(
                     "VisibleImportant' >Tail",
                 )
 
+    def test_malformed_end_tag_tokens_are_not_visible_text(self) -> None:
+        for token in ("</>", "</3 secret>", "</?hidden>"):
+            with self.subTest(token=token):
+                self.assertEqual(server._html_to_text(f"Visible{token}Tail"), "VisibleTail")
+        self.assertEqual(server._html_to_text("Visible</3 unfinished"), "Visible")
+
+    def test_literal_angle_brackets_and_unfinished_end_opener_remain_text(self) -> None:
+        for text in ("1 < 3 and 5 > 4", "Visible</"):
+            with self.subTest(text=text):
+                self.assertEqual(server._html_to_text(text), text)
+
     def test_conversion_rejects_input_outside_message_budget(self) -> None:
         with mock.patch.object(server, "MAX_MESSAGE_BYTES", 1024):
             with self.assertRaises(server.MailError):

@@ -3375,6 +3375,16 @@ def _html_to_text(value: str) -> str:
             text_start = cursor
             continue
 
+        if closing and name_start < length and not (
+            value[name_start].isascii() and value[name_start].isalpha()
+        ):
+            # Empty/invalid end-tag openers are discarded as non-element markup.
+            text.write(value[text_start:opening])
+            end = value.find(">", name_start)
+            cursor = length if end < 0 else end + 1
+            text_start = cursor
+            continue
+
         if (
             name_start >= length or not value[name_start].isascii()
             or not value[name_start].isalpha()
