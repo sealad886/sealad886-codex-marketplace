@@ -83,4 +83,9 @@ jobs:
         run: python3 plugins/icloud-mail/mcp/server.py --self-test
 
       - name: Run validator regression tests
+        env:
+          # Fixture commits must not leave detached writers racing temp cleanup.
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: maintenance.auto
+          GIT_CONFIG_VALUE_0: "false"
         run: python3 -m unittest discover -s tests -p 'test_*.py' -v

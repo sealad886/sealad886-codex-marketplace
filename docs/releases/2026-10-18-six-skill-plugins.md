@@ -55,6 +55,9 @@ tests. Disposable fixture commits used process-only `commit.gpgsign=false` and
 unchanged. An earlier cleanup-only failure was traced to detached Git maintenance
 recreating a temporary fixture directory. A traced targeted run with maintenance
 disabled observed no maintenance child and passed; the full rerun passed.
+The first hosted run reproduced the same cleanup-only race on Linux. CI now
+sets `maintenance.auto=false` only for the regression-test step, preventing
+detached fixture writers without changing repository or runner Git settings.
 
 ## Native candidate consumption
 
