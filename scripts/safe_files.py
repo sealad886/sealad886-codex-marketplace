@@ -25,7 +25,13 @@ def read_bytes(
     Nonblocking open lets fstat reject FIFOs before any blocking read.
     """
     path = path.absolute()
-    selected_root = (root if root is not None else path.parent).absolute()
+    if root is None:
+        # The caller selected a file, so parent aliases such as /tmp are valid.
+        # Retain the original final component for no-follow descriptor open.
+        selected_root = path.parent.resolve()
+        path = selected_root / path.name
+    else:
+        selected_root = root.absolute()
     if selected_root.is_symlink():
         raise OSError(f"regular non-symlink directory required: {selected_root}")
     try:

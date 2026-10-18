@@ -25,6 +25,19 @@ from safe_files import MAX_CONTROL_BYTES, MAX_PAYLOAD_BYTES, read_bytes
 
 
 class ValidatorFileSafetyTests(unittest.TestCase):
+    def test_implicit_parent_alias_keeps_final_component_no_follow(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            directory = root / "actual"
+            directory.mkdir()
+            (directory / "receipt.json").write_bytes(b"{}")
+            alias = root / "alias"
+            alias.symlink_to(directory, target_is_directory=True)
+            self.assertEqual(read_bytes(alias / "receipt.json"), b"{}")
+            (directory / "linked.json").symlink_to(directory / "receipt.json")
+            with self.assertRaises(OSError):
+                read_bytes(alias / "linked.json")
+
     def test_regular_plugin_accepts_universal_text_newlines(self) -> None:
         for newline in (b"\r\n", b"\r"):
             with self.subTest(newline=newline), tempfile.TemporaryDirectory() as temporary:
