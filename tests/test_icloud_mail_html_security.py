@@ -89,6 +89,27 @@ with mock.patch.object(server, "_imap"), mock.patch.object(
             with self.subTest(markup=markup):
                 self.assertEqual(server._html_to_text(markup), "Visible")
 
+    def test_unknown_tag_names_do_not_enter_special_text_states(self) -> None:
+        for name in ("script.foo", "style.foo", "br.foo", "p.foo", "div.foo"):
+            with self.subTest(name=name):
+                self.assertEqual(
+                    server._html_to_text(f"<{name}>Visible</{name}><p>Tail</p>"),
+                    "VisibleTail",
+                )
+
+    def test_abrupt_and_bang_comment_endings_preserve_visible_tail(self) -> None:
+        for comment in ("<!-->", "<!--->", "<!-- --!>", "<!-- ordinary -->"):
+            with self.subTest(comment=comment):
+                self.assertEqual(server._html_to_text(f"Visible{comment}Tail"), "VisibleTail")
+
+    def test_bogus_comments_end_at_first_angle_bracket(self) -> None:
+        for token in ("<?xml", "<!unknown"):
+            with self.subTest(token=token):
+                self.assertEqual(
+                    server._html_to_text(f"Visible{token} note='>Important' >Tail"),
+                    "VisibleImportant' >Tail",
+                )
+
     def test_conversion_rejects_input_outside_message_budget(self) -> None:
         with mock.patch.object(server, "MAX_MESSAGE_BYTES", 1024):
             with self.assertRaises(server.MailError):

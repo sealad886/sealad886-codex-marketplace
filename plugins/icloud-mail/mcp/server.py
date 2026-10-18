@@ -3347,23 +3347,42 @@ def _html_to_text(value: str) -> str:
                 continue
         elif value.startswith("<!--", opening):
             text.write(value[text_start:opening])
-            end = value.find("-->", opening + 4)
-            cursor = length if end < 0 else end + 3
+            end = opening + 4
+            # Abrupt empty comments and the comment-end-bang state also close
+            # the token. Scan once so a missing terminator cannot cause retries.
+            if value.startswith(">", end):
+                end += 1
+            elif value.startswith("->", end):
+                end += 2
+            else:
+                while end < length:
+                    check_budget(end)
+                    if value.startswith("-->", end):
+                        end += 3
+                        break
+                    if value.startswith("--!>", end):
+                        end += 4
+                        break
+                    end += 1
+            cursor = end
+            text_start = cursor
+            continue
+        elif value.startswith(("<!", "<?"), opening):
+            # Non-element markup does not have HTML attribute quote states.
+            text.write(value[text_start:opening])
+            end = value.find(">", opening + 2)
+            cursor = length if end < 0 else end + 1
             text_start = cursor
             continue
 
-        declaration = value.startswith(("<!", "<?"), opening)
-        if not declaration and (
+        if (
             name_start >= length or not value[name_start].isascii()
             or not value[name_start].isalpha()
         ):
             cursor = opening + 1
             continue
         name_end = name_start
-        while name_end < length and (
-            value[name_end].isascii() and value[name_end].isalnum()
-            or value[name_end] in ":-"
-        ):
+        while name_end < length and value[name_end] not in " \t\r\n\f/>":
             name_end += 1
             check_budget(name_end)
         # Only short known names affect rendering; unknown tags still consume
