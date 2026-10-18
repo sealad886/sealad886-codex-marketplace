@@ -1,0 +1,7 @@
+interface:
+  display_name: "Web Research"
+  short_description: "Research with clear sources"
+  brand_color: "#245DA8"
+  default_prompt: "Use $web-research:web-research to investigate this question, read supporting sources, and produce a concise cited brief with dates, applicability, and unresolved gaps."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Conventional Commit"
+  short_description: "Commit focused Git changes"
+  brand_color: "#157862"
+  default_prompt: "Use $conventional-commit:conventional-commit to create focused local commits while preserving excluded work and existing staging."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

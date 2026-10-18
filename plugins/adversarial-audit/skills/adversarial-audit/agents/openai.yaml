@@ -1,0 +1,7 @@
+interface:
+  display_name: "Adversarial Audit"
+  short_description: "Audit with evidence"
+  brand_color: "#8D3D9E"
+  default_prompt: "Use $adversarial-audit:adversarial-audit to assess this system, establish audit or remediation scope, and report evidence-backed findings and coverage limits."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

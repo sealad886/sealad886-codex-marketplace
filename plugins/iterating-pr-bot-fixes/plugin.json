@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "iterating-pr-bot-fixes",
+  "version": "0.1.0",
+  "description": "Drive scoped GitHub pull requests through explicit review rounds, verified merge gates, and careful task cleanup.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/iterating-pr-bot-fixes",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "pull-request",
+    "review",
+    "copilot",
+    "git"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Iterating PR Bot Fixes",
+        "shortDescription": "Review, repair, integrate",
+        "longDescription": "Review source preflight, root-cause investigation, up to ten repair rounds, attributable Copilot unavailability, final-revision verification, and guarded integration without hidden plugin dependencies.",
+        "developerName": "Andrew Cox",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Drive this identified pull request through review, scoped fixes, gated merge, and eligible task cleanup.",
+          "Review this pull request and repair in-scope findings without pushing or merging."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg",
+        "brandColor": "#2459A6",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/iterating-pr-bot-fixes"
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "adversarial-audit",
+  "version": "0.1.0",
+  "description": "Audit correctness, performance, tests, and operational contracts, then verify fixes when remediation is authorized.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/adversarial-audit",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "audit",
+    "correctness",
+    "performance",
+    "verification",
+    "remediation"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Adversarial Audit",
+        "shortDescription": "Audit with evidence",
+        "longDescription": "An evidence-driven audit workflow with explicit assessment and remediation modes, ranked findings, a live evidence ledger, and verification matched to the system and available capabilities.",
+        "developerName": "Andrew Cox",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Interactive",
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Audit this system for concrete correctness, performance, and contract risks without changing source.",
+          "Audit and fix the accepted in-scope defects, with fresh evidence for each remediation."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg",
+        "brandColor": "#8D3D9E",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/adversarial-audit"
+      }
+    }
+  }
+}
