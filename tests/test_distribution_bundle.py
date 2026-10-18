@@ -18,6 +18,7 @@ CHECKER = REPOSITORY_ROOT / "scripts" / "check_distribution_bundle.py"
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
 from check_distribution_bundle import materialize_runtime_closure  # noqa: E402
+from test_validation import add_portable_manifest, create_minimal_plugin
 
 
 UNIVERSAL_FORBIDDEN_PARTS = {
@@ -58,6 +59,58 @@ def write_mcp_server(source: Path, server: object) -> None:
 
 
 class DistributionBundleTests(unittest.TestCase):
+    def test_portable_manifest_survives_distribution(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source/example-plugin"
+            create_minimal_plugin(source, name="example-plugin")
+            overlay_path = source / ".codex-plugin/plugin.json"
+            overlay = json.loads(overlay_path.read_text())
+            overlay["skills"] = "./skills/"
+            overlay_path.write_text(json.dumps(overlay))
+            portable = add_portable_manifest(source)
+            portable.pop("skills")
+            (source / "plugin.json").write_text(json.dumps(portable))
+            output = Path(temporary) / "dist/example-plugin"
+            result = run_checker("--output", str(output), root=source)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual((source / "plugin.json").read_bytes(),
+                             (output / "plugin.json").read_bytes())
+            self.assertTrue((output / "skills/sample/SKILL.md").is_file())
+
+    def test_single_skill_plugin_rejects_an_extra_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conventional-commit"
+            create_minimal_plugin(source, name="conventional-commit")
+            overlay_path = source / ".codex-plugin/plugin.json"
+            overlay = json.loads(overlay_path.read_text())
+            overlay["skills"] = "./skills/"
+            overlay_path.write_text(json.dumps(overlay))
+            shutil.copytree(source / "skills/sample", source / "skills/extra")
+            result = run_checker(root=source)
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn("must contain 1 skills", result.stdout)
+
+    def test_dark_artwork_is_included_in_distribution(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source/example-plugin"
+            create_minimal_plugin(source, name="example-plugin")
+            overlay_path = source / ".codex-plugin/plugin.json"
+            overlay = json.loads(overlay_path.read_text())
+            overlay["skills"] = "./skills/"
+            overlay["interface"]["logoDark"] = "./dark.svg"
+            overlay["interface"]["composerIconDark"] = "./dark-composer.svg"
+            overlay_path.write_text(json.dumps(overlay))
+            for name in ("dark.svg", "dark-composer.svg"):
+                (source / name).write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+            portable = add_portable_manifest(source)
+            portable.pop("skills")
+            (source / "plugin.json").write_text(json.dumps(portable))
+            output = Path(temporary) / "dist/example-plugin"
+            result = run_checker("--output", str(output), root=source)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for name in ("dark.svg", "dark-composer.svg"):
+                self.assertEqual((source / name).read_bytes(), (output / name).read_bytes())
+
     def test_project_delivery_package_still_validates(self) -> None:
         result = run_checker()
 

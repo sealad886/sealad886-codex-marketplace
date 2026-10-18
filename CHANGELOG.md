@@ -3,6 +3,35 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Standalone workflow plugins 0.1.0 - 2026-10-18
+
+### Added
+
+- Iterating PR Bot Fixes `0.1.0`: bounded review rounds, attributable reviewer
+  outcomes, scoped root-cause fixes, merge gates, and verified cleanup.
+- Repository Consolidation `0.1.0`: complete source accounting, preservation,
+  serial PR integration, destination verification, and eligible cleanup.
+- Conventional Commit `0.1.0`: selective commit grouping, preservation of
+  unrelated index and working-tree content, and explicit cleanup controls.
+- Simplify Code `0.1.0`: behavior-preserving removal of unnecessary layers,
+  canonical shared ownership, and verification of dynamic and public consumers.
+- Adversarial Audit `0.1.0`: evidence-backed finding validation, proportional
+  specialist investigation, and an authorized remediation loop.
+- Web Research `0.1.0`: source evaluation, dated and version-aware evidence,
+  adjacent citations, independent corroboration, and explicit uncertainty.
+- Each package exposes one independently usable skill, with contained
+  references, original artwork, display metadata, catalog discovery, and
+  pinned hosted security scanning.
+
+### Changed
+
+- New workflow packages include portable Agent Plugins 1.0 root manifests and
+  matching Codex overlays. Existing plugin layouts remain supported; the
+  standalone source skills are not modified or automatically replaced.
+- Package validators check portable manifest agreement and retain root
+  manifests in exact distribution payloads. CI validates source and distribution
+  structure for every catalog package while retaining specialized checks.
+
 ## MLX Optimizer 0.2.5 - 2026-10-18
 
 ### Security

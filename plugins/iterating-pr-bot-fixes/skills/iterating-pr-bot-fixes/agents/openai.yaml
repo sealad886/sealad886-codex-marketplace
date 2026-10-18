@@ -1,0 +1,7 @@
+interface:
+  display_name: "Iterating PR Bot Fixes"
+  short_description: "Review, repair, integrate"
+  brand_color: "#2459A6"
+  default_prompt: "Use $iterating-pr-bot-fixes:iterating-pr-bot-fixes to review, repair, and integrate the identified PR with verified merge and cleanup."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

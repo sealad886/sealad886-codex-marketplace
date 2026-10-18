@@ -4,7 +4,7 @@
 [![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Tools for planning and shipping software, managing releases, working with visuals, managing iCloud email, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
+Tools for planning and shipping software, reviewing and consolidating Git work, simplifying code, researching the web, managing releases and iCloud email, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
 
 ## Plugins
 
@@ -44,6 +44,42 @@ Build, debug, test and prepare Tauri 2 apps across Windows, Linux, macOS, iOS an
 
 **Initial package:** `0.1.0` · [Guide and target requirements](plugins/build-multi-target-tauri-apps/README.md)
 
+### [Iterating PR Bot Fixes](plugins/iterating-pr-bot-fixes/README.md)
+
+Drive a GitHub pull request through bounded review and fix rounds, with explicit reviewer outcomes, root-cause investigation, current-revision evidence, merge gates, and verified cleanup. Configured reviewers remain separate from CI and required approvals.
+
+**Initial release:** `0.1.0` · [Guide and review workflow](plugins/iterating-pr-bot-fixes/README.md)
+
+### [Repository Consolidation](plugins/repo-consolidation/README.md)
+
+Account for branches, worktrees, stashes, and unfinished changes before integrating outstanding work through focused PRs in series. Preserve excluded or uncertain work, verify destination coverage, and remove only eligible merged sources.
+
+**Initial release:** `0.1.0` · [Guide and preservation rules](plugins/repo-consolidation/README.md)
+
+### [Conventional Commit](plugins/conventional-commit/README.md)
+
+Turn selected working-tree changes into coherent Conventional Commits while preserving unrelated staged, unstaged, and untracked work. Includes precise grouping, verification, signing and hook handling, and explicitly requested cleanup.
+
+**Initial release:** `0.1.0` · [Guide and commit safety](plugins/conventional-commit/README.md)
+
+### [Simplify Code](plugins/simplify-code/README.md)
+
+Remove unnecessary indirection and obsolete code, consolidate shared rules at their proper owner, and refactor callers together. Preserve required behavior and check dynamic entrypoints and external consumers before deleting code.
+
+**Initial release:** `0.1.0` · [Guide and refactoring examples](plugins/simplify-code/README.md)
+
+### [Adversarial Audit](plugins/adversarial-audit/README.md)
+
+Investigate correctness, performance, resource use, tests, contracts, and operational risks with reproducible evidence. Keep finding validity separate from remediation status, and drive authorized fixes through verification and independent review.
+
+**Initial release:** `0.1.0` · [Guide and evidence ledger](plugins/adversarial-audit/README.md)
+
+### [Web Research](plugins/web-research/README.md)
+
+Produce focused research briefs from authoritative sources, with citations beside claims, version and date context, independent corroboration, and explicit uncertainty. Read source material and distinguish evidence from inference.
+
+**Initial release:** `0.1.0` · [Guide and source evaluation](plugins/web-research/README.md)
+
 ## Install
 
 Add the marketplace once:
@@ -66,6 +102,12 @@ codex plugin add mlx-optimizer@sealad886-codex-marketplace
 codex plugin add conversation-visuals@sealad886-codex-marketplace
 codex plugin add icloud-mail@sealad886-codex-marketplace
 codex plugin add build-multi-target-tauri-apps@sealad886-codex-marketplace
+codex plugin add iterating-pr-bot-fixes@sealad886-codex-marketplace
+codex plugin add repo-consolidation@sealad886-codex-marketplace
+codex plugin add conventional-commit@sealad886-codex-marketplace
+codex plugin add simplify-code@sealad886-codex-marketplace
+codex plugin add adversarial-audit@sealad886-codex-marketplace
+codex plugin add web-research@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.

@@ -83,6 +83,78 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools"
+    },
+    {
+      "name": "iterating-pr-bot-fixes",
+      "source": {
+        "source": "local",
+        "path": "./plugins/iterating-pr-bot-fixes"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "repo-consolidation",
+      "source": {
+        "source": "local",
+        "path": "./plugins/repo-consolidation"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "conventional-commit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/conventional-commit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "simplify-code",
+      "source": {
+        "source": "local",
+        "path": "./plugins/simplify-code"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "adversarial-audit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/adversarial-audit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "web-research",
+      "source": {
+        "source": "local",
+        "path": "./plugins/web-research"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Repository Consolidation"
+  short_description: "Reconcile scattered Git work"
+  brand_color: "#6B439A"
+  default_prompt: "Use $repo-consolidation:repo-consolidation to inventory this repository and reconcile outstanding work within my requested limits."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
