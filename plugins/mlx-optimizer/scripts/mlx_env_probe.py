@@ -111,6 +111,8 @@ def child_probe() -> dict:
 
 
 def run_child(python_executable: Path) -> dict:
+    # Keep the selected venv path intact: resolving its symlink loses venv identity.
+    python_executable = python_executable.absolute()
     if not python_executable.exists():
         return probe_failed(
             python_executable,
@@ -123,14 +125,16 @@ def run_child(python_executable: Path) -> dict:
             "Choose an executable Python path, preferably inside the target repo .venv.",
             error="Python path exists but is not executable.",
         )
+    script_path = Path(__file__).resolve()
     code = (
         "import json, runpy; "
-        f"module = runpy.run_path({str(Path(__file__).resolve())!r}); "
+        f"module = runpy.run_path({str(script_path)!r}); "
         "print(json.dumps(module['child_probe'](), sort_keys=True))"
     )
     try:
         result = subprocess.run(
-            [str(python_executable), "-c", code],
+            [str(python_executable), "-I", "-c", code],
+            cwd=script_path.parent,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

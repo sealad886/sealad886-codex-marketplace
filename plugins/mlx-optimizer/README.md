@@ -69,18 +69,27 @@ Decide whether this bottleneck justifies a custom Metal kernel.
 
 - `scripts/mlx_audit.py` scans Python sources for candidate synchronization,
   evaluation, and benchmark-boundary problems without modifying target code.
+  It accepts regular source files up to 2 MiB each and reports unreadable,
+  oversized, symlinked, or non-regular sources as `read-error` candidates.
 - `scripts/mlx_env_probe.py` reports repository-local Python, MLX, Metal,
   device, and memory-API evidence.
 - `scripts/mlx_benchmark_template.py` supplies warmup, synchronization,
   correctness, memory, repeated-run, JSON, and progress-reporting hooks.
 
-Run scripts through the target repository's `.venv` Python. For example:
+Use a trusted Python interpreter for static inspection. The environment probe
+executes the selected interpreter and imports its installed MLX package, so trust
+that environment before probing it. Its child uses Python isolated mode, ignores
+the caller's working directory and `PYTHONPATH`, and preserves the selected
+virtual environment. For example:
 
 ```bash
-.venv/bin/python /path/to/mlx_audit.py . --format markdown
-.venv/bin/python /path/to/mlx_env_probe.py . --format json
+python3 -I /path/to/mlx_audit.py . --format markdown
+python3 -I /path/to/mlx_env_probe.py . --python .venv/bin/python --format json
 .venv/bin/python /path/to/mlx_benchmark_template.py --runs 5 --warmup 2 --format json
 ```
+
+The benchmark executes the selected workload; run it only in a trusted project
+environment. Static auditing does not import the inspected project.
 
 ## Package boundary
 
