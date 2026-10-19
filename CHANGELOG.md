@@ -3,6 +3,14 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Conventional Commit 0.1.1 - 2026-10-19
+
+### Fixed
+
+- Use the installed namespaced skill in direct cleanup examples, matching the
+  plugin's starter prompt and guide after standalone-skill removal.
+- Clarify local and cloud installation and execution requirements in the guide.
+
 ## Standalone workflow plugins 0.1.0 - 2026-10-18
 
 ### Added

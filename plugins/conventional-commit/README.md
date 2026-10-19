@@ -1,6 +1,6 @@
 # Conventional Commit
 
-Version **0.1.0**. One standalone skill for inspecting dirty Git work, selecting
+Version **0.1.1**. One standalone skill for inspecting dirty Git work, selecting
 coherent changes, and creating verified local Conventional Commits while
 preserving excluded bytes and staging.
 
@@ -22,6 +22,11 @@ codex plugin add conventional-commit@sealad886-codex-marketplace
 
 Start a fresh task after installation. The root Agent Plugins 1.0 manifest also
 supports clients that discover portable skills from `skills/`.
+
+This instruction-only plugin supports local and cloud tasks. It does not require
+a local executor or bundled server. The selected environment still needs access
+to the repository, Git, validation tools, and any required credentials. Account
+installation provides the cloud copy; the CLI command above installs locally.
 
 Example requests:
 

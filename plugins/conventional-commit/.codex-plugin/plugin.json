@@ -1,6 +1,6 @@
 {
   "name": "conventional-commit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Inspect dirty Git work, preserve excluded changes and staging, and create coherent verified Conventional Commits.",
   "author": {
     "name": "Andrew Cox",
