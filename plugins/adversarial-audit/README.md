@@ -1,6 +1,6 @@
 # Adversarial Audit
 
-Version: **0.1.0**. One self-contained skill for finding consequential correctness,
+Version: **0.2.0**. One self-contained skill for finding consequential correctness,
 performance, resource, testing, contract, and operational defects with evidence.
 
 [The adversarial-audit skill](skills/adversarial-audit/SKILL.md) distinguishes an
@@ -18,10 +18,16 @@ codex plugin add adversarial-audit@sealad886-codex-marketplace
 
 Example requests:
 
-- "Audit this repository's import pipeline for correctness and memory risks;
-  report findings without changing source."
-- "Audit and fix the accepted in-scope retry and recovery defects, and verify
-  the corrected behavior with representative inputs."
+- "$adversarial-audit:adversarial-audit Audit this repository's import pipeline
+  for correctness and memory risks; report findings without changing source."
+- "$adversarial-audit:adversarial-audit Design and run bounded interruption and
+  retry checks on disposable import data against its documented at-least-once
+  delivery contract; report recovery evidence without editing source."
+- "$adversarial-audit:adversarial-audit Assess this converter using an independent
+  reference and justified metamorphic properties. Define comparison tolerances
+  first and investigate disagreements before calling them defects."
+- "$adversarial-audit:adversarial-audit Audit and fix the accepted in-scope retry
+  and recovery defects, and verify corrected behavior with representative inputs."
 
 Provide the target, important contracts, environment, allowed checks, and whether
 implementation is included. The skill uses available repository/host search,
@@ -36,6 +42,15 @@ The [audit method](skills/adversarial-audit/references/audit-method.md),
 proof, changes, and unresolved work together. Missing runtime or provider access
 is a coverage limit, not a clean result. Audit invocation does not authorize
 commits, worktrees, external publication, deployment, or deleting user data.
+
+Use [failure experiments](skills/adversarial-audit/references/failure-experiments.md)
+for credible duplicate/reordered delivery, ambiguous retry, partial checkpoint,
+cancellation, truncated input, and restart paths. Each check has an accepted
+contract, disposable fixture, resource cap, cleanup owner, and stop condition.
+[Oracles and properties](skills/adversarial-audit/references/oracles-and-properties.md)
+cover independent references, accepted historical checks, round trips, and
+justified conservation, order, monotonicity, or bounded-error relations. A
+round trip supports consistency; it does not establish ground truth.
 
 See [security and authority boundaries](SECURITY.md). This instruction package
 guides the host agent; it does not add a sandbox, scanner, or tool permissions.

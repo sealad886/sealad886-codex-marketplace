@@ -21,6 +21,17 @@ unavailable evidence stays explicitly unavailable.
 Distinguish planned checks from executed results. Record relevant dates, exit
 status, input identities, and stable redacted evidence locations.
 
+For failure experiments or comparisons, extend the relevant evidence entry with
+only the applicable details; keep them in this ledger:
+
+- Accepted contract, operation, input scope/identity, and disposable fixture.
+- Initial durable state, interruption point, and required recovery invariant.
+- Oracle provenance/revision and independence limits; justified property or
+  relation, normalization, and tolerance defined before comparison.
+- Resource/time cap, cleanup owner, and stop conditions.
+- Observed durable/recovered state and comparison result; synthetic versus real
+  evidence, disagreements, and unproved assumptions.
+
 ## Findings
 
 ### AUD-001 — Concrete failure
