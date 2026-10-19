@@ -1,6 +1,6 @@
 # Simplify Code
 
-Version: **0.1.0**. One skill for removing unnecessary layers and obsolete source,
+Version: **0.2.0**. One skill for removing unnecessary layers and obsolete source,
 centralizing shared rules, and making required behavior easier to understand.
 
 [The simplify-code skill](skills/simplify-code/SKILL.md) traces ownership through
@@ -20,6 +20,10 @@ Example requests:
 - "Deduplicate the repeated validation rule in this feature without merging
   caller-specific policy."
 - "Review this change for unnecessary complexity; propose improvements without editing."
+- "Use $simplify-code:simplify-code to simplify these interacting flags while
+  preserving cancellation, cleanup, and the accepted state transitions."
+- "Use $simplify-code:simplify-code to move the proven callers to this canonical
+  API, preview the migration cohort, and report any uncertain dynamic consumers."
 
 Provide the target and required behavior. An implementation request includes
 verified obsolete-source deletion within that scope; a review request stays
@@ -32,6 +36,15 @@ runtime dependency, or required sibling plugin. Available code intelligence is
 optional. See [boundary checks](skills/simplify-code/references/refactoring-checks.md),
 [worked examples](skills/simplify-code/references/worked-examples.md), and
 [security and authority boundaries](SECURITY.md).
+
+For state-heavy code, the [state/control-flow guide](skills/simplify-code/references/state-and-control-flow.md)
+uses reachable states and evaluation order to distinguish redundant state from
+necessary lifecycle information. The [migration guide](skills/simplify-code/references/mechanical-migrations.md)
+defines eligible callers, previews representative changes, and verifies the
+remaining consumers and repeat-run behavior. An optional
+[refactor evidence sheet](skills/simplify-code/templates/refactor-evidence.md)
+keeps multi-slice work resumable. These workflows use the tools available in a
+local or cloud task; no rewrite engine or new runtime is bundled.
 
 ## Package validation
 

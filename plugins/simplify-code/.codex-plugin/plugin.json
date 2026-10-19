@@ -1,6 +1,6 @@
 {
   "name": "simplify-code",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Remove unnecessary layers and obsolete code, centralize shared rules, and verify the behavior that must survive.",
   "author": {
     "name": "Andrew Cox",
