@@ -1,6 +1,6 @@
 # Iterating PR Bot Fixes
 
-Version **0.1.0**. One standalone skill for taking an identified GitHub pull
+Version **0.2.0**. One standalone skill for taking an identified GitHub pull
 request through bounded review, scoped repairs, verified integration, and
 eligible task cleanup.
 
@@ -15,6 +15,12 @@ Copilot's attributable cannot-run response can be recorded as `explicit
 unavailable`, with no review coverage from that attempt. This never substitutes
 for independent review or overrides an explicit Copilot requirement. CI,
 required approvals, branch protection, and merge queues remain separate gates.
+
+CI triage follows the first meaningful failure at the actual tested revision,
+separates product defects from provider/environment and baseline failures, and
+bounds authorized retries. Revision refresh distinguishes head, test-merge, and
+merge-group evidence, handles late feedback, and resumes post-merge cleanup
+without repeating a verified merge.
 
 ## Install and use
 
@@ -34,6 +40,12 @@ Example requests:
   review, gated merge, and eligible cleanup."
 - "Review and repair this PR, but do not push or merge."
 - "Resume the PR's existing review ledger; verify current head before continuing."
+- "Diagnose this PR's failed check before editing code; identify the tested SHA,
+  failure cause, current merge gate, and whether a bounded rerun is authorized."
+- "The base advanced and the queue rebuilt. Refresh current integration evidence
+  while preserving retired clean reviewers."
+- "This PR merged, but branch cleanup failed. Verify the merge and resume only
+  the cleanup still authorized and safe."
 
 An explicit full-lifecycle task supplies bounded authority for its necessary
 commits, ordinary pushes, PR/review actions, gated merge, and eligible branch
@@ -52,6 +64,8 @@ runtime dependency, mandatory code indexer, or companion plugin is included.
 - [Review sources and Copilot policy](skills/iterating-pr-bot-fixes/references/review-sources.md)
 - [Pattern and scope analysis](skills/iterating-pr-bot-fixes/references/pattern-analysis.md)
 - [Selective commit safety](skills/iterating-pr-bot-fixes/references/commit-safety.md)
+- [CI diagnosis and bounded retries](skills/iterating-pr-bot-fixes/references/ci-triage.md)
+- [Revision, queue, and interrupted-task refresh](skills/iterating-pr-bot-fixes/references/revision-refresh.md)
 - [Conditional integration and cleanup](skills/iterating-pr-bot-fixes/references/integration-cleanup.md)
 - [Resumable review ledger](skills/iterating-pr-bot-fixes/templates/review-ledger.md)
 

@@ -22,6 +22,19 @@ For Copilot unavailability record stated reason, attributable cannot-run evidenc
 request/preflight, time, attempted SHA, no-review-coverage status, and whether an
 explicit requirement blocks integration. Do not erase earlier/late findings.
 
+## CI dispositions and revision refresh
+
+| Check/run/attempt/job | Event and tested SHA; PR head/base or group mapping | First meaningful error and evidence | Cause/disposition and scope | Retry authority/budget and result | Current gate/remaining proof |
+| --- | --- | --- | --- | --- | --- |
+| Stable provider IDs and links | Distinguish head, test merge, merge group | Cause before downstream symptoms | Product, environment/provider, baseline, or unproved transient | Preserve prior attempts; no retry-as-fix claim | Fresh, historical, pending, failing, or blocked |
+
+- Revision change/time, previous and current head/base/group, reason:
+- Invalidated evidence and next checks; retained source retirement/history:
+- Late review IDs/reviewed revision, current relevance and disposition:
+
+Only add rows for relevant checks or changes; retain the existing round counter.
+Retries and queue rebuilds do not reset review rounds or reactivate clean sources.
+
 ## Finding and pattern dispositions
 
 | Finding/thread IDs | Source/round/revision | Invariant/root cause | Local/regional/global evidence and classified matches | Scope/repair boundary | Action/reply/follow-up | Proof/status |
@@ -34,6 +47,7 @@ explicit requirement blocks integration. Do not erase earlier/late findings.
 - Retired-source historical coverage; no automatic reactivation:
 - CI/required approvals/conflict/queue evidence:
 - Expected-head merge request; actual merged-state/destination readback:
+- Resume phase and completed actions; cleanup failure and next eligible action:
 
 ## Cleanup and resume
 
