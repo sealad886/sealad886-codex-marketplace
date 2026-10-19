@@ -1,6 +1,6 @@
 ---
 name: conventional-commit
-description: Inspect staged, unstaged, and untracked Git changes; group eligible work into focused Conventional Commits; preserve excluded content and staging by default. Use for selective commits, commit planning, or explicitly requested first-token --clean cleanup.
+description: Inspect staged, unstaged, and untracked Git changes; choose behavior-based Conventional Commit messages and focused groups; preserve excluded content and staging. Use for commit planning, verified staged-subset commits, or explicitly requested first-token --clean cleanup.
 ---
 
 # Conventional Commit
@@ -23,7 +23,11 @@ Check worktrees, active Git operations, hooks/signing requirements, and relevant
 checks. Assume existing changes belong to the human or another task.
 
 Use the [inventory and staging procedure](references/staging-and-hooks.md) and
-[commit plan](templates/commit-plan.md). Read untracked files selectively; keep
+[commit plan](templates/commit-plan.md). Read
+[message decisions](references/message-decisions.md) when type, scope, breaking
+impact or revert meaning is unclear, and the constrained
+[staged-subset procedure](references/partial-staging.md) only for mixed staged
+hunks. Read untracked files selectively; keep
 secret values out of commands, logs, messages, and public artifacts. A filename,
 existing staged state, or lack of tracking never establishes eligibility.
 
@@ -47,17 +51,20 @@ existing staged state, or lack of tracking never establishes eligibility.
    excluded staged entries remain in its index. Stage exact paths/hunks only.
    Use path-only commits only when *all* working-tree content of each named path
    belongs to that group; path-only commit takes working-tree content and is not
-   a substitute for mixed-hunk selection. For mixed files use a demonstrably
-   isolated index procedure or obtain the smallest necessary staging decision;
-   preserve original excluded staging and working bytes. Follow the detailed
-   procedure rather than silently unstaging another person's work.
+   a substitute for mixed-hunk selection. For independent already-staged text
+   hunks, follow the conditional staged-subset procedure: construct from original
+   HEAD, prove reconstruction, and leave the real index untouched after commit.
+   Reject selected unstaged edits, dependencies, unsafe hooks or concurrent
+   changes. If a gate fails, obtain the smallest necessary staging decision.
 5. **Write and create the commit.** Use
    `<type>[optional scope][!]: <imperative description>`, no trailing period.
    Choose `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`,
    `ci`, `chore`, or `revert`; scope clarifies ownership. Mark breaking changes
    with `!` and a `BREAKING CHANGE:` footer, explaining migration where relevant.
-   Keep a short body when motivation needs it. Inspect the exact proposed tree
-   and `git diff --cached --check` for the selected index. Respect required hooks,
+   Keep a short body when motivation needs it. Inspect the repository's actual
+   message automation; report its interpretation without assigning a version or
+   taking release authority. Inspect the exact proposed tree and run
+   `git diff --cached --check` for the selected index. Respect required hooks,
    author identity, and signing; never bypass with `--no-verify` or disable real
    signing to get a commit through. Re-read HEAD and status after a failure before
    retrying, because a hook may have changed files or a commit may already exist.
@@ -108,7 +115,8 @@ staging, commits, or cleanup.
 - Commit all staged content merely because it was already staged, or use
   `git add .`, `git commit -a`, or broad pathspecs without proved scope.
 - Lose partial staging, overwrite excluded bytes, use path-only commit on a
-  mixed file, or assume an alternate index is safe without inspecting its tree.
+  mixed file, or treat an alternate index as arbitrary reconciliation. Inspect
+  its tree, dependencies, hooks and preservation evidence before use.
 - Disable signing/hooks, invent identity, amend/rewrite history, or alter global
   Git configuration to bypass a failure.
 - Use broad reset/clean/restore/delete commands, infer cleanup from a later flag,

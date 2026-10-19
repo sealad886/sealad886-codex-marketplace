@@ -3,6 +3,31 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Workflow plugin expansions 0.2.0 - 2026-10-19
+
+### Added
+
+- Iterating PR Bot Fixes: failed-check diagnosis and revision/merge-queue
+  recovery, with source retirement and current-head review kept distinct.
+- Repository Consolidation: overlap/prerequisite planning and verification of
+  committed, dirty, untracked and special-file recovery content.
+- Conventional Commit: automation-aware message decisions and a constrained
+  procedure for committing a verified subset of already-staged text hunks.
+- Simplify Code: state/control-flow reduction and previewed caller migrations
+  with explicit exclusions, repeat-run checks and optional evidence capture.
+- Adversarial Audit: bounded failure/recovery experiments and differential or
+  property-based verification using an explicitly justified comparison oracle.
+- Web Research: decision/sensitivity comparisons, claim-scoped refreshes and
+  quantitative evidence appraisal with source-versus-calculation separation.
+
+### Changed
+
+- All six remain independent one-skill packages. New runbooks are conditionally
+  routed from their existing entrypoints; complex work can use optional templates
+  or extensions to existing ledgers. No new server or runtime is required.
+- Each package advances to 0.2.0 with its existing identity, starter prompts,
+  local/cloud eligibility and authority boundaries preserved.
+
 ## Conventional Commit 0.1.1 - 2026-10-19
 
 ### Fixed

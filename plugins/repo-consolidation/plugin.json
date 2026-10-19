@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "repo-consolidation",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Account for branches, worktrees, stashes, and unfinished changes, then integrate authorized work through serial reviewed pull requests.",
   "author": {
     "name": "Andrew Cox",

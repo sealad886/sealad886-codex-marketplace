@@ -1,6 +1,6 @@
 ---
 name: iterating-pr-bot-fixes
-description: Drive an identified GitHub pull request through explicit review outcomes, scoped root-cause fixes, up to ten review rounds, verified merge gates, and eligible task cleanup. Honor review-only, no-push, no-merge, and repository restrictions.
+description: Drive an identified GitHub pull request through explicit review outcomes, scoped root-cause fixes, CI triage, revision and merge-queue refresh, up to ten review rounds, verified merge gates, and resumable task cleanup. Honor review-only, no-push, no-merge, and repository restrictions.
 ---
 
 # Iterating PR Bot Fixes
@@ -37,6 +37,13 @@ no sibling skill or particular external CLI service is required. Confirm
 provider-specific syntax against current primary documentation and the actual
 installed version. Keep credentials and private source out of public evidence.
 
+Load the [CI triage procedure](references/ci-triage.md) when a check fails,
+cannot start, or lacks current evidence. Load the
+[revision refresh procedure](references/revision-refresh.md) after a push, base
+change, queue rebuild, late result, interrupted merge, or cleanup failure.
+Record their dispositions in the same ledger; simple clean rounds need no
+additional artifact.
+
 ## Workflow
 
 1. **Prepare the task.** Reuse the matching PR or create it under execution
@@ -70,6 +77,9 @@ installed version. Keep credentials and private source out of public evidence.
    read-only mode report the proposed follow-up instead. A follow-up cannot
    justify an unsafe symptom patch. Resolve threads only after the actual ask
    is addressed; retain no-change rationales and independent-report findings.
+   For failing CI, bind the actual tested revision and first meaningful error
+   before choosing a product fix, environment action, or bounded rerun. Neither
+   failure classification nor a passing retry waives a required gate.
 6. **Continue bounded rounds.** A round counts requests to its entire active
    source set, not commits or comment batches. After repairs, request only
    sources that found actionable issues in the previous round. Retire a source
@@ -88,6 +98,8 @@ installed version. Keep credentials and private source out of public evidence.
    repair within the remaining budget. An unavailable final check is a blocker.
    If no code changed since a sufficient independent exact-head review, reuse
    that evidence. A changed base requires reassessing the net diff/integration.
+   Refresh after any revision change or late result; distinguish PR-head,
+   test-merge, and merge-group evidence rather than relabeling one as another.
 8. **Integrate and verify cleanup.** Only explicit review completion, no open
    actionable feedback, sufficient final-head independent evidence, and passing
    repository gates permit merge. Follow the
@@ -122,8 +134,9 @@ security acceptance remains required. This overrides security-source retirement.
 
 Keep one resumable ledger with round counters, configured/active/retired sources,
 requests, exact revisions, explicit outcomes, finding dispositions, pattern
-evidence, final independent coverage, CI/approval gates, merge readback, and
-cleanup receipts. Report the PR link, changes/checks, Copilot unavailability
+evidence, CI diagnoses/retry limits, revision invalidations, final independent
+coverage, CI/approval gates, merge readback, and cleanup receipts. Report the PR
+link, changes/checks, Copilot unavailability
 where applicable, reviewed SHA limits, merge/queue status, and preserved work.
 Attach a created or continued task PR when the host supports attachments.
 

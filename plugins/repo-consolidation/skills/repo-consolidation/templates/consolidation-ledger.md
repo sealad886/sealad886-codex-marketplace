@@ -11,6 +11,8 @@ and private contents. Stable IDs survive branch renaming/deletion.
 - Baseline timestamp, remote/fetch/API pagination coverage and failures:
 - Worktree owners/activity, shallow/sparse/partial/bare/offline limits:
 - Secured recovery locations, retained bytes, and restore instructions:
+- Restoration scope/scratch identity, content and representation comparisons,
+  object/LFS/gitlink prerequisites, result and unresolved gaps:
 
 ## Source inventory
 
@@ -26,6 +28,12 @@ unstaged bytes. Do not omit unavailable, dirty-default, or newly advanced source
 | Unit | Source IDs and exact commits/hunks | Intended behavior and unfinished tasks | Disposition/reason | Dependency/PR | Result mapping | Acceptance/proof |
 | --- | --- | --- | --- | --- | --- | --- |
 | U-01 | Immutable source evidence | Concrete completion | Include/integrated/superseded/preserve-exclude/blocked | P-* or preservation path | Adaptations/omissions/result files/commits | Command/revision/outcome |
+
+Record shared content once with all contributing source IDs; give each consumer
+its remaining intent. For prerequisite edges record the required contract,
+evidence, satisfaction at the pinned destination, and serial order. Retain
+conflicting intent and deliberate reverts as explicit decisions. Refresh these
+mappings, bases and affected checks after each actual merge.
 
 | PR | Current base/head | Units | Incorporation/conflicts | Checks | Review ledger | Actual merge/destination and cleanup |
 | --- | --- | --- | --- | --- | --- | --- |

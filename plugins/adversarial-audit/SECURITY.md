@@ -12,6 +12,10 @@ Its manifests describe capabilities; they do not grant permission.
 - Use bounded safe reproductions. Destructive failure injection, live-provider
   mutations, costly stress runs, new uploads, or installations need applicable
   authority and a suitable environment.
+- Failure experiments need disposable owned fixtures, explicit resource caps,
+  cleanup ownership, and stop conditions. Prefer an existing local test seam;
+  adding instrumentation or modifying source requires implementation authority.
+  A local experiment does not authorize production mutation or provider stress.
 - Keep secrets, private source, personal data, raw dumps, and valuable datasets
   out of shared reports or new external services. Prefer redacted evidence.
 - Follow repository policies for Git, worktrees, signing, migrations, and tests.

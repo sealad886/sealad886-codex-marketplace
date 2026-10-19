@@ -1,6 +1,6 @@
 ---
 name: adversarial-audit
-description: Audit a codebase or system adversarially for concrete correctness, performance, memory, testing, contract, and operational risks. Use for evidence-backed assessments or authorized audit-and-fix work, with ranked findings, a live ledger, and fresh verification.
+description: Audit a codebase or system for correctness, performance, resource, and operational risks. Use bounded failure/recovery experiments, differential or metamorphic checks, ranked evidence-backed findings, and fresh verification in assessment or authorized remediation mode.
 ---
 
 # Adversarial Audit
@@ -73,6 +73,15 @@ Prioritize plausible high-impact failure paths. State expected versus observed
 behavior and a falsifiable cause. Prefer a minimal safe reproduction over a broad
 stress run. Record command, revision, inputs, environment, result, and evidence
 location. Do not run destructive failure injection against valuable/live data.
+
+For retries, interruption, cancellation, or restart, use
+[bounded failure experiments](references/failure-experiments.md) to choose a
+disposable fixture, accepted recovery invariant, resource cap, and stop condition.
+For outputs without a direct expected answer, use
+[oracles and properties](references/oracles-and-properties.md) to justify a
+comparison or relation and define normalization/tolerance before running it.
+Record these checks in the same ledger. Neither an attractive property nor a
+disagreeing reference establishes the system's required behavior.
 
 Measure performance against a comparable baseline, with representative inputs
 and resource limits. Distinguish static reasoning, synthetic tests, local runtime,
