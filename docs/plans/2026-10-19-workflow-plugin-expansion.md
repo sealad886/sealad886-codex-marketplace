@@ -116,6 +116,6 @@ recipe requires real disposable-fixture evidence before publication.
 ## Progress
 
 - [x] Design approved; 0.1.1 release/local refresh verified.
-- [ ] Phase 1: Git workflows and disposable-fixture proof.
-- [ ] Phase 2: simplification, auditing and research workflows.
+- [x] Phase 1: Git workflows and disposable-fixture proof.
+- [x] Phase 2: simplification, auditing and research workflows.
 - [ ] Phase 3: integration, review, publication and native consumption proof.

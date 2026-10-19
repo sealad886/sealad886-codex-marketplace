@@ -46,39 +46,39 @@ Build, debug, test and prepare Tauri 2 apps across Windows, Linux, macOS, iOS an
 
 ### [Iterating PR Bot Fixes](plugins/iterating-pr-bot-fixes/README.md)
 
-Drive a GitHub pull request through bounded review and fix rounds, with explicit reviewer outcomes, root-cause investigation, current-revision evidence, merge gates, and verified cleanup. Configured reviewers remain separate from CI and required approvals.
+Drive a GitHub pull request through bounded review and fix rounds, diagnose failed checks, and refresh evidence after head, base, or merge-queue changes. Retain explicit reviewer outcomes, current-revision merge gates, and resumable cleanup.
 
-**Initial release:** `0.1.0` · [Guide and review workflow](plugins/iterating-pr-bot-fixes/README.md)
+**Release:** `0.2.0` · [Guide and review workflow](plugins/iterating-pr-bot-fixes/README.md)
 
 ### [Repository Consolidation](plugins/repo-consolidation/README.md)
 
-Account for branches, worktrees, stashes, and unfinished changes before integrating outstanding work through focused PRs in series. Preserve excluded or uncertain work, verify destination coverage, and remove only eligible merged sources.
+Account for branches, worktrees, stashes, and unfinished changes, plan overlapping work and prerequisites, and integrate focused PRs in series. Verify recovery content and destination coverage before retiring eligible sources.
 
-**Initial release:** `0.1.0` · [Guide and preservation rules](plugins/repo-consolidation/README.md)
+**Release:** `0.2.0` · [Guide and preservation rules](plugins/repo-consolidation/README.md)
 
 ### [Conventional Commit](plugins/conventional-commit/README.md)
 
-Turn selected working-tree changes into coherent Conventional Commits while preserving unrelated staged, unstaged, and untracked work. Includes precise grouping, verification, signing and hook handling, and explicitly requested cleanup.
+Turn selected changes into coherent Conventional Commits whose types and scopes fit the behavior and repository automation. Includes a constrained staged-hunk procedure, excluded-work preservation, signing/hooks, and explicit cleanup controls.
 
-**Release:** `0.1.1` · [Guide and commit safety](plugins/conventional-commit/README.md)
+**Release:** `0.2.0` · [Guide and commit safety](plugins/conventional-commit/README.md)
 
 ### [Simplify Code](plugins/simplify-code/README.md)
 
-Remove unnecessary indirection and obsolete code, consolidate shared rules at their proper owner, and refactor callers together. Preserve required behavior and check dynamic entrypoints and external consumers before deleting code.
+Remove unnecessary layers, simplify state and control flow, and migrate proven callers to their canonical owner. Preserve required behavior, resource lifetimes, evaluation order, and unresolved dynamic or external consumers.
 
-**Initial release:** `0.1.0` · [Guide and refactoring examples](plugins/simplify-code/README.md)
+**Release:** `0.2.0` · [Guide and refactoring examples](plugins/simplify-code/README.md)
 
 ### [Adversarial Audit](plugins/adversarial-audit/README.md)
 
-Investigate correctness, performance, resource use, tests, contracts, and operational risks with reproducible evidence. Keep finding validity separate from remediation status, and drive authorized fixes through verification and independent review.
+Investigate system risks through reproducible evidence, bounded failure/recovery experiments, and independent or property-based comparisons. Keep finding validity separate from repair status and drive authorized fixes through verification.
 
-**Initial release:** `0.1.0` · [Guide and evidence ledger](plugins/adversarial-audit/README.md)
+**Release:** `0.2.0` · [Guide and evidence ledger](plugins/adversarial-audit/README.md)
 
 ### [Web Research](plugins/web-research/README.md)
 
-Produce focused research briefs from authoritative sources, with citations beside claims, version and date context, independent corroboration, and explicit uncertainty. Read source material and distinguish evidence from inference.
+Research decisions with cited evidence, comparable quantities, and explicit uncertainty. Compare options and sensitivity, refresh an existing brief claim by claim, and check quantitative claims while separating reported figures from calculations.
 
-**Initial release:** `0.1.0` · [Guide and source evaluation](plugins/web-research/README.md)
+**Release:** `0.2.0` · [Guide and source evaluation](plugins/web-research/README.md)
 
 ## Install
 
