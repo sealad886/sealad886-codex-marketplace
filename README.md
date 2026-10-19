@@ -60,7 +60,7 @@ Account for branches, worktrees, stashes, and unfinished changes before integrat
 
 Turn selected working-tree changes into coherent Conventional Commits while preserving unrelated staged, unstaged, and untracked work. Includes precise grouping, verification, signing and hook handling, and explicitly requested cleanup.
 
-**Initial release:** `0.1.0` · [Guide and commit safety](plugins/conventional-commit/README.md)
+**Release:** `0.1.1` · [Guide and commit safety](plugins/conventional-commit/README.md)
 
 ### [Simplify Code](plugins/simplify-code/README.md)
 
@@ -111,6 +111,12 @@ codex plugin add web-research@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.
+
+The six single-skill workflow plugins support local and cloud tasks without
+requiring a local executor. Install their account copies for cloud use and their
+marketplace copies with the CLI for local use. Each task still needs the relevant
+tools, repository access, and authentication. Invoke each skill as
+`$<plugin-name>:<skill-name>`; these six use the same name for both parts.
 
 ## Contributing and validation
 
