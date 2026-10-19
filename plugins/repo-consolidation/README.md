@@ -1,6 +1,6 @@
 # Repository Consolidation
 
-Version **0.1.0**. One standalone skill for accounting for scattered Git work
+Version **0.2.0**. One standalone skill for accounting for scattered Git work
 and integrating authorized changes through focused reviewed PRs in series.
 
 The [skill](skills/repo-consolidation/SKILL.md) inventories local and advertised
@@ -8,6 +8,9 @@ remote branches, every worktree, stashes, dirty/default-branch changes, and
 relevant ignored artifacts. It maps each original source to an explicit
 integration or preservation decision, finishes included work, verifies destination
 coverage, and removes only eligible sources. Fewer branches alone is not success.
+It compares shared prerequisites and competing intent, derives a serial
+integration order, and checks recovery content and representation before source
+retirement depends on a backup.
 
 ## Install and use
 
@@ -27,6 +30,11 @@ Example requests:
 - "Plan how to consolidate these sources; do not commit, push, or merge."
 - "Consolidate this identified repository through focused commits, serial
   reviewed PRs, gated merges, and eligible cleanup. Preserve the named branches."
+- "Compare these three branches, map shared prerequisites once, and plan a
+  serial integration order while retaining each caller's independent changes."
+- "Check whether these recovery copies actually preserve staged, dirty,
+  untracked and LFS content. Inspect restoration in the selected scratch space;
+  retain the originals and report every unproved layer."
 
 Explicit execution authorizes the bounded task lifecycle in the skill. Inventory,
 plan-only, no-push, no-merge, and named exclusions narrow it. Reading, installing,
@@ -43,6 +51,8 @@ usable; it contains its own selective commit and PR review procedures, without
 requiring the Conventional Commit or Iterating PR Bot Fixes plugins.
 
 - [Complete Git inventory and comparison](skills/repo-consolidation/references/git-inventory.md)
+- [Overlap and dependency analysis](skills/repo-consolidation/references/overlap-and-dependencies.md)
+- [Preservation and restoration proof](skills/repo-consolidation/references/preservation-and-restore.md)
 - [Selective commit safety](skills/repo-consolidation/references/selective-commits.md)
 - [Serial review and integration](skills/repo-consolidation/references/serial-review.md)
 - [Review sources and Copilot policy](skills/repo-consolidation/references/review-sources.md)

@@ -1,6 +1,6 @@
 ---
 name: repo-consolidation
-description: Inventory a repository's branches, worktrees, stashes, and dirty work; account for changes absent from its verified default branch; finish authorized units through serial reviewed PRs and verified cleanup. Honor inventory-only, plan-only, no-push, no-merge, and exclusions.
+description: Inventory scattered Git work, compare overlapping changes and dependencies, verify preservation, and finish authorized units through serial reviewed PRs and verified cleanup. Honor inventory-only, plan-only, no-push, no-merge, and exclusions.
 ---
 
 # Repository Consolidation
@@ -38,6 +38,12 @@ copies where needed. This package contains its own
 [serial review/integration](references/serial-review.md) procedures; no sibling
 plugin or machine-specific cache path is required. Available installed tools may
 assist without replacing the required evidence or authority checks.
+
+When sources overlap or form a stack, read
+[overlap and dependencies](references/overlap-and-dependencies.md). Before
+transferring unique work or relying on recovery material for source retirement,
+read [preservation and restoration](references/preservation-and-restore.md).
+Keep their mappings and restoration evidence in the same consolidation ledger.
 
 ## Workflow
 
