@@ -51,21 +51,27 @@ belongs. Inspect the selected diff from HEAD and a dry-run of the same command,
 not only `git diff --cached`. Quote paths, use explicit argument boundaries, and
 use literal pathspec handling for unusual names.
 
-**Mixed eligible/excluded hunks:** select precise patches in an index containing
-only the intended tree. A temporary `GIT_INDEX_FILE` can isolate preparation,
-but is safe only with verified baseline, exact tree inspection, normal hooks and
-signing, no concurrent writes, and a proven way to reconcile the real index after
-HEAD advances while preserving excluded staging. It does not update the real
-index automatically. Do not improvise this procedure or claim a copied index
-isolates a commit when it still contains unrelated entries. If existing project
-tooling provides no reliable method, explain the overlapping paths and obtain
-the smallest staging decision. Continue independent groups rather than stashing,
-unstaging, resetting, or overwriting unrelated work.
+**Mixed eligible/excluded staged hunks:** conditionally use the
+[verified staged-subset procedure](partial-staging.md). It builds the selected
+candidate from original HEAD, requires independent already-staged text hunks
+and audited hooks, and proves both patch orders reconstruct the original index
+tree. It then leaves the real index untouched after HEAD advances; there is no
+general reconciliation step. A copied full index alone still contains excluded
+entries and cannot isolate the commit. Selected unstaged content, overlapping
+hunks, unmerged state, ambiguous dependencies, unsafe hooks and concurrent
+changes make this recipe inapplicable. Explain the smallest necessary staging
+decision and continue independent groups rather than stashing, unstaging,
+resetting or overwriting unrelated work.
 
 Use `git add -p` or a precise equivalent only when supported noninteractively or
 through an inspected interactive flow; never choose all hunks blindly. A changed
 index can still be wrong: inspect selected tree/content and expected parent
 before commit, then compare excluded index/working state afterward.
+
+Choose the message from the resulting behavior, using
+[message decisions](message-decisions.md) for type/scope, breaking consumers,
+reverts and actual automation rules. Message choice neither assigns a version
+nor authorizes the corresponding revert, release or production migration.
 
 ## Hooks, signing, and failure handling
 

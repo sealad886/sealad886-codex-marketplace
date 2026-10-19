@@ -14,6 +14,14 @@
 | --- | --- | --- | --- | --- | --- |
 | C-01 | Coherent behavior/tests/docs | Conventional Commit | No excluded staged entries committed | Exact revision and result | Scope, required signature, remaining status |
 
+Optional, only when needed:
+
+- Message decision: behavior/consumer contract; type/scope; breaking migration or
+  reverted hash/net effect; inspected automation interpretation or uncertainty:
+- Staged-subset evidence: original HEAD/index/candidate tree IDs; independent
+  selected/excluded hunks and reconstruction in both orders; hook applicability;
+  pre/post index bytes/flags and working snapshot comparison; stop/reinspection:
+
 ## Exclusions and optional cleanup
 
 | Exclusion | Why retained or unnecessary | Exact cleanup authority and state recheck | Action or blocker | Post-action evidence |
