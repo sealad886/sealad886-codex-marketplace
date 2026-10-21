@@ -4,9 +4,15 @@
 [![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Tools for planning and shipping software, reviewing and consolidating Git work, simplifying code, researching the web, managing releases and iCloud email, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
+Tools for planning and shipping software, reviewing and consolidating Git work, simplifying code, researching the web, managing releases and iCloud email, browsing the web with Camofox, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
 
 ## Plugins
+
+### [Camofox Browser](plugins/camofox-mcp/README.md)
+
+Give agents a full headless browser with 46 MCP tools, managed server and browser setup, isolated sessions, screenshots, structured extraction, uploads, and downloads. Runs locally on macOS and Linux, or connects to an existing Camofox service.
+
+**Release:** `0.1.1` · [Setup and usage](plugins/camofox-mcp/README.md) · [Runtime source](https://github.com/sealad886/camofox-mcp)
 
 ### [Project Delivery](plugins/project-delivery/README.md)
 
@@ -108,6 +114,7 @@ codex plugin add conventional-commit@sealad886-codex-marketplace
 codex plugin add simplify-code@sealad886-codex-marketplace
 codex plugin add adversarial-audit@sealad886-codex-marketplace
 codex plugin add web-research@sealad886-codex-marketplace
+codex plugin add camofox-mcp@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.

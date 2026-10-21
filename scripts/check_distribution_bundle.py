@@ -44,6 +44,7 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "camofox-mcp": 1,
     "iterating-pr-bot-fixes": 1,
     "repo-consolidation": 1,
     "conventional-commit": 1,
@@ -57,6 +58,7 @@ EXPECTED_SKILL_COUNTS = {
     "project-delivery": 13,
 }
 PLUGIN_RESOURCE_DIRECTORIES = {
+    "camofox-mcp": ("scripts", "mcp.json", "assets"),
     "icloud-mail": ("mcp/setup.py", "mcp/setup.html", "mcp/keychain.py"),
     "semantic-versioning": ("references", "scripts", "templates", "examples"),
     "mlx-optimizer": (
@@ -137,12 +139,12 @@ def add_declared_path(root: Path, selected: set[Path], value: str) -> None:
         raise ValueError(f"declared path does not exist: {value}")
 
 
-def add_local_python_mcp_dependencies(
+def add_local_mcp_dependencies(
     root: Path,
     selected: set[Path],
     declaration: str,
 ) -> None:
-    """Select the one local MCP launch contract used by Conversation Visuals."""
+    """Select a contained Python or Node.js MCP entrypoint."""
     declaration_path = safe_relative_path(declaration)
     config_path = root / declaration_path
     if not config_path.is_file():
@@ -172,8 +174,9 @@ def add_local_python_mcp_dependencies(
                 "unsupported local MCP server fields: "
                 + ", ".join(sorted(unsupported_fields))
             )
-        if server.get("command") != "python3":
-            raise ValueError("local MCP server command must be python3")
+        command = server.get("command")
+        if command not in ("python3", "node"):
+            raise ValueError("local MCP server command must be python3 or node")
         if server.get("cwd") != ".":
             raise ValueError("local MCP server cwd must be '.'")
         timeout = server.get("tool_timeout_sec")
@@ -189,13 +192,15 @@ def add_local_python_mcp_dependencies(
 
         arguments = server.get("args")
         if not isinstance(arguments, list) or len(arguments) != 1:
-            raise ValueError("local MCP server args must contain one Python script")
+            runtime = "Python" if command == "python3" else "Node.js"
+            raise ValueError(f"local MCP server args must contain one {runtime} script")
         script = arguments[0]
         if not isinstance(script, str):
             raise ValueError("local MCP server script must be a string")
         script_path = safe_relative_path(script)
-        if script_path.suffix != ".py":
-            raise ValueError("local MCP server must launch a .py script")
+        extension = ".py" if command == "python3" else ".mjs"
+        if script_path.suffix != extension:
+            raise ValueError(f"local MCP server must launch a {extension} script")
 
         script_source = root / script_path
         resolved_script = script_source.resolve()
@@ -230,7 +235,7 @@ def select_paths(root: Path) -> set[Path]:
     if mcp_declaration is not None:
         if not isinstance(mcp_declaration, str):
             raise ValueError("mcpServers must declare a local config file")
-        add_local_python_mcp_dependencies(root, selected, mcp_declaration)
+        add_local_mcp_dependencies(root, selected, mcp_declaration)
 
     interface = manifest.get("interface", {})
     if isinstance(interface, dict):
