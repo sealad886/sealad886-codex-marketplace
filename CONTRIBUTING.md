@@ -16,6 +16,17 @@ Build Multi-target Tauri Apps follows the same package and release contracts. It
 
 The standalone workflow plugins each expose one skill: [Iterating PR Bot Fixes](plugins/iterating-pr-bot-fixes/README.md), [Repository Consolidation](plugins/repo-consolidation/README.md), [Conventional Commit](plugins/conventional-commit/README.md), [Simplify Code](plugins/simplify-code/README.md), [Adversarial Audit](plugins/adversarial-audit/README.md), and [Web Research](plugins/web-research/README.md). Their guides define invocation, prerequisites, authority, outputs, and verification. Keep supporting references and templates beneath the owning skill; another plugin or a sibling skill directory must not be a hidden runtime dependency.
 
+## Camofox Browser source ownership
+
+[Camofox Browser](plugins/camofox-mcp/README.md) is maintained in
+[`sealad886/camofox-mcp`](https://github.com/sealad886/camofox-mcp). Make runtime,
+setup, skill, asset and version changes there first. After its matching npm
+version is published, copy that release's entire `plugin/` directory to
+`plugins/camofox-mcp/`, including hidden files. Verify byte parity, package
+validation and a clean consumer installation before publishing this marketplace.
+The local catalog source keeps the full plugin details visible before install.
+Do not create a second server implementation or follow npm latest implicitly.
+
 ## Before changing Project Delivery
 
 1. Open or reference an issue when the change affects lifecycle semantics, artifact contracts, compatibility, or safety.

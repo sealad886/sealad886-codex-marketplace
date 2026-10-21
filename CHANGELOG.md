@@ -3,6 +3,19 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Camofox Browser 0.1.1 - 2026-10-21
+
+### Added
+
+- Camofox Browser: 46 MCP tools for headless browsing, page interaction,
+  structured extraction, screenshots, uploads, downloads and service diagnostics.
+- Managed setup installs the pinned npm client, upstream server and browser
+  engine. Private loopback services, isolated sessions and explicit lifecycle
+  commands support local macOS/Linux use and existing-server connections.
+- Distribute the canonical plugin from `sealad886/camofox-mcp` without copying
+  its server implementation into the marketplace. Node MCP launchers receive
+  the same contained distribution validation as existing Python launchers.
+
 ## Workflow plugin expansions 0.2.0 - 2026-10-19
 
 ### Added
