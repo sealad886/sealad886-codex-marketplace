@@ -8,6 +8,15 @@ the Gmail and Outlook integrations: mailbox counts, structured search, message
 and conversation reading, attachment access, flags, archive/move/Trash,
 drafts, replies, forwards, and sending.
 
+## Access while your Mac is offline
+
+Version 0.4.0 adds an optional read-only HTTPS server for an approved always-on
+host. It uses OAuth/OIDC per user, encrypted private credentials, scoped reads,
+and durable watch checkpoints. Local installation still uses stdio and Keychain.
+**No hosted endpoint is included.** A service must be deployed and tested from a
+cloud runner with the Mac offline before unattended access is available. See the
+[remote operator and private onboarding guide](mcp/REMOTE.md).
+
 ## Try it in Codex
 
 Choose a skill or use one of these starter requests.
@@ -103,7 +112,9 @@ an explicit override. SMTP always authenticates with the full account address.
 
 ## Storage and privacy
 
-This plugin connects to the iCloud-hosted mailbox on demand. It creates no local
+The following retention description applies to local stdio; remote encrypted
+account/watch storage is described in the [remote guide](mcp/REMOTE.md).
+Local stdio connects to the iCloud-hosted mailbox on demand. It creates no local
 mail repository: no mailbox replica, search index, message or attachment cache,
 offline mailbox, or background synchronization. Search runs against iCloud;
 requested messages, headers, attachments, and drafts are processed in bounded
@@ -237,8 +248,8 @@ Body truncation flags still apply to each returned message.
 **Migration from 0.2.x:** `max_results` is removed from these public tools.
 Refresh tool discovery, remove that argument, and follow continuation tokens.
 Existing account configuration and message identifiers need no data migration.
-The marketplace advertises and installs version **0.3.1**, pinned to the immutable
-source commit containing this release's package. The `icloud-mail-v0.3.1` release
+The marketplace advertises and installs version **0.4.0**, pinned to the immutable
+source commit containing this release's package. The `icloud-mail-v0.4.0` release
 tag contains the same package files. Refresh and install through the marketplace:
 
 ```bash

@@ -83,9 +83,15 @@ jobs:
         run: python3 plugins/icloud-mail/mcp/server.py --self-test
 
       - name: Run validator regression tests
+        # Remote HTTP/OIDC tests must run, rather than silently skipping when
+        # only the dependency-free local plugin is installed.
         env:
           # Fixture commits must not leave detached writers racing temp cleanup.
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: maintenance.auto
           GIT_CONFIG_VALUE_0: "false"
-        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+          ICLOUD_REMOTE_TESTS_REQUIRED: "1"
+        run: |
+          python3 -m venv "$RUNNER_TEMP/icloud-remote-tests"
+          "$RUNNER_TEMP/icloud-remote-tests/bin/python" -m pip install --require-hashes -r plugins/icloud-mail/mcp/requirements-remote.txt
+          "$RUNNER_TEMP/icloud-remote-tests/bin/python" -m unittest discover -s tests -p 'test_*.py' -v

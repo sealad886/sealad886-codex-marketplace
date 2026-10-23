@@ -42,7 +42,7 @@ from typing import Any, Iterator
 
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "icloud-mail", "version": "0.3.1"}
+SERVER_INFO = {"name": "icloud-mail", "version": "0.4.0"}
 IMAP_HOST = "imap.mail.me.com"
 IMAP_PORT = 993
 SMTP_HOST = "smtp.mail.me.com"
@@ -127,6 +127,9 @@ _ACCOUNT_SESSION: ContextVar[tuple[dict[str, Any], str] | None] = ContextVar(
     "icloud_mail_account_session", default=None
 )
 _IMAP_LOGIN_CACHE: dict[str, str] = {}
+_SESSION_LOGIN_CACHE: ContextVar[dict[str, str] | None] = ContextVar(
+    "icloud_mail_session_login_cache", default=None
+)
 _CONFIG_LOCK_STATE = threading.local()
 
 
@@ -364,9 +367,11 @@ def account_session(config: dict[str, Any], password: str) -> Iterator[None]:
     if any(character in password for character in ("\r", "\n", "\x00")):
         raise MailError("The app-specific password contains invalid characters")
     token = _ACCOUNT_SESSION.set((validated, password))
+    cache_token = _SESSION_LOGIN_CACHE.set({})
     try:
         yield
     finally:
+        _SESSION_LOGIN_CACHE.reset(cache_token)
         _ACCOUNT_SESSION.reset(token)
 
 
@@ -567,7 +572,8 @@ def _imap_login_candidates(config: dict[str, Any] | None = None) -> list[str]:
     account = config["account_address"]
     local_part = account.split("@", 1)[0]
     candidates = list(dict.fromkeys([local_part, account]))
-    cached = _IMAP_LOGIN_CACHE.get(account)
+    session_cache = _SESSION_LOGIN_CACHE.get()
+    cached = (session_cache if session_cache is not None else _IMAP_LOGIN_CACHE).get(account)
     if cached in candidates:
         candidates.remove(cached)
         candidates.insert(0, cached)
@@ -658,7 +664,8 @@ def _imap(
                     else "full_address"
                 )
                 if not explicit_override:
-                    _IMAP_LOGIN_CACHE[username] = login
+                    session_cache = _SESSION_LOGIN_CACHE.get()
+                    (session_cache if session_cache is not None else _IMAP_LOGIN_CACHE)[username] = login
                 break
             except imaplib.IMAP4.abort:
                 _shutdown_imap(client)
@@ -1178,7 +1185,9 @@ def _fetch_summary(
             "BODYSTRUCTURE FLAGS)"
         ),
     )
-    if status != "OK" or not data:
+    if status != "OK":
+        raise MailError("iCloud Mail summary fetch failed; retry later")
+    if not data:
         raise MailError("Message no longer exists in this mailbox")
     headers = bytearray()
     metadata = bytearray()
