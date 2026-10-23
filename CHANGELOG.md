@@ -3,6 +3,24 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## iCloud Mail 0.4.0 - 2026-10-23
+
+### Added
+
+- Optional read-only Streamable HTTP service using the pinned official MCP SDK,
+  per-user OAuth/OIDC access tokens and tenant-bound encrypted credentials.
+- Private user-run device-flow onboarding and authenticated disconnection,
+  separate read/attachment/watch/configuration scopes, and bounded concurrency.
+- Encrypted, tenant-bound expiring identifiers and durable watch pagination,
+  UIDVALIDITY recovery, overlapping scans and explicit delivered/no-alert receipts.
+- Remote deployment/onboarding/rollback guidance and mocked HTTP, authentication,
+  tenant isolation, redaction and checkpoint regression coverage in CI.
+
+Local stdio and Keychain use remain available. This release supplies self-hosted
+server code, not a live hosted endpoint. Hosting/OIDC setup, live credentials and
+a cloud-runner read with the Mac offline remain separate deployment prerequisites.
+No monitoring is started or resumed by installation.
+
 ## Camofox Browser 0.1.1 - 2026-10-21
 
 ### Added

@@ -1,0 +1,4 @@
+# Optional remote service only; local stdio remains dependency-free.
+mcp==2.3.0
+PyJWT[crypto]==2.15.1
+cryptography==50.0.2

@@ -59,7 +59,7 @@ EXPECTED_SKILL_COUNTS = {
 }
 PLUGIN_RESOURCE_DIRECTORIES = {
     "camofox-mcp": ("scripts", "mcp.json", "assets"),
-    "icloud-mail": ("mcp/setup.py", "mcp/setup.html", "mcp/keychain.py"),
+    "icloud-mail": ("mcp",),
     "semantic-versioning": ("references", "scripts", "templates", "examples"),
     "mlx-optimizer": (
         ".claude-plugin",

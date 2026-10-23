@@ -90,6 +90,34 @@ browser isolation guarantee.
   authorization intact. Local item removal and Apple password revocation are
   separate user actions.
 
+## Optional remote service
+
+The guarantees above describe local stdio. The optional remote adapter has a
+different retention/trust boundary, detailed in [REMOTE.md](mcp/REMOTE.md).
+Its approved always-on host holds each consenting user's app-specific password
+and account settings in authenticated-encrypted SQLite payloads, with a separate
+private key mount. Issuer/subject-bound OAuth access tokens select the account;
+read/attachment/watch/configuration scopes are checked independently. The remote
+adapter exposes no mail mutations or credential-bearing MCP tools, and never
+falls back to local Keychain/environment credentials. Private setup uses a
+user-run OAuth device flow and authenticated HTTPS account endpoint.
+
+Watch state persists encrypted references, hashes and explicit delivered/no-alert
+receipts, independently of scan continuation. Message bodies/subjects/attachment
+content are not stored. Remote identifiers are authenticated-encrypted and bound
+to tenant and connection generation. Failed/transient reads do not advance
+delivery state. Revocation serializes with reads; a single service process is
+enforced. HTTP and mail budgets/concurrency limits bound work, while the approved
+reverse proxy owns TLS, inbound rate limits and log redaction. Operators remain
+trusted custodians of credentials and must protect backups, key access, service
+configuration and their identity provider. JWT grant revocation may take up to
+the access token's remaining lifetime (at most one hour); disconnect immediately
+blocks subsequent mailbox reads and clears that user's state.
+
+No public endpoint or live deployment is included in the package. A public
+service requires operator approval and live OIDC/egress, backup/restore and
+Mac-offline cloud-runner tests before it can claim unattended access.
+
 ## Reporting
 
 Do not include credentials, mailbox content, or personal addresses in a public
