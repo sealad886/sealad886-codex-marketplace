@@ -12,6 +12,20 @@ grants no execution authority. New worktrees, releases, package publication,
 deployment, settings changes, data disposal, force pushes, and history rewriting
 require separate authority.
 
+Authorized reconciliation can remove verified obsolete tracked source and its
+associated residue in the reviewed candidate, after checking purpose, consumers
+and the surviving implementation. That is distinct from discarding unique dirty,
+untracked or ignored content, user data, operational artifacts, stashes or recovery
+copies; a tracked path is not automatically disposable source. Check dynamic/public
+entrypoints and generator inputs before declaring source unused. Unknown consumers
+or ownership remain explicit gaps, not permission to delete.
+
+Branch/worktree retirement requires its own current-tip, ownership, active-use,
+preservation and authorization evidence after destination verification. Superseded
+unmerged branches are not eligible merged branches; source pruning does not grant
+forced deletion or history rewriting. Preserve them when applicable explicit
+deletion authority or content evidence is missing.
+
 Account for all sources before transfer or deletion. Preserve original/current
 SHAs, dirty bytes, partial staging, valuable ignored content, recovery copies,
 active tasks, locked worktrees, and uncertain ownership. Git bundles alone do not

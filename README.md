@@ -58,9 +58,9 @@ Drive a GitHub pull request through bounded review and fix rounds, diagnose fail
 
 ### [Repository Consolidation](plugins/repo-consolidation/README.md)
 
-Account for branches, worktrees, stashes, and unfinished changes, plan overlapping work and prerequisites, and integrate focused PRs in series. Verify recovery content and destination coverage before retiring eligible sources.
+Reconcile useful outcomes from scattered branches, worktrees, stashes, and unfinished changes onto the verified default branch. Choose canonical implementations, adapt missing behavior, and prune verified obsolete code, artifacts and residue through focused PRs in series.
 
-**Release:** `0.2.0` · [Guide and preservation rules](plugins/repo-consolidation/README.md)
+**Release:** `0.3.0` · [Guide and reconciliation rules](plugins/repo-consolidation/README.md)
 
 ### [Conventional Commit](plugins/conventional-commit/README.md)
 

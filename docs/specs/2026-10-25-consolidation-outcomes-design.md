@@ -1,6 +1,6 @@
 # Repository Consolidation: reconcile outcomes and prune obsolete source
 
-Status: proposed for user approval. Implementation and publication are not yet complete.
+Status: approved by the user on 2026-10-25 for implementation and publication.
 
 ## Goal and scope
 
