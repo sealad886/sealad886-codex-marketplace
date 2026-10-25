@@ -1,8 +1,9 @@
 # Overlap, prerequisites, and serial integration
 
-Read when sources share commits, touch the same behavior, form a stack, or have
-uncertain squash/cherry-pick/revert history. Use the existing consolidation
-ledger; a branch is a source, not automatically one independent work unit.
+Use when choosing how each source's useful outcomes should survive on current
+default, including shared commits, competing implementations, stacks and uncertain
+squash/cherry-pick/revert history. Use the existing consolidation ledger; a branch
+is a source, not automatically one independent work unit or a replay instruction.
 This analysis grants no merge, history rewrite, retargeting, or product decision.
 
 ## Compare content and intent
@@ -33,6 +34,34 @@ removed its ancestor's behavior. Patch IDs, PR state, and merge-base evidence
 help find candidates; current content, history and acceptance establish what
 survives. Do not treat an intentional revert as a conflict to resolve away.
 
+## Choose the destination implementation
+
+1. State the accepted outcome and its required inputs, outputs, errors, side
+   effects, ordering, resource ownership and cancellation behavior as relevant.
+   Compare that contract with current default and each source, including tests,
+   consumers, configuration and docs. Recency, ancestry and a clean merge do not
+   decide which behavior belongs in the product.
+2. Prefer an existing suitable canonical owner. For an included outcome, choose
+   retain, adapt/combine or replace; otherwise explain already-covered,
+   superseded, preserved/excluded or blocked work. Record the source-to-result
+   mapping even when no original commit or helper is copied. Reconstruct a
+   useful fix against current APIs when that gives a smaller complete change
+   than replaying its stale implementation.
+3. Reconcile equivalent rules through their in-scope callers. Check actual
+   semantics rather than syntax; preserve required caller policy and necessary
+   public, dynamic, resource and cancellation boundaries. Do not add forwarding
+   layers, mode flags or compatibility shims merely to keep competing designs.
+   If accepted requirements do not resolve a material conflict, retain the
+   evidence and ask for that decision while independent work continues.
+4. Prepare one coherent candidate containing the missing behavior, its consumer
+   changes, and [verified obsolete-source removals](cleanup.md). Inspect the net
+   diff against pinned default before choosing merge/cherry-pick as transport.
+   A branch containing one useful fix, an obsolete wrapper and stale config is
+   not three obligations to import; adapt the fix and omit or remove the residue.
+5. Verify both the accepted outcome and the surviving call path. Keep source
+   omissions and removals explicit. Do not claim reconciliation when an equivalent
+   old implementation remains active without a required/blocked reason.
+
 ## Derive and refresh the order
 
 1. Assign stable unit IDs and record prerequisite edges with reasons. Separate
@@ -51,12 +80,14 @@ survives. Do not treat an intentional revert as a conflict to resolve away.
 5. Repeat the three coverage passes at their normal boundaries. Final proof
    checks the combined consumers, not merely that each PR merged separately.
 
-For example, sources A and B both add a parser helper P; A adds an import caller
-and B adds a preview caller. Map P once, then A's and B's caller changes to their
-own units. After P merges, verify its actual interface before preparing each
-caller on refreshed default. Keep both callers and their behavior checks. If P
-was squashed and later deliberately reverted, stop the dependent chain for the
-product decision instead of replaying P from either source.
+For example, sources A and B add equivalent parser helpers plus import and preview
+callers. If default already has a suitable parser, adapt both useful callers to
+that owner and omit the duplicate helpers; map all source intent to those results.
+Otherwise establish one suitable owner once, then prepare the callers against its
+verified interface on refreshed default. Keep both callers' required behavior
+checks. If the parser was deliberately reverted, resolve the product decision
+instead of replaying it from either source. Similar-looking parsers with different
+required error or cancellation semantics must not be unified blindly.
 
 Primary references: [merge-base](https://git-scm.com/docs/git-merge-base),
 [range-diff](https://git-scm.com/docs/git-range-diff),

@@ -23,11 +23,18 @@ and private contents. Stable IDs survive branch renaming/deletion.
 Retain equal-tip aliases; distinguish diverged local/upstream tips and staged/
 unstaged bytes. Do not omit unavailable, dirty-default, or newly advanced sources.
 
-## Units and PRs
+## Outcomes and PRs
 
-| Unit | Source IDs and exact commits/hunks | Intended behavior and unfinished tasks | Disposition/reason | Dependency/PR | Result mapping | Acceptance/proof |
+| Unit | Source IDs and exact commits/hunks | Accepted outcome and unfinished tasks | Disposition/reason | Dependency/PR | Canonical owner and result mapping | Acceptance/proof |
 | --- | --- | --- | --- | --- | --- | --- |
-| U-01 | Immutable source evidence | Concrete completion | Include/integrated/superseded/preserve-exclude/blocked | P-* or preservation path | Adaptations/omissions/result files/commits | Command/revision/outcome |
+| U-01 | Immutable source evidence | Required behavior and consumers | Retain/adapt-combine/replace; already integrated/superseded/preserve-exclude/blocked | P-* or preservation path | Surviving owner, adaptations/omissions and result files/commits | Command/revision/outcome |
+
+For each included outcome record verified obsolete source/residue, exact removal
+paths and reasons, caller/registration/generator/external-consumer checks, and
+anything retained as required or blocked. Include affected flags, dependencies,
+tests and docs; source removal belongs to the candidate, not only later ref cleanup.
+Map an outcome even when its implementation is reconstructed and no source commit
+is replayed. Source coverage is accounting, not a requirement to import every hunk.
 
 Record shared content once with all contributing source IDs; give each consumer
 its remaining intent. For prerequisite edges record the required contract,
@@ -44,12 +51,12 @@ mappings, bases and affected checks after each actual merge.
 | Pass | Required question | Evidence | Gaps/disposition |
 | --- | --- | --- | --- |
 | Source, before review | Every source classified and included unit mapped? | Original sources, history/hunks, unit-to-result mapping | No unexplained omission |
-| Behavior, before merge | Combined change meets accepted intent? | Current destination net diff, contracts/tests/docs/integration | Failure/skipped reason |
-| Destination, after merges and finally | Included work present and residual work preserved? | Merge readback, content/behavior, fresh refs/dirty/stashes/remote inventory | Advanced/new sources classified |
+| Behavior, before merge | Accepted outcomes, canonical ownership and source cleanup complete? | Current destination net diff, consumer/contracts/tests/docs/integration and residue checks | Failure/skipped reason or retained boundary |
+| Destination, after merges and finally | Required outcomes present, verified obsolete residue absent, and valuable residual work preserved? | Merge readback, content/behavior, fresh refs/dirty/stashes/remote inventory | Advanced/new sources and remaining residue classified |
 
 ## Cleanup and resume
 
-| Candidate | Authority/expected tip/owner | Integration/valuable-file/active-use evidence | Action/time | Readback or preserved reason/recovery |
+| Candidate (source file or ref/worktree) | Authority/expected tip or bytes/owner | Outcome/removal/valuable-file/active-use evidence | Action/time | Readback or preserved reason/recovery |
 | --- | --- | --- | --- | --- |
 | Exact identity | Fresh evidence | No unaccounted work | Eligible action only | Actual result |
 

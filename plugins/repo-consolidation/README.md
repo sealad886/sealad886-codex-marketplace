@@ -1,16 +1,25 @@
 # Repository Consolidation
 
-Version **0.2.0**. One standalone skill for accounting for scattered Git work
-and integrating authorized changes through focused reviewed PRs in series.
+Version **0.3.0**. One standalone skill for reconciling useful implemented work
+onto the verified default branch and removing verified obsolete source through
+focused reviewed PRs in series.
 
 The [skill](skills/repo-consolidation/SKILL.md) inventories local and advertised
 remote branches, every worktree, stashes, dirty/default-branch changes, and
 relevant ignored artifacts. It maps each original source to an explicit
-integration or preservation decision, finishes included work, verifies destination
-coverage, and removes only eligible sources. Fewer branches alone is not success.
-It compares shared prerequisites and competing intent, derives a serial
-integration order, and checks recovery content and representation before source
-retirement depends on a backup.
+outcome or preservation decision. It compares accepted behavior with current
+default, chooses a canonical implementation, and adapts missing useful work to
+that implementation. Branches and commits supply evidence; replaying every commit
+is not a target. Shared prerequisites are included once, and required caller
+differences remain explicit.
+
+Each candidate also removes proven obsolete code, snippets, duplicate source,
+abandoned artifacts and their callers, flags, assets, dependencies, tests and
+documentation where no longer required. It checks public/dynamic consumers and
+generator inputs before deletion. Source pruning is separate from retiring Git
+branches or worktrees and from disposing of unique dirty content or user data.
+Completion verifies useful behavior on actual default, source cleanup and
+preservation. Fewer branches or lines alone is not success.
 
 ## Install and use
 
@@ -32,6 +41,9 @@ Example requests:
   reviewed PRs, gated merges, and eligible cleanup. Preserve the named branches."
 - "Compare these three branches, map shared prerequisites once, and plan a
   serial integration order while retaining each caller's independent changes."
+- "This branch mixes a useful fix with an obsolete wrapper and old generated
+  files. Adapt the fix to the canonical implementation on default, migrate its
+  callers, and prune verified obsolete source and dependency/configuration residue."
 - "Check whether these recovery copies actually preserve staged, dirty,
   untracked and LFS content. Inspect restoration in the selected scratch space;
   retain the originals and report every unproved layer."
@@ -41,6 +53,9 @@ plan-only, no-push, no-merge, and named exclusions narrow it. Reading, installin
 quoting, or automatically loading this package grants no action. New worktrees,
 data disposal, destructive Git recovery, settings changes, release/publication,
 deployment, and unrelated repositories remain outside consolidation authority.
+Deleting an obsolete tracked implementation in the reviewed candidate does not
+authorize discarding dirty/untracked files, stashes or recovery copies. A
+superseded unmerged branch still needs the applicable deletion authority.
 
 ## Requirements and included references
 
@@ -51,12 +66,12 @@ usable; it contains its own selective commit and PR review procedures, without
 requiring the Conventional Commit or Iterating PR Bot Fixes plugins.
 
 - [Complete Git inventory and comparison](skills/repo-consolidation/references/git-inventory.md)
-- [Overlap and dependency analysis](skills/repo-consolidation/references/overlap-and-dependencies.md)
+- [Outcome reconciliation, overlap and dependencies](skills/repo-consolidation/references/overlap-and-dependencies.md)
 - [Preservation and restoration proof](skills/repo-consolidation/references/preservation-and-restore.md)
 - [Selective commit safety](skills/repo-consolidation/references/selective-commits.md)
 - [Serial review and integration](skills/repo-consolidation/references/serial-review.md)
 - [Review sources and Copilot policy](skills/repo-consolidation/references/review-sources.md)
-- [Wider source cleanup](skills/repo-consolidation/references/cleanup.md)
+- [Source pruning and branch/worktree retirement](skills/repo-consolidation/references/cleanup.md)
 - [Consolidation ledger](skills/repo-consolidation/templates/consolidation-ledger.md)
 - [Per-PR review ledger](skills/repo-consolidation/templates/review-ledger.md)
 

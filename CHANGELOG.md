@@ -3,6 +3,25 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Repository Consolidation 0.3.0 - 2026-10-25
+
+### Changed
+
+- Make accepted useful outcomes on the verified default branch the goal of
+  consolidation. Branches and commits provide evidence, rather than a checklist
+  to replay wholesale. Choose a canonical implementation and adapt missing
+  behavior while preserving required caller differences and deliberate reverts.
+- Prune verified obsolete tracked code, snippets, abandoned artifacts and their
+  callers, configuration, assets, dependencies, tests and documentation within
+  each reviewed integration candidate. Inspect dynamic/public consumers and
+  generator inputs before removing source.
+- Distinguish source pruning from branch/worktree retirement and unique-content
+  disposal. Existing preservation, ownership, review and authorization checks
+  remain in force, including separate authority for superseded unmerged branches.
+- Update the existing guides, ledger and prompts without adding another skill,
+  runtime, helper or mandatory dependency on Simplify Code. Retain the catalog's
+  local package source so default installs use the marketplace checkout's version.
+
 ## iCloud Mail 0.4.0 - 2026-10-23
 
 ### Added
