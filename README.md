@@ -1,4 +1,4 @@
-# Codex plugins by Andrew Cox
+# Codex plugins by sealad886
 
 [![Validate plugins](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml)
 [![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
@@ -135,4 +135,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development, validation commands, and
 
 [Sponsor on GitHub](https://github.com/sponsors/sealad886) or [buy me a coffee](https://www.buymeacoffee.com/sealad886).
 
-Maintained by Andrew Cox. [MIT licensed](LICENSE).
+Maintained by sealad886. [MIT licensed](LICENSE).
