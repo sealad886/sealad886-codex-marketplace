@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Build Multi-target Tauri Apps",
-    "shortDescription": "Build and validate Tauri apps across desktop and mobile.",
+    "shortDescription": "Build Tauri desktop and mobile",
     "longDescription": "Eight focused skills cover architecture, frontend UX, native builds, IPC security, device QA, performance and distribution, with dated primary-source research and target-specific evidence.",
     "developerName": "Andrew Cox",
     "category": "Developer Tools",

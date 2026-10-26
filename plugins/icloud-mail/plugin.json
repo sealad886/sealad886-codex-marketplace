@@ -1,0 +1,45 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "icloud-mail",
+  "version": "0.4.0",
+  "description": "Read, organize, draft, and send iCloud Mail locally, with optional self-hosted read-only remote access.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/icloud-mail",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "icloud",
+    "mail",
+    "email",
+    "imap",
+    "smtp"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "iCloud Mail",
+        "shortDescription": "Read and manage iCloud email",
+        "longDescription": "iCloud Mail connects Codex directly to Apple's TLS IMAP and SMTP services. A temporary local setup page validates an app-specific password and saves it in macOS Keychain. Search, read, organize, draft, and send mail on demand without creating a local mailbox copy or email index. Requested mail returned to Codex enters the conversation. An optional self-hosted read-only HTTPS server supports separate user accounts on always-on infrastructure. No hosted endpoint is included; remote use requires operator-approved hosting and OAuth configuration.",
+        "developerName": "Andrew Cox",
+        "category": "Productivity",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/icloud-mail",
+        "capabilities": [
+          "Interactive",
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Connect to iCloud Mail.",
+          "Summarize important unread iCloud Mail.",
+          "Find recent iCloud email and draft a reply."
+        ],
+        "brandColor": "#1687F8",
+        "composerIcon": "./assets/icloud-mail-icon.svg",
+        "logo": "./assets/icloud-mail-logo.svg"
+      }
+    }
+  }
+}

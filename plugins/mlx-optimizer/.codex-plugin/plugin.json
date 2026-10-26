@@ -20,7 +20,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "MLX Optimizer",
-    "shortDescription": "Audit and optimize Python MLX code on Apple Silicon.",
+    "shortDescription": "Optimize Python MLX code",
     "longDescription": "Python-first Codex skills, MLX references, audit scripts, benchmark templates, and verification workflows for optimizing MLX projects on Apple Silicon.",
     "developerName": "Andrew Cox",
     "category": "Productivity",

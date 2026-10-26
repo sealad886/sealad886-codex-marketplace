@@ -1,0 +1,46 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "project-delivery",
+  "version": "1.5.0",
+  "description": "A repository-grounded, risk-scaled workflow for coordinating, planning, implementing, verifying, reviewing, releasing, and improving software changes.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/project-delivery",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "project-management",
+    "software-delivery",
+    "planning",
+    "testing",
+    "security",
+    "release-management"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Project Delivery",
+        "shortDescription": "Plan and deliver software",
+        "longDescription": "Project Delivery provides one coherent, repository-grounded lifecycle for clarifying requests, defining requirements, designing solutions, coordinating systems of record, planning delivery, implementing changes, producing test evidence, updating canonical documentation, reviewing risk, preparing releases, and capturing improvements. It scales from documentation and small fixes to multi-PR, multi-release initiatives without requiring any provider integration.",
+        "developerName": "Andrew Cox",
+        "category": "Developer Tools",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/project-delivery",
+        "capabilities": [
+          "Interactive",
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Clarify and plan this change at the right depth.",
+          "Deliver this feature with evidence and review gates.",
+          "Audit this change and prepare it for release."
+        ],
+        "brandColor": "#163F38",
+        "composerIcon": "./assets/project-delivery-icon.png",
+        "logo": "./assets/project-delivery-logo.png"
+      }
+    }
+  }
+}

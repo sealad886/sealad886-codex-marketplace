@@ -21,7 +21,7 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Conversation Visuals",
-    "shortDescription": "Add relevant sourced and generated visuals",
+    "shortDescription": "Add sourced and made visuals",
     "longDescription": "Conversation Visuals enriches supported Codex and ChatGPT conversations with carefully selected sourced images, generated illustrations, diagrams, charts, slides, and short media. It stays quiet when a visual would not help, preserves source attribution and accessibility, and degrades honestly on voice or app surfaces that do not expose plugin tools.",
     "developerName": "Andrew Cox",
     "category": "Productivity",

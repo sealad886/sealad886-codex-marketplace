@@ -2,6 +2,10 @@
 
 Contributions that make the sealad886 Codex Marketplace or one of its contained plugins clearer, safer, more evidence-driven, or more adaptable are welcome.
 
+All new and updated plugins must remain valid for both Codex and GitHub Copilot.
+The repository's [agent instructions](AGENTS.md) define the required catalog,
+manifest, MCP, packaging, and verification rules for both marketplaces.
+
 ## Choose the owning scope
 
 - Marketplace-level changes own catalog metadata, repository policy, shared CI, issue templates, and cross-plugin documentation.
@@ -53,15 +57,37 @@ Every skill must retain clear answers to:
 
 Prefer a small number of substantial, non-overlapping skills. Update the operating model and templates only for conventions genuinely shared across the lifecycle.
 
+## Copilot catalog and portable components
+
+The Codex catalog at `.agents/plugins/marketplace.json` owns plugin membership
+and package paths. Copilot's `.github/plugin/marketplace.json` is derived from
+that membership and each current package's `.codex-plugin/plugin.json` identity,
+description, and version. After adding, removing, or updating a plugin, regenerate
+and check the Copilot catalog:
+
+```bash
+python3 scripts/check_copilot_marketplace.py --write
+python3 scripts/check_copilot_marketplace.py
+```
+
+The write command updates only the Copilot catalog after validating all portable
+components. Keep each root `plugin.json` synchronized with its Codex overlay.
+Skills live in `skills/<skill>/SKILL.md`. Packages with MCP servers also ship a
+root `mcp.json` using the Agent Plugins 1.0 MCP schema, `stdio` transport, and
+`${PLUGIN_ROOT}` paths; keep the server names, commands, and entrypoints aligned
+with the Codex `.mcp.json`. Codex's `tool_timeout_sec` is client-specific and is
+not copied into the portable configuration. Distribution validation retains
+both formats. Copilot sources track the selected marketplace checkout, while
+Codex's existing `git-subdir` release pins remain independent.
+
 ## Codex display metadata
 
 A plugin has two display surfaces. Keep both useful:
 
-- New portable packages use root `plugin.json` with the Agent Plugins 1.0 schema
+- All catalog packages use root `plugin.json` with the Agent Plugins 1.0 schema
   and OpenAI presentation under `extensions.com.openai.interface`. Keep identity,
   version, and presentation synchronized with the Codex overlay. Portable
-  `shortDescription` must contain at most 30 characters. Existing packages do
-  not need a manifest migration unless their scope requires one.
+  `shortDescription` must contain at most 30 characters.
 - `.codex-plugin/plugin.json` → `interface` describes the plugin detail page:
   display name, short and long descriptions, artwork, website, and starter prompts.
 - `skills/<skill>/agents/openai.yaml` → `interface` describes an individual skill:
@@ -117,6 +143,7 @@ python3 scripts/check_route_receipts.py \
 python3 plugins/conversation-visuals/mcp/server.py --self-test
 python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_marketplace.py .
+python3 scripts/check_copilot_marketplace.py .
 python3 scripts/check_installed_parity.py <prepared-plugin-source> <installed-cache-version-dir>
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```

@@ -22,6 +22,7 @@ from safe_files import MAX_PAYLOAD_BYTES, read_bytes, read_text
 
 OPTIONAL_ROOT_FILES = {
     "plugin.json",
+    "mcp.json",
     ".codexignore",
     "LICENSE",
     "LICENSE.md",
@@ -58,7 +59,7 @@ EXPECTED_SKILL_COUNTS = {
     "project-delivery": 13,
 }
 PLUGIN_RESOURCE_DIRECTORIES = {
-    "camofox-mcp": ("scripts", "mcp.json", "assets"),
+    "camofox-mcp": ("scripts", "assets"),
     "icloud-mail": ("mcp",),
     "semantic-versioning": ("references", "scripts", "templates", "examples"),
     "mlx-optimizer": (
