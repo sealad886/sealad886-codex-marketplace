@@ -8,6 +8,15 @@ the Gmail and Outlook integrations: mailbox counts, structured search, message
 and conversation reading, attachment access, flags, archive/move/Trash,
 drafts, replies, forwards, and sending.
 
+## Access while your Mac is offline
+
+Version 0.4.0 adds an optional read-only HTTPS server for an approved always-on
+host. It uses OAuth/OIDC per user, encrypted private credentials, scoped reads,
+and durable watch checkpoints. Local installation still uses stdio and Keychain.
+**No hosted endpoint is included.** A service must be deployed and tested from a
+cloud runner with the Mac offline before unattended access is available. See the
+[remote operator and private onboarding guide](mcp/REMOTE.md).
+
 ## Try it in Codex
 
 Choose a skill or use one of these starter requests.
@@ -35,7 +44,8 @@ provider-specific mailbox API. This creates several honest differences:
 
 ## Configure securely
 
-On macOS, ask Codex:
+On macOS, select **Connect to iCloud Mail** on the plugin page. This starts a
+chat that opens the local setup page. You can also ask Codex:
 
 > Connect iCloud Mail.
 
@@ -102,7 +112,9 @@ an explicit override. SMTP always authenticates with the full account address.
 
 ## Storage and privacy
 
-This plugin connects to the iCloud-hosted mailbox on demand. It creates no local
+The following retention description applies to local stdio; remote encrypted
+account/watch storage is described in the [remote guide](mcp/REMOTE.md).
+Local stdio connects to the iCloud-hosted mailbox on demand. It creates no local
 mail repository: no mailbox replica, search index, message or attachment cache,
 offline mailbox, or background synchronization. Search runs against iCloud;
 requested messages, headers, attachments, and drafts are processed in bounded
@@ -175,6 +187,79 @@ Mutation tools:
 
 No tool permanently deletes or expunges messages.
 
+### Paged results
+
+`search_emails`, `list_drafts`, `list_mailboxes`, and `read_email_thread` return
+fixed pages of **10 results**. The final page can contain fewer. Each response
+includes `page_size` (10), `returned`, `has_more`, and `next_page_token` (a string
+when continuation is available, otherwise JSON `null`). Existing result arrays
+remain `emails`, `mailboxes`, and `messages` respectively.
+
+Omit `page_token` for the first page. To continue, call the same tool with the
+returned `next_page_token` as `page_token`, repeating the same search filters or
+thread `message_id`. Stop when `has_more` is false. Fetch only the pages needed
+for the user's request; do not automatically walk the whole mailbox.
+
+For example, the first search is:
+
+```json
+{"mailbox": "INBOX", "unread": true}
+```
+
+If its response has `has_more: true`, the next call is:
+
+```json
+{"mailbox": "INBOX", "unread": true, "page_token": "<next_page_token from the response>"}
+```
+
+Treat tokens as opaque, untrusted continuation values. They contain no mail
+bodies or credentials, require the normal account authentication on every call,
+and create no local paging state or mail cache. Never edit or fabricate them.
+Invalid tokens or changed query/mailbox UIDVALIDITY return an error asking you
+to restart without the token.
+
+Search and draft pages use descending IMAP UID order (newest assigned UID
+first, which can differ from the message's Date header). Continuation searches
+only older UIDs, so new arrivals do not shift subsequent pages. Filters and
+counts are evaluated live; moved, deleted, or newly nonmatching messages may
+vanish between calls. `matched_before_attachment_filter` counts candidates
+remaining in the current UID range, not a snapshot total for all pages.
+Each call scans at most 80 summaries. Attachment filtering, oversized summaries,
+or disappearing messages can produce a short or empty page with `has_more: true`;
+follow its token to continue past the scanned candidates.
+
+Folders sort by name and fetch counts for only the current page. Thread pages
+sort by parsed Date, then UID and identifier. The requested anchor appears once
+in that order, on the page containing it. Folder and thread tokens bind to their
+bounded discovery results: if those results change, restart from the first page.
+Thread reconstruction remains best effort (up to ten reference searches, 50
+summaries per batch, and 80 candidates per search); paging does not make it an
+exhaustive conversation search. Folder discovery keeps its 1,000-entry and
+512 KiB scan bounds.
+
+`has_more` describes available continuation. `truncated` independently reports
+scan/discovery omissions, skipped oversized summaries, or thread body-processing
+limits; `has_more: false` with `truncated: true` is not exhaustive coverage.
+Thread pages also retain the 2 MiB serialized response budget and can be shorter
+than ten; their continuation retries the next message. A single message that
+cannot fit returns an error directing callers to `read_email` or their mail app.
+Body truncation flags still apply to each returned message.
+
+**Migration from 0.2.x:** `max_results` is removed from these public tools.
+Refresh tool discovery, remove that argument, and follow continuation tokens.
+Existing account configuration and message identifiers need no data migration.
+The marketplace advertises and installs version **0.4.0**, pinned to the immutable
+source commit containing this release's package. The `icloud-mail-v0.4.0` release
+tag contains the same package files. Refresh and install through the marketplace:
+
+```bash
+codex plugin marketplace upgrade sealad886-codex-marketplace
+codex plugin add icloud-mail@sealad886-codex-marketplace
+```
+
+Start a fresh Codex chat after installation to load the updated tools and skill.
+Existing chats can retain the earlier tool schema.
+
 Message reads, including messages returned in threads, cap each body representation
 at 100,000 characters. `body_text_truncated` and `body_html_truncated` identify
 incomplete representations; read the complete message in your mail app when either
@@ -202,6 +287,7 @@ the item in Keychain Access or revoke it in Apple Account settings when wanted.
 From the repository root:
 
 ```bash
+export PYTHONDONTWRITEBYTECODE=1
 python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_plugin.py plugins/icloud-mail --layout source
 python3 scripts/check_distribution_bundle.py plugins/icloud-mail

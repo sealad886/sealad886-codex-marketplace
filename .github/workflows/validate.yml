@@ -53,46 +53,28 @@ jobs:
             python3 -c 'import json; data = json.load(open(".agents/plugins/marketplace.json")); [print(source["source"], source.get("ref", "-"), source["path"].removeprefix("./"), sep="\t") for source in (entry["source"] for entry in data["plugins"])]'
           )
 
-      - name: Validate Project Delivery structure
-        run: python3 scripts/check_plugin.py plugins/project-delivery --layout source
-
-      - name: Validate Conversation Visuals structure
-        run: python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
-
-      - name: Validate iCloud Mail structure
-        run: python3 scripts/check_plugin.py plugins/icloud-mail --layout source
-
-      - name: Validate MLX Optimizer structure
-        run: python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
-
-      - name: Validate Semantic Versioning structure and examples
+      - name: Validate catalog package structure and distribution payloads
         run: |
-          python3 scripts/check_plugin.py plugins/semantic-versioning --layout source
-          python3 scripts/check_distribution_bundle.py plugins/semantic-versioning
-          python3 scripts/check_semantic_versioning.py
+          python3 - <<'PY'
+          import json
+          import subprocess
 
-      - name: Validate Build Multi-target Tauri Apps package
-        run: |
-          python3 scripts/check_plugin.py plugins/build-multi-target-tauri-apps --layout source
-          python3 scripts/check_distribution_bundle.py plugins/build-multi-target-tauri-apps
+          with open(".agents/plugins/marketplace.json", encoding="utf-8") as stream:
+              entries = json.load(stream)["plugins"]
+          for entry in entries:
+              package = entry["source"]["path"]
+              subprocess.run(["python3", "scripts/check_plugin.py", package, "--layout", "source"], check=True)
+              subprocess.run(["python3", "scripts/check_distribution_bundle.py", package], check=True)
+          PY
+
+      - name: Validate Semantic Versioning examples
+        run: python3 scripts/check_semantic_versioning.py
 
       - name: Validate route contracts
         run: python3 scripts/check_routes.py .
 
       - name: Validate historical route-shape compatibility
         run: python3 scripts/check_route_receipts.py tests/fixtures/blind-route-observations-v1.3.1.json --root . --allow-subset --allow-historical-annotations
-
-      - name: Validate exact distribution payload
-        run: python3 scripts/check_distribution_bundle.py plugins/project-delivery
-
-      - name: Validate Conversation Visuals distribution payload
-        run: python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
-
-      - name: Validate iCloud Mail distribution payload
-        run: python3 scripts/check_distribution_bundle.py plugins/icloud-mail
-
-      - name: Validate MLX Optimizer distribution payload
-        run: python3 scripts/check_distribution_bundle.py plugins/mlx-optimizer
 
       - name: Validate Conversation Visuals MCP
         run: python3 plugins/conversation-visuals/mcp/server.py --self-test
@@ -101,4 +83,15 @@ jobs:
         run: python3 plugins/icloud-mail/mcp/server.py --self-test
 
       - name: Run validator regression tests
-        run: python3 -m unittest discover -s tests -p 'test_*.py' -v
+        # Remote HTTP/OIDC tests must run, rather than silently skipping when
+        # only the dependency-free local plugin is installed.
+        env:
+          # Fixture commits must not leave detached writers racing temp cleanup.
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: maintenance.auto
+          GIT_CONFIG_VALUE_0: "false"
+          ICLOUD_REMOTE_TESTS_REQUIRED: "1"
+        run: |
+          python3 -m venv "$RUNNER_TEMP/icloud-remote-tests"
+          "$RUNNER_TEMP/icloud-remote-tests/bin/python" -m pip install --require-hashes -r plugins/icloud-mail/mcp/requirements-remote.txt
+          "$RUNNER_TEMP/icloud-remote-tests/bin/python" -m unittest discover -s tests -p 'test_*.py' -v

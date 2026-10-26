@@ -1,0 +1,7 @@
+interface:
+  display_name: "Simplify Code"
+  short_description: "Remove needless complexity"
+  brand_color: "#19776A"
+  default_prompt: "Use $simplify-code:simplify-code to reduce unnecessary layers in the requested scope, verify callers and contracts, and preserve required behavior."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

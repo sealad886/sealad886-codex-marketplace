@@ -18,6 +18,7 @@ CHECKER = REPOSITORY_ROOT / "scripts" / "check_distribution_bundle.py"
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
 from check_distribution_bundle import materialize_runtime_closure  # noqa: E402
+from test_validation import add_portable_manifest, create_minimal_plugin
 
 
 UNIVERSAL_FORBIDDEN_PARTS = {
@@ -58,6 +59,114 @@ def write_mcp_server(source: Path, server: object) -> None:
 
 
 class DistributionBundleTests(unittest.TestCase):
+    def test_camofox_node_bundle_retains_setup_helpers_and_portable_config(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source/camofox-mcp"
+            create_minimal_plugin(source, name="camofox-mcp")
+            manifest_path = source / ".codex-plugin/plugin.json"
+            manifest = json.loads(manifest_path.read_text())
+            manifest.update({"skills": "./skills/", "mcpServers": "./.mcp.json"})
+            manifest_path.write_text(json.dumps(manifest))
+            portable = add_portable_manifest(source)
+            portable.pop("skills")
+            portable.pop("mcpServers")
+            (source / "plugin.json").write_text(json.dumps(portable))
+            (source / "scripts").mkdir()
+            (source / "scripts/runtime-paths.mjs").write_text(
+                "export const ready = 'packaged helper ready';\n"
+            )
+            for name in ("launch.mjs", "setup.mjs"):
+                (source / "scripts" / name).write_text(
+                    "import { ready } from './runtime-paths.mjs';\n"
+                    "console.log(ready);\n"
+                )
+            write_mcp_server(source, {
+                "command": "node", "args": ["./scripts/launch.mjs"], "cwd": ".",
+            })
+            (source / "mcp.json").write_text(json.dumps({
+                "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+                "mcpServers": {"camofox": {
+                    "type": "stdio", "command": "node",
+                    "args": ["${PLUGIN_ROOT}/scripts/launch.mjs"],
+                    "cwd": "${PLUGIN_ROOT}",
+                }},
+            }))
+            (source / "assets").mkdir()
+            (source / "assets/banner.svg").write_text(
+                '<svg xmlns="http://www.w3.org/2000/svg"/>'
+            )
+            (source / "README.md").write_text("![Banner](assets/banner.svg)\n")
+            output = Path(temporary) / "dist/camofox-mcp"
+
+            result = run_checker("--output", str(output), root=source)
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for relative in ("scripts/launch.mjs", "scripts/setup.mjs",
+                             "scripts/runtime-paths.mjs", "mcp.json", "assets/banner.svg"):
+                self.assertEqual((source / relative).read_bytes(),
+                                 (output / relative).read_bytes())
+            node = shutil.which("node")
+            if node is not None:
+                for name in ("launch.mjs", "setup.mjs"):
+                    launched = subprocess.run(
+                        [node, str(output / "scripts" / name)], cwd=temporary,
+                        capture_output=True, text=True, timeout=SUBPROCESS_TIMEOUT_SECONDS,
+                    )
+                    self.assertEqual(launched.returncode, 0, launched.stderr)
+                    self.assertEqual(launched.stdout.strip(), "packaged helper ready")
+
+    def test_portable_manifest_survives_distribution(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source/example-plugin"
+            create_minimal_plugin(source, name="example-plugin")
+            overlay_path = source / ".codex-plugin/plugin.json"
+            overlay = json.loads(overlay_path.read_text())
+            overlay["skills"] = "./skills/"
+            overlay_path.write_text(json.dumps(overlay))
+            portable = add_portable_manifest(source)
+            portable.pop("skills")
+            (source / "plugin.json").write_text(json.dumps(portable))
+            output = Path(temporary) / "dist/example-plugin"
+            result = run_checker("--output", str(output), root=source)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual((source / "plugin.json").read_bytes(),
+                             (output / "plugin.json").read_bytes())
+            self.assertTrue((output / "skills/sample/SKILL.md").is_file())
+
+    def test_single_skill_plugin_rejects_an_extra_skill(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "conventional-commit"
+            create_minimal_plugin(source, name="conventional-commit")
+            overlay_path = source / ".codex-plugin/plugin.json"
+            overlay = json.loads(overlay_path.read_text())
+            overlay["skills"] = "./skills/"
+            overlay_path.write_text(json.dumps(overlay))
+            shutil.copytree(source / "skills/sample", source / "skills/extra")
+            result = run_checker(root=source)
+            self.assertNotEqual(result.returncode, 0, result.stdout)
+            self.assertIn("must contain 1 skills", result.stdout)
+
+    def test_dark_artwork_is_included_in_distribution(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "source/example-plugin"
+            create_minimal_plugin(source, name="example-plugin")
+            overlay_path = source / ".codex-plugin/plugin.json"
+            overlay = json.loads(overlay_path.read_text())
+            overlay["skills"] = "./skills/"
+            overlay["interface"]["logoDark"] = "./dark.svg"
+            overlay["interface"]["composerIconDark"] = "./dark-composer.svg"
+            overlay_path.write_text(json.dumps(overlay))
+            for name in ("dark.svg", "dark-composer.svg"):
+                (source / name).write_text('<svg xmlns="http://www.w3.org/2000/svg"/>')
+            portable = add_portable_manifest(source)
+            portable.pop("skills")
+            (source / "plugin.json").write_text(json.dumps(portable))
+            output = Path(temporary) / "dist/example-plugin"
+            result = run_checker("--output", str(output), root=source)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            for name in ("dark.svg", "dark-composer.svg"):
+                self.assertEqual((source / name).read_bytes(), (output / name).read_bytes())
+
     def test_project_delivery_package_still_validates(self) -> None:
         result = run_checker()
 
@@ -195,11 +304,32 @@ with setup.SetupServer(server, None, lifetime=5) as endpoint:
                 self.assertNotEqual(result.returncode, 0)
                 self.assertIn("unsafe manifest path", result.stdout)
 
+    def test_node_mcp_requires_a_contained_mjs_script(self) -> None:
+        invalid_scripts = (
+            ("/tmp/launch.mjs", "unsafe manifest path"),
+            (r"C:\Users\alice\launch.mjs", "unsafe manifest path"),
+            ("../outside.mjs", "unsafe manifest path"),
+            ("./mcp/server.py", "must launch a .mjs script"),
+        )
+        for script, message in invalid_scripts:
+            with self.subTest(script=script), tempfile.TemporaryDirectory() as temporary:
+                source = copy_conversation_visuals(temporary)
+                write_mcp_server(source, {
+                    "command": "node", "args": [script], "cwd": ".",
+                })
+                result = run_checker(root=source)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(message, result.stdout)
+
     def test_unsupported_mcp_launch_modes_are_rejected(self) -> None:
         launchers = (
             (
                 {"command": "node", "args": ["./mcp/server.py"], "cwd": "."},
-                "command must be python3",
+                "must launch a .mjs script",
+            ),
+            (
+                {"command": "ruby", "args": ["./mcp/server.py"], "cwd": "."},
+                "command must be python3 or node",
             ),
             (
                 {"command": "python3", "args": ["-m", "server"], "cwd": "."},

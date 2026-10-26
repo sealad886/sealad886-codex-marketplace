@@ -37,7 +37,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "mlx-optimizer-v0.2.4",
+        "ref": "f2392b62b2012b4f0ff86afc26a786b94de57afa",
         "path": "./plugins/mlx-optimizer"
       },
       "policy": {
@@ -63,7 +63,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "icloud-mail-v0.2.0",
+        "ref": "f081046d65eaa52fb6d2e9667d5c5096df05607f",
         "path": "./plugins/icloud-mail"
       },
       "policy": {
@@ -83,6 +83,90 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Developer Tools"
+    },
+    {
+      "name": "iterating-pr-bot-fixes",
+      "source": {
+        "source": "local",
+        "path": "./plugins/iterating-pr-bot-fixes"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "repo-consolidation",
+      "source": {
+        "source": "local",
+        "path": "./plugins/repo-consolidation"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "conventional-commit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/conventional-commit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "simplify-code",
+      "source": {
+        "source": "local",
+        "path": "./plugins/simplify-code"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "adversarial-audit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/adversarial-audit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
+      "name": "web-research",
+      "source": {
+        "source": "local",
+        "path": "./plugins/web-research"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    },
+    {
+      "name": "camofox-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/camofox-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
     }
   ]
 }

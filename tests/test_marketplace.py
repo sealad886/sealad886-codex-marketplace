@@ -14,7 +14,7 @@ CHECKER = REPOSITORY_ROOT / "scripts" / "check_marketplace.py"
 MARKETPLACE_PATH = Path(".agents/plugins/marketplace.json")
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
-from check_marketplace import version_from_tag  # noqa: E402
+from check_marketplace import COMMIT_SHA, SEMVER, version_from_tag  # noqa: E402
 
 
 def run_checker(root: Path) -> subprocess.CompletedProcess[str]:
@@ -84,10 +84,17 @@ def create_repository_fixture(root: Path) -> dict[str, object]:
     run_git(root, "config", "maintenance.auto", "false")
     run_git(root, "config", "gc.auto", "0")
     commit_fixture(root, "fixture: add catalog plugins")
+    # Fixture repositories have their own commit identities. Repoint SHA-pinned
+    # entries to the equivalent synthetic package instead of making a hex tag.
+    fixture_commit = run_git(root, "rev-parse", "HEAD").stdout.strip()
     for entry in marketplace["plugins"]:
         source_ref = entry["source"].get("ref")
         if source_ref is not None:
-            run_git(root, "tag", source_ref)
+            if COMMIT_SHA.fullmatch(source_ref):
+                entry["source"]["ref"] = fixture_commit
+            else:
+                run_git(root, "tag", source_ref)
+    write_marketplace(root, marketplace)
     return marketplace
 
 
@@ -137,7 +144,12 @@ class MarketplaceTests(unittest.TestCase):
                     REPOSITORY_ROOT, "show", f"{source['ref']}:{manifest_path.as_posix()}"
                 ).stdout)
                 self.assertEqual(manifest["name"], entry["name"])
-                self.assertEqual(version_from_tag(source["ref"]), manifest["version"])
+                tag_version = version_from_tag(source["ref"])
+                if tag_version is not None:
+                    self.assertEqual(tag_version, manifest["version"])
+                else:
+                    self.assertIsNotNone(COMMIT_SHA.fullmatch(source["ref"]))
+                    self.assertIsNotNone(SEMVER.fullmatch(manifest["version"]))
 
     def test_semantic_versioning_metadata_is_available_before_install(self) -> None:
         # The current host reads complete uninstalled metadata from local sources;

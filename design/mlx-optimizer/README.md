@@ -48,16 +48,26 @@ metal or rail interiors.
 Run from this directory on macOS with Swift and Apple Icon Composer 2.0:
 
 ```sh
-swiftc -O rebuild/render.swift -o /private/tmp/mlx-rebuild-render
-/private/tmp/mlx-rebuild-render "$PWD/rebuild"
+(
+set -eu
+build_dir=$(mktemp -d "${TMPDIR:-/tmp}/mlx-artwork.XXXXXX") || exit
+trap 'rm -rf "$build_dir"' EXIT
+trap 'exit 1' HUP INT TERM
+swiftc -O -module-cache-path "$build_dir/module-cache" rebuild/render.swift -o "$build_dir/render" || exit
+"$build_dir/render" "$PWD/rebuild"
 sips -z 1024 1024 rebuild/mlx-tile.png --out 'MLX Optimizer Rebuilt.icon/Assets/mlx-tile.png'
 sips -z 1024 1024 rebuild/mlx-m-hook.png --out 'MLX Optimizer Rebuilt.icon/Assets/mlx-m-hook.png'
 sips -z 1024 1024 rebuild/mlx-rails.png --out 'MLX Optimizer Rebuilt.icon/Assets/mlx-rails.png'
 '/Applications/Icon Composer.app/Contents/Executables/ictool' "$PWD/MLX Optimizer Rebuilt.icon" --export-image --output-file "$PWD/rebuild/composer-raw.png" --platform macOS --rendition Default --width 1024 --height 1024 --scale 1 --design-generation 26
 '/Applications/Icon Composer.app/Contents/Executables/ictool' "$PWD/MLX Optimizer Rebuilt.icon" --export-image --output-file "$PWD/rebuild/composer-dark-raw.png" --platform macOS --rendition Dark --width 1024 --height 1024 --scale 1 --design-generation 26
-swiftc -O rebuild/finish.swift -o /private/tmp/mlx-icon-finish
-/private/tmp/mlx-icon-finish "$PWD/rebuild"
+swiftc -O -module-cache-path "$build_dir/module-cache" rebuild/finish.swift -o "$build_dir/finish" || exit
+"$build_dir/finish" "$PWD/rebuild"
+)
 ```
+
+The subshell stops on failure. Both executables and the Swift module cache use a
+private temporary directory, which is removed on exit, including compiler failure.
+No previously built executable is reused.
 
 In a restricted Codex shell, Swift needed a writable `-module-cache-path`, and
 Apple's `ictool` needed native execution outside the sandbox. It failed to open

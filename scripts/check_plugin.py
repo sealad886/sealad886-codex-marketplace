@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate Project Delivery's local structure without third-party packages."""
+"""Validate plugin source/cache structure without third-party packages."""
 
 from __future__ import annotations
 
@@ -10,6 +10,8 @@ import sys
 import time
 from pathlib import Path
 from urllib.parse import urlparse
+
+from safe_files import MAX_TEXT_BYTES, read_bytes, read_text
 
 
 EXCLUDED_DIRS = {".git", ".venv", "__pycache__", "node_modules"}
@@ -66,7 +68,8 @@ def collect_files(root: Path) -> list[Path]:
     return sorted(
         path
         for path in root.rglob("*")
-        if path.is_file() and not EXCLUDED_DIRS.intersection(path.relative_to(root).parts)
+        if (path.is_symlink() or path.is_file())
+        and not EXCLUDED_DIRS.intersection(path.relative_to(root).parts)
     )
 
 
@@ -85,6 +88,74 @@ def layout_is_valid(root: Path, name: str, version: str, layout: str) -> bool:
     return source_layout or cache_layout
 
 
+def validate_portable_manifest(root: Path, overlay: dict) -> list[str]:
+    """Check portable packages without changing legacy-only package behavior."""
+    path = root / "plugin.json"
+    if not path.exists() and not path.is_symlink():
+        return []
+    try:
+        portable = json.loads(read_text(path, root=root))
+    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+        return [f"invalid portable manifest: {error}"]
+    if not isinstance(portable, dict):
+        return ["portable manifest must contain an object"]
+    errors: list[str] = []
+    if portable.get("$schema") != "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json":
+        errors.append("portable manifest must declare the Agent Plugins 1.0 schema")
+    string_fields = {"$schema", "name", "version", "description", "homepage", "repository", "license"}
+    unknown = set(portable) - string_fields - {"author", "keywords", "extensions"}
+    if unknown:
+        errors.append(f"portable manifest has unknown top-level fields: {', '.join(sorted(unknown))}")
+    for field in string_fields.intersection(portable):
+        if not isinstance(portable[field], str):
+            errors.append(f"portable manifest {field} must be a string")
+    name = portable.get("name")
+    if not isinstance(name, str) or not 1 <= len(name) <= 64:
+        errors.append("portable manifest name must have 1-64 characters")
+    if "author" in portable:
+        author = portable["author"]
+        if (not isinstance(author, dict) or set(author) - {"name", "email", "url"}
+                or not all(isinstance(value, str) for value in author.values())):
+            errors.append("portable manifest author must contain only string name/email/url fields")
+    if "keywords" in portable:
+        keywords = portable["keywords"]
+        if not isinstance(keywords, list) or not all(isinstance(value, str) for value in keywords):
+            errors.append("portable manifest keywords must be an array of strings")
+    for field in ("name", "version", "description", "author", "homepage",
+                  "repository", "license", "keywords"):
+        if portable.get(field) != overlay.get(field):
+            errors.append(f"portable manifest {field} must match the Codex manifest")
+    extensions = portable.get("extensions", {})
+    if not isinstance(extensions, dict) or not all(isinstance(value, dict) for value in extensions.values()):
+        errors.append("portable manifest extensions must map namespaces to objects")
+    openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else None
+    interface = openai.get("interface") if isinstance(openai, dict) else None
+    if not isinstance(interface, dict):
+        errors.append("portable manifest must provide extensions.com.openai.interface")
+        return errors
+    if interface != overlay.get("interface"):
+        errors.append("portable manifest interface must match the Codex manifest")
+    subtitle = interface.get("shortDescription")
+    if not isinstance(subtitle, str) or not subtitle.strip() or len(subtitle) > 30:
+        errors.append("portable manifest shortDescription must have 1-30 characters")
+    for field in ("logo", "composerIcon", "logoDark", "composerIconDark"):
+        if field not in interface:
+            continue
+        value = interface[field]
+        if not isinstance(value, str) or not value.startswith("./"):
+            errors.append(f"portable manifest {field} must be a contained ./ path")
+            continue
+        relative = Path(value.replace("\\", "/"))
+        if ".." in relative.parts or not (root / relative).resolve().is_relative_to(root.resolve()):
+            errors.append(f"portable manifest {field} escapes the plugin root")
+            continue
+        try:
+            read_bytes(root / relative, root=root, max_bytes=5 * 1024 * 1024)
+        except OSError as error:
+            errors.append(f"portable manifest {field} is not usable artwork: {error}")
+    return errors
+
+
 def validate(root: Path, layout: str = "auto") -> tuple[list[str], int, int]:
     errors: list[str] = []
     if not root.is_dir():
@@ -95,9 +166,12 @@ def validate(root: Path, layout: str = "auto") -> tuple[list[str], int, int]:
         return [f"missing manifest: {manifest_path}"], 0, len(collect_files(root))
 
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(read_text(manifest_path, root=root))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         return [f"invalid manifest: {error}"], 0, len(collect_files(root))
+    if not isinstance(manifest, dict):
+        return ["manifest must contain an object"], 0, len(collect_files(root))
+    errors.extend(validate_portable_manifest(root, manifest))
 
     for relative in REQUIRED_ROOT_FILES:
         if not (root / relative).is_file():
@@ -126,10 +200,13 @@ def validate(root: Path, layout: str = "auto") -> tuple[list[str], int, int]:
             f"CHECK [{index}/{len(files)}] file={path.relative_to(root)} eta={eta:.1f}s",
             flush=True,
         )
+        if path.is_symlink():
+            errors.append(f"unsupported symlink: {path}")
+            continue
         if path.suffix.lower() not in TEXT_SUFFIXES:
             continue
         try:
-            text = path.read_text(encoding="utf-8")
+            text = read_text(path, root=root, max_bytes=MAX_TEXT_BYTES)
         except (OSError, UnicodeError) as error:
             errors.append(f"unreadable text file: {path}: {error}")
             continue

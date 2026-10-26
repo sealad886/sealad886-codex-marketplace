@@ -17,9 +17,11 @@ import uuid
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 from check_plugin import validate
+from safe_files import MAX_PAYLOAD_BYTES, read_bytes, read_text
 
 
 OPTIONAL_ROOT_FILES = {
+    "plugin.json",
     ".codexignore",
     "LICENSE",
     "LICENSE.md",
@@ -42,6 +44,13 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "camofox-mcp": 1,
+    "iterating-pr-bot-fixes": 1,
+    "repo-consolidation": 1,
+    "conventional-commit": 1,
+    "simplify-code": 1,
+    "adversarial-audit": 1,
+    "web-research": 1,
     "build-multi-target-tauri-apps": 8,
     "semantic-versioning": 3,
     "conversation-visuals": 4,
@@ -49,7 +58,8 @@ EXPECTED_SKILL_COUNTS = {
     "project-delivery": 13,
 }
 PLUGIN_RESOURCE_DIRECTORIES = {
-    "icloud-mail": ("mcp/setup.py", "mcp/setup.html", "mcp/keychain.py"),
+    "camofox-mcp": ("scripts", "mcp.json", "assets"),
+    "icloud-mail": ("mcp",),
     "semantic-versioning": ("references", "scripts", "templates", "examples"),
     "mlx-optimizer": (
         ".claude-plugin",
@@ -129,12 +139,12 @@ def add_declared_path(root: Path, selected: set[Path], value: str) -> None:
         raise ValueError(f"declared path does not exist: {value}")
 
 
-def add_local_python_mcp_dependencies(
+def add_local_mcp_dependencies(
     root: Path,
     selected: set[Path],
     declaration: str,
 ) -> None:
-    """Select the one local MCP launch contract used by Conversation Visuals."""
+    """Select a contained Python or Node.js MCP entrypoint."""
     declaration_path = safe_relative_path(declaration)
     config_path = root / declaration_path
     if not config_path.is_file():
@@ -144,7 +154,7 @@ def add_local_python_mcp_dependencies(
         raise ValueError(f"local MCP config contains non-standard JSON constant: {value}")
 
     config = json.loads(
-        config_path.read_text(encoding="utf-8"),
+        read_text(config_path, root=root),
         parse_constant=reject_nonstandard_constant,
     )
     if not isinstance(config, dict):
@@ -164,8 +174,9 @@ def add_local_python_mcp_dependencies(
                 "unsupported local MCP server fields: "
                 + ", ".join(sorted(unsupported_fields))
             )
-        if server.get("command") != "python3":
-            raise ValueError("local MCP server command must be python3")
+        command = server.get("command")
+        if command not in ("python3", "node"):
+            raise ValueError("local MCP server command must be python3 or node")
         if server.get("cwd") != ".":
             raise ValueError("local MCP server cwd must be '.'")
         timeout = server.get("tool_timeout_sec")
@@ -181,13 +192,15 @@ def add_local_python_mcp_dependencies(
 
         arguments = server.get("args")
         if not isinstance(arguments, list) or len(arguments) != 1:
-            raise ValueError("local MCP server args must contain one Python script")
+            runtime = "Python" if command == "python3" else "Node.js"
+            raise ValueError(f"local MCP server args must contain one {runtime} script")
         script = arguments[0]
         if not isinstance(script, str):
             raise ValueError("local MCP server script must be a string")
         script_path = safe_relative_path(script)
-        if script_path.suffix != ".py":
-            raise ValueError("local MCP server must launch a .py script")
+        extension = ".py" if command == "python3" else ".mjs"
+        if script_path.suffix != extension:
+            raise ValueError(f"local MCP server must launch a {extension} script")
 
         script_source = root / script_path
         resolved_script = script_source.resolve()
@@ -200,7 +213,7 @@ def add_local_python_mcp_dependencies(
 
 def select_paths(root: Path) -> set[Path]:
     manifest_path = root / ".codex-plugin" / "plugin.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(read_text(manifest_path, root=root))
     if not isinstance(manifest, dict):
         raise ValueError("plugin manifest must contain an object")
     selected = {Path(".codex-plugin/plugin.json")}
@@ -222,11 +235,11 @@ def select_paths(root: Path) -> set[Path]:
     if mcp_declaration is not None:
         if not isinstance(mcp_declaration, str):
             raise ValueError("mcpServers must declare a local config file")
-        add_local_python_mcp_dependencies(root, selected, mcp_declaration)
+        add_local_mcp_dependencies(root, selected, mcp_declaration)
 
     interface = manifest.get("interface", {})
     if isinstance(interface, dict):
-        for field in ("composerIcon", "logo"):
+        for field in ("composerIcon", "logo", "composerIconDark", "logoDark"):
             value = interface.get(field)
             if isinstance(value, str):
                 add_declared_path(root, selected, value)
@@ -242,7 +255,7 @@ def payload_sha256(root: Path, relative_paths: list[Path]) -> str:
     digest = hashlib.sha256()
     for relative in relative_paths:
         encoded_path = relative.as_posix().encode("utf-8")
-        contents = (root / relative).read_bytes()
+        contents = read_bytes(root / relative, root=root, max_bytes=MAX_PAYLOAD_BYTES)
         digest.update(len(encoded_path).to_bytes(8, "big"))
         digest.update(encoded_path)
         digest.update(len(contents).to_bytes(8, "big"))
@@ -252,7 +265,7 @@ def payload_sha256(root: Path, relative_paths: list[Path]) -> str:
 
 def read_plugin_name(root: Path) -> str:
     manifest_path = root / ".codex-plugin" / "plugin.json"
-    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest = json.loads(read_text(manifest_path, root=root))
     if not isinstance(manifest, dict):
         raise ValueError("plugin manifest must contain an object")
     plugin_name = manifest.get("name")
@@ -274,7 +287,9 @@ def copy_selected(root: Path, destination: Path, selected: list[Path]) -> None:
         source = root / relative
         target = destination / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, target)
+        contents = read_bytes(source, root=root, max_bytes=MAX_PAYLOAD_BYTES)
+        target.write_bytes(contents)
+        shutil.copystat(source, target, follow_symlinks=False)
 
 
 def expected_directories(relative_paths: list[Path] | set[Path]) -> set[Path]:
@@ -413,7 +428,10 @@ def build_runtime_closure(root: Path, destination: Path) -> tuple[list[str], lis
     errors.extend(validate_source_boundary(root, selected, forbidden_parts))
     if errors:
         return errors, selected, ""
-    copy_selected(root, destination, selected)
+    try:
+        copy_selected(root, destination, selected)
+    except OSError as error:
+        return [f"cannot read runtime closure source: {error}"], selected, ""
     errors.extend(
         validate_distribution_tree(
             destination,
@@ -454,7 +472,7 @@ def validate_existing_output(output: Path, plugin_name: str) -> list[str]:
 
     manifest_path = output / ".codex-plugin" / "plugin.json"
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = json.loads(read_text(manifest_path, root=output))
     except (OSError, UnicodeError, json.JSONDecodeError) as error:
         errors.append(f"refusing to replace output with unreadable identity: {error}")
     else:

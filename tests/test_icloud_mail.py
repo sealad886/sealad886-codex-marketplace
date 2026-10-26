@@ -515,12 +515,12 @@ class ICloudMailTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaisesRegex(
                 ValueError, "invalid or too long"
             ):
-                server.search_emails({field: "safe\r\nA001 EXPUNGE"})
+                server._search_emails({field: "safe\r\nA001 EXPUNGE"})
 
     def test_search_rejects_non_boolean_attachment_filter_before_connecting(self) -> None:
         with mock.patch.object(server, "_imap") as connect:
             with self.assertRaisesRegex(ValueError, "has_attachment must be a boolean"):
-                server.search_emails({"has_attachment": "false"})
+                server._search_emails({"has_attachment": "false"})
         connect.assert_not_called()
 
     def test_non_ascii_mailbox_is_reencoded_for_wire_commands(self) -> None:
@@ -574,7 +574,7 @@ class ICloudMailTests(unittest.TestCase):
         with mock.patch.object(
             server, "_imap", return_value=context
         ) as connect:
-            server.search_emails({"subject": "日本語"})
+            server._search_emails({"subject": "日本語"})
         connect.assert_called_once_with(socket_timeout=5.0)
         client.uid.assert_called_once_with(
             "search", "CHARSET", "UTF-8", b"ALL", b"SUBJECT", b'"\xe6\x97\xa5\xe6\x9c\xac\xe8\xaa\x9e"'
@@ -594,7 +594,7 @@ class ICloudMailTests(unittest.TestCase):
             "_fetch_summary",
             return_value={"id": "message", "has_attachments": False},
         ):
-            server.search_emails(
+            server._search_emails(
                 {"_thread_reference_ids": ["<a@example.com>"]}
             )
         self.assertEqual(
@@ -607,7 +607,7 @@ class ICloudMailTests(unittest.TestCase):
         client.select.return_value = ("OK", [b"0"])
         client.response.return_value = ("UIDVALIDITY", [b"7"])
         client.uid.return_value = ("OK", [b""])
-        result = server.search_emails(
+        result = server._search_emails(
             {"_thread_reference_ids": ["<日本語@example.com>"]}, client=client
         )
         self.assertEqual(result["returned"], 0)
@@ -634,13 +634,13 @@ class ICloudMailTests(unittest.TestCase):
                 "has_attachments": False,
             },
         ) as fetch:
-            result = server.search_emails(
+            result = server._search_emails(
                 {"has_attachment": True, "max_results": 1}
             )
         self.assertEqual(result["returned"], 0)
-        self.assertEqual(result["scanned"], 50)
+        self.assertEqual(result["scanned"], 80)
         self.assertTrue(result["truncated"])
-        self.assertEqual(fetch.call_count, 50)
+        self.assertEqual(fetch.call_count, 80)
 
     def test_attachment_scan_caps_socket_timeout_and_total_fetches(self) -> None:
         client = mock.MagicMock()
@@ -666,7 +666,7 @@ class ICloudMailTests(unittest.TestCase):
             "_fetch_summary",
             return_value={"id": "message", "has_attachments": False},
         ) as fetch:
-            result = server.search_emails(
+            result = server._search_emails(
                 {"has_attachment": True, "max_results": 50}
             )
         self.assertEqual(client.sock.settimeout.call_args_list[0], mock.call(25.0))
@@ -690,7 +690,7 @@ class ICloudMailTests(unittest.TestCase):
             return_value={"id": "message", "has_attachments": False},
         ) as fetch:
             with self.assertRaisesRegex(server.MailError, "timed out"):
-                server.search_emails(
+                server._search_emails(
                     {"max_results": 2}, deadline=deadline, client=client
                 )
         fetch.assert_called_once()
@@ -714,7 +714,7 @@ class ICloudMailTests(unittest.TestCase):
                 surviving,
             ],
         ):
-            result = server.search_emails({"max_results": 2})
+            result = server._search_emails({"max_results": 2})
         self.assertEqual(result["emails"], [surviving])
         self.assertEqual(result["scanned"], 2)
 
@@ -788,7 +788,7 @@ class ICloudMailTests(unittest.TestCase):
                 surviving,
             ],
         ):
-            result = server.search_emails({"max_results": 2})
+            result = server._search_emails({"max_results": 2})
         self.assertEqual(result["emails"], [surviving])
         self.assertEqual(result["skipped_oversized_summaries"], 1)
         self.assertTrue(result["truncated"])
@@ -812,7 +812,7 @@ class ICloudMailTests(unittest.TestCase):
                 "Message summary exceeds the processing limit"
             ),
         ) as fetch:
-            result = server.search_emails({"max_results": 50})
+            result = server._search_emails({"max_results": 50})
         self.assertEqual(fetch.call_count, 80)
         self.assertEqual(result["scanned"], 80)
         self.assertEqual(result["skipped_oversized_summaries"], 80)
@@ -860,7 +860,7 @@ class ICloudMailTests(unittest.TestCase):
             "has_attachments": False,
         }
         with mock.patch.object(server, "_fetch_summary", return_value=summary):
-            result = server.search_emails(
+            result = server._search_emails(
                 {
                     "_thread_reference_ids": ["<one>", "<two>"],
                     "max_results": 1,
@@ -942,9 +942,10 @@ class ICloudMailTests(unittest.TestCase):
         context.__enter__.return_value = client
         with mock.patch.object(server, "_imap", return_value=context):
             result = server.list_mailboxes({})
-        self.assertEqual(len(result["mailboxes"]), 100)
-        self.assertEqual(result["mailboxes"][-1]["name"], "Folder 99")
-        self.assertTrue(result["truncated"])
+        self.assertEqual(len(result["mailboxes"]), 10)
+        self.assertEqual(result["mailboxes"][0]["name"], "Folder 0")
+        self.assertTrue(result["has_more"])
+        self.assertFalse(result["truncated"])
 
     def test_mailbox_list_omits_oversized_names_and_flags(self) -> None:
         client = mock.MagicMock()
@@ -1015,7 +1016,8 @@ class ICloudMailTests(unittest.TestCase):
         self.assertLessEqual(
             len(json.dumps(result, ensure_ascii=False).encode()), 128 * 1024
         )
-        self.assertTrue(result["truncated"])
+        self.assertTrue(result["has_more"])
+        self.assertFalse(result["truncated"])
 
     def test_mailbox_counts_remain_unknown_when_status_is_unavailable(self) -> None:
         client = mock.MagicMock()
@@ -1047,7 +1049,7 @@ class ICloudMailTests(unittest.TestCase):
         client = mock.MagicMock()
         mailboxes = [
             {"name": f"Folder {index}", "flags": []}
-            for index in range(server.MAX_MAILBOX_STATUS + 1)
+            for index in range(server.PAGE_SIZE + 1)
         ]
         client.status.return_value = ("OK", [b"(MESSAGES 1 UNSEEN 0)"])
         context = mock.MagicMock()
@@ -1063,10 +1065,10 @@ class ICloudMailTests(unittest.TestCase):
         connect.assert_called_once_with(socket_timeout=4.0)
         self.assertEqual(
             client.sock.settimeout.call_args_list,
-            [mock.call(4.0)] * server.MAX_MAILBOX_STATUS,
+            [mock.call(4.0)] * server.PAGE_SIZE,
         )
-        self.assertEqual(client.status.call_count, server.MAX_MAILBOX_STATUS)
-        self.assertEqual(len(result["mailboxes"]), server.MAX_MAILBOX_STATUS)
+        self.assertEqual(client.status.call_count, server.PAGE_SIZE)
+        self.assertEqual(len(result["mailboxes"]), server.PAGE_SIZE)
         self.assertEqual(result["mailboxes"][-1]["messages"], 1)
         self.assertTrue(result["truncated"])
 
@@ -2591,11 +2593,11 @@ class ICloudMailTests(unittest.TestCase):
         ), mock.patch.object(
             server, "search_emails", return_value={"emails": [], "truncated": False}
         ) as search:
-            result = server.list_drafts({"max_results": 5})
+            result = server.list_drafts({})
         self.assertEqual(result, {"emails": [], "truncated": False})
         connect.assert_called_once_with(socket_timeout=10.0)
         search.assert_called_once_with(
-            {"mailbox": "Drafts", "max_results": 5}, socket_timeout=10.0
+            {"mailbox": "Drafts"}, socket_timeout=10.0
         )
 
     def test_flag_update_rejects_non_boolean_values_before_connecting(self) -> None:
@@ -3022,7 +3024,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", side_effect=lambda args, **_kwargs: messages[args["message_id"]]
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={
                 "emails": [unrelated, related, anchor],
                 "truncated": False,
@@ -3033,7 +3035,7 @@ class ICloudMailTests(unittest.TestCase):
             side_effect=lambda ids, *_args: [messages[item] for item in ids],
         ):
             result = server.read_email_thread(
-                {"message_id": "anchor", "max_results": 20}
+                {"message_id": "anchor"}
             )
         self.assertEqual(
             {message["id"] for message in result["messages"]},
@@ -3065,7 +3067,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", return_value=anchor
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={"emails": [anchor, related], "truncated": False},
         ), mock.patch.object(
             server, "_read_emails_shared", return_value=[related]
@@ -3073,7 +3075,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "MAX_THREAD_OUTPUT_BYTES", budget
         ):
             result = server.read_email_thread(
-                {"message_id": "anchor", "max_results": 20}
+                {"message_id": "anchor"}
             )
         self.assertEqual(result["messages"], [anchor])
         self.assertTrue(result["truncated"])
@@ -3105,7 +3107,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", side_effect=lambda args, **_kwargs: messages[args["message_id"]]
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={"emails": [related, anchor], "truncated": False},
         ), mock.patch.object(
             server,
@@ -3140,7 +3142,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", return_value=anchor
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={"emails": [sibling, anchor], "truncated": False},
         ), mock.patch.object(
             server, "_read_emails_shared", return_value=[sibling]
@@ -3170,7 +3172,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", return_value=anchor
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={"emails": [unrelated, anchor], "truncated": False},
         ) as search, mock.patch.object(
             server, "_read_emails_shared", return_value=[]
@@ -3201,7 +3203,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", return_value=anchor
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={"emails": [reply, anchor], "truncated": False},
         ) as search, mock.patch.object(
             server, "_read_emails_shared", return_value=[reply]
@@ -3243,7 +3245,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", return_value=anchor
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             side_effect=lambda args, **_kwargs: (
                 {"emails": [anchor, reply_b], "truncated": False}
                 if args["_thread_reference_ids"] == ["<a@example.com>"]
@@ -3286,7 +3288,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", return_value=anchor
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             side_effect=[
                 {"emails": replies, "truncated": False},
                 {"emails": [], "truncated": False},
@@ -3300,7 +3302,7 @@ class ICloudMailTests(unittest.TestCase):
             len(search.call_args_list[1].args[0]["_thread_reference_ids"]), 5
         )
 
-    def test_truncated_thread_always_includes_requested_anchor(self) -> None:
+    def test_thread_first_page_uses_chronological_window(self) -> None:
         self.install_shared_imap_session()
         def message(index: int) -> dict[str, object]:
             return {
@@ -3323,7 +3325,7 @@ class ICloudMailTests(unittest.TestCase):
             server, "read_email", side_effect=lambda args, **_kwargs: messages[args["message_id"]]
         ), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={"emails": search_results, "truncated": False},
         ), mock.patch.object(
             server,
@@ -3331,11 +3333,11 @@ class ICloudMailTests(unittest.TestCase):
             side_effect=lambda ids, *_args: [messages[item] for item in ids],
         ):
             result = server.read_email_thread(
-                {"message_id": anchor["id"], "max_results": 20}
+                {"message_id": anchor["id"]}
             )
-        self.assertEqual(len(result["messages"]), 20)
-        self.assertIn(anchor, result["messages"])
-        self.assertTrue(result["truncated"])
+        self.assertEqual(len(result["messages"]), 10)
+        self.assertNotIn(anchor, result["messages"])
+        self.assertTrue(result["has_more"])
 
     def test_selected_thread_messages_share_one_imap_session(self) -> None:
         context = mock.MagicMock()
@@ -4540,7 +4542,7 @@ class ICloudMailTests(unittest.TestCase):
             return {"emails": [], "truncated": False}
 
         with mock.patch.object(server, "read_email", return_value=messages[0]), mock.patch.object(
-            server, "search_emails", side_effect=search
+            server, "_search_emails", side_effect=search
         ), mock.patch.object(
             server,
             "_read_emails_shared",
@@ -4567,7 +4569,7 @@ class ICloudMailTests(unittest.TestCase):
         }
         with mock.patch.object(server, "read_email", return_value=anchor), mock.patch.object(
             server,
-            "search_emails",
+            "_search_emails",
             return_value={"emails": [anchor], "truncated": False},
         ) as search, mock.patch.object(server, "_read_emails_shared", return_value=[]):
             server.read_email_thread({"message_id": "anchor"})

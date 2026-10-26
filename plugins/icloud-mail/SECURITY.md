@@ -63,7 +63,23 @@ browser isolation guarantee.
 - Logs and errors exclude authentication material.
 - Attachment reads are capped at 5 MiB of decoded data.
 - Full-message downloads are rejected above a 20 MiB MIME processing limit.
-- Tool results cap message bodies and result counts.
+- HTML-to-text conversion uses a forward-only tokenizer within the message-size
+  budget, suppresses script/style content, and checks the operation deadline.
+  Complete text is converted before result truncation or forwarding checks, so
+  later visible content is not silently lost by processing only an input prefix.
+- Collection tools return at most ten results per page. Stateless continuation
+  tokens are scoped to the search and mailbox UIDVALIDITY or bounded discovery
+  result. Tokens carry no bodies or credentials and grant no account access;
+  each call authenticates normally. Tokens are not signed authorization grants.
+- Search scans at most 80 summaries per call; folder discovery retains its
+  1,000-entry/512 KiB limits and thread responses retain their 2 MiB output limit.
+  Short or empty filtered pages can still have a continuation token. Omitted
+  oversized data and bounded discovery remain explicitly marked as truncated.
+- These are application processing and retention limits. Python's `imaplib`
+  collects provider-generated BODYSTRUCTURE, LIST, and SEARCH responses before
+  the corresponding checks; they are not transport-allocation budgets. The
+  connection uses the fixed Apple endpoint with certificate validation.
+- Tool results cap message bodies and attachment metadata.
 - Outgoing local-file attachments require explicit absolute paths, reject
   symbolic links, and are capped at 5 MiB each and 10 MiB total.
 - No tool permanently expunges mail. Trash is recoverable through iCloud Mail.
@@ -73,6 +89,34 @@ browser isolation guarantee.
 - Clearing configuration removes settings but leaves Keychain items and Apple's
   authorization intact. Local item removal and Apple password revocation are
   separate user actions.
+
+## Optional remote service
+
+The guarantees above describe local stdio. The optional remote adapter has a
+different retention/trust boundary, detailed in [REMOTE.md](mcp/REMOTE.md).
+Its approved always-on host holds each consenting user's app-specific password
+and account settings in authenticated-encrypted SQLite payloads, with a separate
+private key mount. Issuer/subject-bound OAuth access tokens select the account;
+read/attachment/watch/configuration scopes are checked independently. The remote
+adapter exposes no mail mutations or credential-bearing MCP tools, and never
+falls back to local Keychain/environment credentials. Private setup uses a
+user-run OAuth device flow and authenticated HTTPS account endpoint.
+
+Watch state persists encrypted references, hashes and explicit delivered/no-alert
+receipts, independently of scan continuation. Message bodies/subjects/attachment
+content are not stored. Remote identifiers are authenticated-encrypted and bound
+to tenant and connection generation. Failed/transient reads do not advance
+delivery state. Revocation serializes with reads; a single service process is
+enforced. HTTP and mail budgets/concurrency limits bound work, while the approved
+reverse proxy owns TLS, inbound rate limits and log redaction. Operators remain
+trusted custodians of credentials and must protect backups, key access, service
+configuration and their identity provider. JWT grant revocation may take up to
+the access token's remaining lifetime (at most one hour); disconnect immediately
+blocks subsequent mailbox reads and clears that user's state.
+
+No public endpoint or live deployment is included in the package. A public
+service requires operator approval and live OIDC/egress, backup/restore and
+Mac-offline cloud-runner tests before it can claim unattended access.
 
 ## Reporting
 

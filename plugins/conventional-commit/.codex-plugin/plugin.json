@@ -1,0 +1,39 @@
+{
+  "name": "conventional-commit",
+  "version": "0.2.0",
+  "description": "Inspect dirty Git work, preserve excluded changes and staging, and create coherent verified Conventional Commits.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/conventional-commit",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "commit",
+    "conventional-commits",
+    "staging",
+    "cleanup"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Conventional Commit",
+    "shortDescription": "Commit focused Git changes",
+    "longDescription": "Selective commit planning, protection for pre-existing staged work and mixed hunks, repository hooks and signing, strict first-token cleanup opt-in, and evidence-based local commit handoff.",
+    "developerName": "Andrew Cox",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Inspect my current changes and create focused Conventional Commits, preserving unrelated work.",
+      "Propose logical Conventional Commit groups without staging or committing."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "brandColor": "#157862",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/conventional-commit"
+  }
+}

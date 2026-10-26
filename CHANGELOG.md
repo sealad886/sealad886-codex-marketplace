@@ -3,6 +3,174 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Repository Consolidation 0.3.0 - 2026-10-25
+
+### Changed
+
+- Make accepted useful outcomes on the verified default branch the goal of
+  consolidation. Branches and commits provide evidence, rather than a checklist
+  to replay wholesale. Choose a canonical implementation and adapt missing
+  behavior while preserving required caller differences and deliberate reverts.
+- Prune verified obsolete tracked code, snippets, abandoned artifacts and their
+  callers, configuration, assets, dependencies, tests and documentation within
+  each reviewed integration candidate. Inspect dynamic/public consumers and
+  generator inputs before removing source.
+- Distinguish source pruning from branch/worktree retirement and unique-content
+  disposal. Existing preservation, ownership, review and authorization checks
+  remain in force, including separate authority for superseded unmerged branches.
+- Update the existing guides, ledger and prompts without adding another skill,
+  runtime, helper or mandatory dependency on Simplify Code. Retain the catalog's
+  local package source so default installs use the marketplace checkout's version.
+
+## iCloud Mail 0.4.0 - 2026-10-23
+
+### Added
+
+- Optional read-only Streamable HTTP service using the pinned official MCP SDK,
+  per-user OAuth/OIDC access tokens and tenant-bound encrypted credentials.
+- Private user-run device-flow onboarding and authenticated disconnection,
+  separate read/attachment/watch/configuration scopes, and bounded concurrency.
+- Encrypted, tenant-bound expiring identifiers and durable watch pagination,
+  UIDVALIDITY recovery, overlapping scans and explicit delivered/no-alert receipts.
+- Remote deployment/onboarding/rollback guidance and mocked HTTP, authentication,
+  tenant isolation, redaction and checkpoint regression coverage in CI.
+
+Local stdio and Keychain use remain available. This release supplies self-hosted
+server code, not a live hosted endpoint. Hosting/OIDC setup, live credentials and
+a cloud-runner read with the Mac offline remain separate deployment prerequisites.
+No monitoring is started or resumed by installation.
+
+## Camofox Browser 0.1.1 - 2026-10-21
+
+### Added
+
+- Camofox Browser: 46 MCP tools for headless browsing, page interaction,
+  structured extraction, screenshots, uploads, downloads and service diagnostics.
+- Managed setup installs the pinned npm client, upstream server and browser
+  engine. Private loopback services, isolated sessions and explicit lifecycle
+  commands support local macOS/Linux use and existing-server connections.
+- Distribute the canonical plugin from `sealad886/camofox-mcp` without copying
+  its server implementation into the marketplace. Node MCP launchers receive
+  the same contained distribution validation as existing Python launchers.
+
+## Workflow plugin expansions 0.2.0 - 2026-10-19
+
+### Added
+
+- Iterating PR Bot Fixes: failed-check diagnosis and revision/merge-queue
+  recovery, with source retirement and current-head review kept distinct.
+- Repository Consolidation: overlap/prerequisite planning and verification of
+  committed, dirty, untracked and special-file recovery content.
+- Conventional Commit: automation-aware message decisions and a constrained
+  procedure for committing a verified subset of already-staged text hunks.
+- Simplify Code: state/control-flow reduction and previewed caller migrations
+  with explicit exclusions, repeat-run checks and optional evidence capture.
+- Adversarial Audit: bounded failure/recovery experiments and differential or
+  property-based verification using an explicitly justified comparison oracle.
+- Web Research: decision/sensitivity comparisons, claim-scoped refreshes and
+  quantitative evidence appraisal with source-versus-calculation separation.
+
+### Changed
+
+- All six remain independent one-skill packages. New runbooks are conditionally
+  routed from their existing entrypoints; complex work can use optional templates
+  or extensions to existing ledgers. No new server or runtime is required.
+- Each package advances to 0.2.0 with its existing identity, starter prompts,
+  local/cloud eligibility and authority boundaries preserved.
+
+## Conventional Commit 0.1.1 - 2026-10-19
+
+### Fixed
+
+- Use the installed namespaced skill in direct cleanup examples, matching the
+  plugin's starter prompt and guide after standalone-skill removal.
+- Clarify local and cloud installation and execution requirements in the guide.
+
+## Standalone workflow plugins 0.1.0 - 2026-10-18
+
+### Added
+
+- Iterating PR Bot Fixes `0.1.0`: bounded review rounds, attributable reviewer
+  outcomes, scoped root-cause fixes, merge gates, and verified cleanup.
+- Repository Consolidation `0.1.0`: complete source accounting, preservation,
+  serial PR integration, destination verification, and eligible cleanup.
+- Conventional Commit `0.1.0`: selective commit grouping, preservation of
+  unrelated index and working-tree content, and explicit cleanup controls.
+- Simplify Code `0.1.0`: behavior-preserving removal of unnecessary layers,
+  canonical shared ownership, and verification of dynamic and public consumers.
+- Adversarial Audit `0.1.0`: evidence-backed finding validation, proportional
+  specialist investigation, and an authorized remediation loop.
+- Web Research `0.1.0`: source evaluation, dated and version-aware evidence,
+  adjacent citations, independent corroboration, and explicit uncertainty.
+- Each package exposes one independently usable skill, with contained
+  references, original artwork, display metadata, catalog discovery, and
+  pinned hosted security scanning.
+
+### Changed
+
+- New workflow packages include portable Agent Plugins 1.0 root manifests and
+  matching Codex overlays. Existing plugin layouts remain supported; the
+  standalone source skills are not modified or automatically replaced.
+- Package validators check portable manifest agreement and retain root
+  manifests in exact distribution payloads. CI validates source and distribution
+  structure for every catalog package while retaining specialized checks.
+
+## MLX Optimizer 0.2.5 - 2026-10-18
+
+### Security
+
+- Isolate environment-probe child imports from repository files and inherited
+  Python search paths while preserving the selected virtual environment.
+- Reject symlink and non-regular audit inputs, and bound each source read to
+  2 MiB so crafted files cannot block or exhaust the scanner.
+
+## iCloud Mail 0.3.1 - 2026-10-18
+
+### Security
+
+- Replace backtracking HTML stripping with bounded forward-only conversion.
+  Malformed message markup no longer monopolizes read, thread-read or forward
+  processing; operation deadlines and visible message content are preserved.
+
+## Marketplace tooling - 2026-10-18
+
+### Security
+
+- Bound validator input reads and reject symlinks and special files across
+  marketplace, package and route-evidence checks.
+- Build artwork helpers in private temporary directories and stop on compiler
+  failure instead of reusing executables at predictable temporary paths.
+
+## iCloud Mail 0.3.0 - 2026-10-15
+
+### Changed
+
+- Return fixed ten-result pages from search, draft listing, folder listing, and
+  thread reads, with `page_token`, `next_page_token`, `has_more`, `page_size`, and
+  `returned`. Replace the public `max_results` argument; callers must refresh
+  tool discovery and follow tokens while retaining their original filters.
+- Continue search through older UIDs beyond the former newest-80 candidate
+  window, preserving bounded work per call and progress after empty filtered
+  pages. New arrivals do not displace later pages.
+- Sort folders by name and page thread messages chronologically, including the
+  requested anchor once on its chronological page. Reject stale discovery
+  tokens and keep truncation/processing limits distinct from continuation.
+- Retain stateless, dependency-free operation without a local mail cache.
+
+## iCloud Mail 0.2.2 - 2026-10-06
+
+### Fixed
+
+- Put a Connect to iCloud Mail starter first on the plugin page. It starts a
+  chat that opens private local setup for the Apple app-specific password.
+
+## iCloud Mail 0.2.1 - 2026-10-06
+
+### Fixed
+
+- Include the matching marketplace catalog reference in the release snapshot
+  before tagging. Mail functionality is unchanged from 0.2.0.
+
 ## Build Multi-target Tauri Apps 0.1.0 - 2026-10-04
 
 ### Added

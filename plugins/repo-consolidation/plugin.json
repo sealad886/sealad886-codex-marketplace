@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "repo-consolidation",
+  "version": "0.3.0",
+  "description": "Reconcile useful work onto the verified default branch, simplify overlapping implementations, and prune verified obsolete source through serial reviewed pull requests.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/repo-consolidation",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "branches",
+    "worktrees",
+    "consolidation",
+    "pull-request"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Repository Consolidation",
+        "shortDescription": "Reconcile scattered Git work",
+        "longDescription": "Bring useful outcomes from scattered Git work onto the verified default branch. Choose canonical implementations, adapt missing behavior, and prune obsolete source and residue while preserving unique work and verifying serial reviewed integration.",
+        "developerName": "Andrew Cox",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Inventory useful outcomes and obsolete source against this repository's default branch without changing anything.",
+          "Reconcile useful work onto default, simplify overlaps, and prune verified obsolete source through reviewed PRs."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg",
+        "brandColor": "#6B439A",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/repo-consolidation"
+      }
+    }
+  }
+}

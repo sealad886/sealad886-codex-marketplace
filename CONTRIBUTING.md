@@ -14,6 +14,19 @@ Semantic Versioning follows the same release and validation requirements. Its [p
 
 Build Multi-target Tauri Apps follows the same package and release contracts. Its [guide](plugins/build-multi-target-tauri-apps/README.md) and [research ledger](plugins/build-multi-target-tauri-apps/skills/.shared/research.md) define original capability adaptation, target evidence and source freshness. Keep shared references inside its skill tree so the distribution remains self-contained.
 
+The standalone workflow plugins each expose one skill: [Iterating PR Bot Fixes](plugins/iterating-pr-bot-fixes/README.md), [Repository Consolidation](plugins/repo-consolidation/README.md), [Conventional Commit](plugins/conventional-commit/README.md), [Simplify Code](plugins/simplify-code/README.md), [Adversarial Audit](plugins/adversarial-audit/README.md), and [Web Research](plugins/web-research/README.md). Their guides define invocation, prerequisites, authority, outputs, and verification. Keep supporting references and templates beneath the owning skill; another plugin or a sibling skill directory must not be a hidden runtime dependency.
+
+## Camofox Browser source ownership
+
+[Camofox Browser](plugins/camofox-mcp/README.md) is maintained in
+[`sealad886/camofox-mcp`](https://github.com/sealad886/camofox-mcp). Make runtime,
+setup, skill, asset and version changes there first. After its matching npm
+version is published, copy that release's entire `plugin/` directory to
+`plugins/camofox-mcp/`, including hidden files. Verify byte parity, package
+validation and a clean consumer installation before publishing this marketplace.
+The local catalog source keeps the full plugin details visible before install.
+Do not create a second server implementation or follow npm latest implicitly.
+
 ## Before changing Project Delivery
 
 1. Open or reference an issue when the change affects lifecycle semantics, artifact contracts, compatibility, or safety.
@@ -44,6 +57,11 @@ Prefer a small number of substantial, non-overlapping skills. Update the operati
 
 A plugin has two display surfaces. Keep both useful:
 
+- New portable packages use root `plugin.json` with the Agent Plugins 1.0 schema
+  and OpenAI presentation under `extensions.com.openai.interface`. Keep identity,
+  version, and presentation synchronized with the Codex overlay. Portable
+  `shortDescription` must contain at most 30 characters. Existing packages do
+  not need a manifest migration unless their scope requires one.
 - `.codex-plugin/plugin.json` → `interface` describes the plugin detail page:
   display name, short and long descriptions, artwork, website, and starter prompts.
 - `skills/<skill>/agents/openai.yaml` → `interface` describes an individual skill:
@@ -56,7 +74,7 @@ A plugin has two display surfaces. Keep both useful:
 Display metadata does not replace `SKILL.md` or grant tool permissions. Keep
 starter prompts within the skill's authority rules. See OpenAI's
 [skill interface requirements](https://developers.openai.com/plugins/deploy/submission-errors).
-For Semantic Versioning, retain the catalog-local source unless a replacement
+For Semantic Versioning and the standalone workflow plugins, retain the catalog-local source unless a replacement
 passes native pre-install discovery. With `git-subdir`, the current Codex host
 returns a cross-repository placeholder before installation; adding skill metadata
 does not fix that listing. A local source in a Git-backed marketplace resolves
@@ -66,7 +84,8 @@ that package at the intended published version.
 
 Validate `plugin/read` in a fresh Codex home **before installing**: the plugin
 should have a display name, descriptions, prompts, existing artwork paths, and
-its three skills while `installed` is false. Verify installation and published
+the package's expected skills while `installed` is false: three for Semantic
+Versioning and one per standalone workflow plugin. Verify installation and published
 package identity separately.
 
 Validate the packaged files and inspect Codex's `skills/list` response after an
@@ -79,23 +98,22 @@ requires a separate app check.
 Run from the repository root:
 
 ```bash
-python3 scripts/check_plugin.py plugins/project-delivery --layout source
-python3 scripts/check_plugin.py plugins/conversation-visuals --layout source
-python3 scripts/check_plugin.py plugins/icloud-mail --layout source
-python3 scripts/check_plugin.py plugins/mlx-optimizer --layout source
-python3 scripts/check_plugin.py plugins/semantic-versioning --layout source
-python3 scripts/check_plugin.py plugins/build-multi-target-tauri-apps --layout source
-python3 scripts/check_distribution_bundle.py plugins/build-multi-target-tauri-apps
+python3 - <<'PY'
+import json
+import subprocess
+
+with open(".agents/plugins/marketplace.json", encoding="utf-8") as stream:
+    entries = json.load(stream)["plugins"]
+for entry in entries:
+    package = entry["source"]["path"]
+    subprocess.run(["python3", "scripts/check_plugin.py", package, "--layout", "source"], check=True)
+    subprocess.run(["python3", "scripts/check_distribution_bundle.py", package], check=True)
+PY
 python3 scripts/check_semantic_versioning.py
 python3 scripts/check_routes.py .
 python3 scripts/check_route_receipts.py \
   tests/fixtures/blind-route-observations-v1.3.1.json \
   --root . --allow-subset --allow-historical-annotations
-python3 scripts/check_distribution_bundle.py plugins/project-delivery
-python3 scripts/check_distribution_bundle.py plugins/conversation-visuals
-python3 scripts/check_distribution_bundle.py plugins/icloud-mail
-python3 scripts/check_distribution_bundle.py plugins/mlx-optimizer
-python3 scripts/check_distribution_bundle.py plugins/semantic-versioning
 python3 plugins/conversation-visuals/mcp/server.py --self-test
 python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_marketplace.py .
@@ -104,6 +122,12 @@ python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
 When the Codex Plugin Creator skill is available, also run its manifest validator and validate every changed skill with Skill Creator. Release candidates must pass the pinned HOL scanner workflow with no high or critical finding.
+
+For a portable package, inspect the final archive to confirm root `plugin.json`,
+the Codex overlay, the expected skill, and all referenced assets and supporting
+files are present. Create one archive per plugin outside the directory being
+packaged. Plugin Creator account saves are private account/workspace objects;
+they do not publish a GitHub release or submit a public directory listing.
 
 Record exact commands, results, revision, and any checks not run. Static route-contract validation must never be described as proof of interactive agent behavior.
 

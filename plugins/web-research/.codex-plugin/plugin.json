@@ -1,0 +1,39 @@
+{
+  "name": "web-research",
+  "version": "0.2.0",
+  "description": "Research questions, compare decisions, refresh briefs, and appraise quantitative evidence using consulted sources, claim-level citations, and explicit uncertainty.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/web-research",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "sources",
+    "citations",
+    "evidence",
+    "synthesis"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Web Research",
+    "shortDescription": "Research with clear sources",
+    "longDescription": "A portable research workflow for consulting authoritative sources, comparing options against constraints and preferences, refreshing claims within an explicit scope, and appraising quantitative evidence with transparent calculations, citations, and uncertainty.",
+    "developerName": "Andrew Cox",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "defaultPrompt": [
+      "Research this question using current primary sources and cite the claims that matter.",
+      "Compare the evidence for these options and explain conflicts, applicability, and remaining uncertainty."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "brandColor": "#245DA8",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/web-research"
+  }
+}
