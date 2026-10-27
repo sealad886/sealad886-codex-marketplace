@@ -140,17 +140,18 @@ class DistributionBundleTests(unittest.TestCase):
             self.assertEqual(json.loads((output / "mcp.json").read_text()), portable_mcp)
 
     def test_single_skill_plugin_rejects_an_extra_skill(self) -> None:
-        with tempfile.TemporaryDirectory() as temporary:
-            source = Path(temporary) / "conventional-commit"
-            create_minimal_plugin(source, name="conventional-commit")
-            overlay_path = source / ".codex-plugin/plugin.json"
-            overlay = json.loads(overlay_path.read_text())
-            overlay["skills"] = "./skills/"
-            overlay_path.write_text(json.dumps(overlay))
-            shutil.copytree(source / "skills/sample", source / "skills/extra")
-            result = run_checker(root=source)
-            self.assertNotEqual(result.returncode, 0, result.stdout)
-            self.assertIn("must contain 1 skills", result.stdout)
+        for name in ("conventional-commit", "repository-guidance"):
+            with self.subTest(plugin=name), tempfile.TemporaryDirectory() as temporary:
+                source = Path(temporary) / name
+                create_minimal_plugin(source, name=name)
+                overlay_path = source / ".codex-plugin/plugin.json"
+                overlay = json.loads(overlay_path.read_text())
+                overlay["skills"] = "./skills/"
+                overlay_path.write_text(json.dumps(overlay))
+                shutil.copytree(source / "skills/sample", source / "skills/extra")
+                result = run_checker(root=source)
+                self.assertNotEqual(result.returncode, 0, result.stdout)
+                self.assertIn("must contain 1 skills", result.stdout)
 
     def test_dark_artwork_is_included_in_distribution(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

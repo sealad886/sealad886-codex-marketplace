@@ -3,6 +3,17 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Repository Guidance 0.1.0 - 2026-10-27
+
+### Added
+
+- A reusable, single-skill plugin for creating or auditing agent instructions
+  grounded in the target repository's structure, commands, ownership, and policy.
+- An original adaptation of engineering principles researched from Multica's
+  agent guide, with explicit provenance and a worked marketplace example.
+- Codex and GitHub Copilot catalog entries, portable manifests, packaged support
+  material, and security-scanner coverage.
+
 ## Iterating PR Bot Fixes 0.2.1 - 2026-10-27
 
 ### Fixed

@@ -157,6 +157,18 @@
       "category": "Productivity"
     },
     {
+      "name": "repository-guidance",
+      "source": {
+        "source": "local",
+        "path": "./plugins/repository-guidance"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    },
+    {
       "name": "camofox-mcp",
       "source": {
         "source": "local",

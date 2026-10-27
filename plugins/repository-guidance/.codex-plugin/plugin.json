@@ -1,0 +1,39 @@
+{
+  "name": "repository-guidance",
+  "version": "0.1.0",
+  "description": "Create, adapt, and audit repository instructions against local architecture, tooling, tests, and authority instead of importing another project\u2019s assumptions.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/repository-guidance",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "repository",
+    "instructions",
+    "architecture",
+    "conventions"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Repository Guidance",
+    "shortDescription": "Repo rules grounded in code",
+    "longDescription": "Create, adapt, and audit repository instructions using the target project\u2019s actual ownership boundaries, development commands, state and API contracts, testing layers, and delivery policies. Keep upstream conventions as evidence to evaluate, preserve local authority, and report unsupported assumptions.",
+    "developerName": "Andrew Cox",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Audit this repository\u2019s agent instructions against its code and policies. Report proposed changes without editing files.",
+      "Adapt engineering conventions to this repository and update its existing AGENTS.md within the requested scope."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "brandColor": "#1D766E",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/repository-guidance"
+  }
+}
