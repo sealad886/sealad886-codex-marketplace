@@ -1,0 +1,7 @@
+interface:
+  display_name: "Repository Guidance"
+  short_description: "Repo rules grounded in code"
+  brand_color: "#1D766E"
+  default_prompt: "Use $repository-guidance:repository-guidance to inspect this repository and adapt its agent guidance to verified local boundaries, commands, tests, and policies. Honor the requested edit or report-only scope and identify assumptions."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

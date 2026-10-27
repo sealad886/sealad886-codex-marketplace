@@ -90,6 +90,14 @@ Research decisions with cited evidence, comparable quantities, and explicit unce
 
 **Release:** `0.2.0` · [Guide and source evaluation](plugins/web-research/README.md)
 
+### [Repository Guidance](plugins/repository-guidance/README.md)
+
+Create or audit repository-specific agent instructions using evidence from the
+target checkout. Adapt engineering conventions to its actual package boundaries,
+state ownership, contracts, verification commands, and delivery policies.
+
+**Release:** `0.1.0` · [Guide and adaptation method](plugins/repository-guidance/README.md)
+
 ## Install
 
 ### Codex
@@ -120,16 +128,17 @@ codex plugin add conventional-commit@sealad886-codex-marketplace
 codex plugin add simplify-code@sealad886-codex-marketplace
 codex plugin add adversarial-audit@sealad886-codex-marketplace
 codex plugin add web-research@sealad886-codex-marketplace
+codex plugin add repository-guidance@sealad886-codex-marketplace
 codex plugin add camofox-mcp@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.
 
-The six single-skill workflow plugins support local and cloud tasks without
-requiring a local executor. Install their account copies for cloud use and their
-marketplace copies with the CLI for local use. Each task still needs the relevant
-tools, repository access, and authentication. Invoke each skill as
-`$<plugin-name>:<skill-name>`; these six use the same name for both parts.
+The single-skill workflow plugins contain instructions without requiring a local
+executor. Marketplace installation makes them available in the local client;
+cloud use requires a separately available account copy. Each task still needs
+the relevant tools, repository access, and authentication. Invoke each skill as
+`$<plugin-name>:<skill-name>`; these plugins use the same name for both parts.
 
 ### GitHub Copilot
 

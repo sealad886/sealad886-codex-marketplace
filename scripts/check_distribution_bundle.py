@@ -52,6 +52,7 @@ EXPECTED_SKILL_COUNTS = {
     "simplify-code": 1,
     "adversarial-audit": 1,
     "web-research": 1,
+    "repository-guidance": 1,
     "build-multi-target-tauri-apps": 8,
     "semantic-versioning": 3,
     "conversation-visuals": 4,

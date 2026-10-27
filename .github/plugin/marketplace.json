@@ -80,6 +80,12 @@
       "source": "./plugins/web-research"
     },
     {
+      "name": "repository-guidance",
+      "description": "Create, adapt, and audit repository instructions against local architecture, tooling, tests, and authority instead of importing another project\u2019s assumptions.",
+      "version": "0.1.0",
+      "source": "./plugins/repository-guidance"
+    },
+    {
       "name": "camofox-mcp",
       "description": "Complete MCP tools and managed setup for the Camofox headless browser.",
       "version": "0.1.1",
