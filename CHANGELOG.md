@@ -3,6 +3,18 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Iterating PR Bot Fixes 0.2.1 - 2026-10-27
+
+### Fixed
+
+- Batch coherent repairs after a settled review round and validate the complete
+  change locally before pushing, reducing avoidable CI and review executions.
+- Record push/review triggers and distinguish measured Actions billing from job
+  runtime estimates, including private-repository Copilot review consumption.
+- Prefer bounded failed-job retries and interruptible status waits while keeping
+  required sources, new-finding dispositions, final-revision validation,
+  approvals, protections, merge queues and the ten-round ceiling intact.
+
 ## Repository Consolidation 0.3.0 - 2026-10-25
 
 ### Changed

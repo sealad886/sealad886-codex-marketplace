@@ -1,6 +1,6 @@
 # Iterating PR Bot Fixes
 
-Version **0.2.0**. One standalone skill for taking an identified GitHub pull
+Version **0.2.1**. One standalone skill for taking an identified GitHub pull
 request through bounded review, scoped repairs, verified integration, and
 eligible task cleanup.
 
@@ -20,7 +20,12 @@ CI triage follows the first meaningful failure at the actual tested revision,
 separates product defects from provider/environment and baseline failures, and
 bounds authorized retries. Revision refresh distinguishes head, test-merge, and
 merge-group evidence, handles late feedback, and resumes post-merge cleanup
-without repeating a verified merge.
+without repeating a verified merge. Repairs from a settled review round are
+batched, validated locally, and sent in one ordinary push, preserving final
+remote checks. The ledger records push/review triggers and the basis of usage
+claims. Private-repository Copilot reviews also consume Actions minutes under
+[current GitHub billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions);
+read-only status polling does not itself execute an Actions job.
 
 ## Install and use
 

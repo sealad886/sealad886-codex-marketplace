@@ -1,6 +1,6 @@
 {
   "name": "iterating-pr-bot-fixes",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Drive scoped GitHub pull requests through explicit review rounds, verified merge gates, and careful task cleanup.",
   "author": {
     "name": "Andrew Cox",

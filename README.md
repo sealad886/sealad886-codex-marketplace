@@ -58,7 +58,7 @@ Build, debug, test and prepare Tauri 2 apps across Windows, Linux, macOS, iOS an
 
 Drive a GitHub pull request through bounded review and fix rounds, diagnose failed checks, and refresh evidence after head, base, or merge-queue changes. Retain explicit reviewer outcomes, current-revision merge gates, and resumable cleanup.
 
-**Release:** `0.2.0` · [Guide and review workflow](plugins/iterating-pr-bot-fixes/README.md)
+**Release:** `0.2.1` · [Guide and review workflow](plugins/iterating-pr-bot-fixes/README.md)
 
 ### [Repository Consolidation](plugins/repo-consolidation/README.md)
 
