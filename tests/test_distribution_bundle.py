@@ -126,12 +126,18 @@ class DistributionBundleTests(unittest.TestCase):
             portable = add_portable_manifest(source)
             portable.pop("skills")
             (source / "plugin.json").write_text(json.dumps(portable))
+            portable_mcp = {
+                "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+                "mcpServers": {},
+            }
+            (source / "mcp.json").write_text(json.dumps(portable_mcp))
             output = Path(temporary) / "dist/example-plugin"
             result = run_checker("--output", str(output), root=source)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual((source / "plugin.json").read_bytes(),
                              (output / "plugin.json").read_bytes())
             self.assertTrue((output / "skills/sample/SKILL.md").is_file())
+            self.assertEqual(json.loads((output / "mcp.json").read_text()), portable_mcp)
 
     def test_single_skill_plugin_rejects_an_extra_skill(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

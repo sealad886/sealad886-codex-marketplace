@@ -1,10 +1,14 @@
-# Codex plugins by sealad886
+# Agent plugins by sealad886
 
 [![Validate plugins](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/validate.yml)
 [![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Tools for planning and shipping software, reviewing and consolidating Git work, simplifying code, researching the web, managing releases and iCloud email, browsing the web with Camofox, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
+
+Available as a plugin marketplace for **Codex** and **GitHub Copilot**. All
+packages expose portable Agent Plugins 1.0 manifests, with Codex presentation
+metadata retained separately.
 
 ## Plugins
 
@@ -88,6 +92,8 @@ Research decisions with cited evidence, comparable quantities, and explicit unce
 
 ## Install
 
+### Codex
+
 Add the marketplace once:
 
 ```bash
@@ -125,9 +131,37 @@ marketplace copies with the CLI for local use. Each task still needs the relevan
 tools, repository access, and authentication. Invoke each skill as
 `$<plugin-name>:<skill-name>`; these six use the same name for both parts.
 
+### GitHub Copilot
+
+Register the marketplace, then install any plugin by its name from the list above:
+
+```bash
+copilot plugin marketplace add sealad886/sealad886-codex-marketplace
+copilot plugin marketplace browse sealad886-codex-marketplace
+copilot plugin install project-delivery@sealad886-codex-marketplace
+```
+
+Refresh the catalog with
+`copilot plugin marketplace update sealad886-codex-marketplace`. For a pinned
+marketplace snapshot, register
+`sealad886/sealad886-codex-marketplace#marketplace-vX.Y.Z` instead. For local
+development, run `copilot plugin marketplace add .` from this checkout.
+
+The Copilot catalog uses repository-relative sources: each plugin comes from the
+selected marketplace checkout. Codex retains its own catalog and release pins.
+Copilot discovers skills under `skills/` and MCP servers through root `mcp.json`.
+Client-specific features still require the relevant host tools; for example,
+Conversation Visuals' Codex panels and image generation need a supported host,
+and iCloud Mail's local setup requires macOS Keychain. See each plugin's guide
+for its runtime and authentication requirements.
+
+The catalog follows GitHub's
+[marketplace format](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-marketplace)
+and [plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference).
+
 ## Contributing and validation
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development, validation commands, and release requirements. Plugin source lives under `plugins/`; the catalog is [marketplace.json](.agents/plugins/marketplace.json). CI checks package structure, distribution contents, regression tests, and security scans. Semantic Versioning also includes native example builds and workflow validation.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development, validation commands, and release requirements. Plugin source lives under `plugins/`; the catalogs are [Codex marketplace.json](.agents/plugins/marketplace.json) and [Copilot marketplace.json](.github/plugin/marketplace.json). CI checks catalog parity, package structure, distribution contents, regression tests, and security scans. Semantic Versioning also includes native example builds and workflow validation.
 
 [Changelog](CHANGELOG.md) · [Report a security issue](SECURITY.md) · [Get support](SUPPORT.md)
 

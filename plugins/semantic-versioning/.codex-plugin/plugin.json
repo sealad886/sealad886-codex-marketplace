@@ -9,7 +9,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Semantic Versioning",
-    "shortDescription": "Assess changes and manage versions with native release tools.",
+    "shortDescription": "Manage native release versions",
     "longDescription": "Progressively loaded skills, ecosystem examples, read-only inspection, and release automation references for agents managing semantic versions.",
     "developerName": "Andrew Cox",
     "category": "Developer Tools",
