@@ -23,6 +23,15 @@ active-source set or unavailable independent review.
 
 ## GitHub Copilot
 
+Private-repository Copilot reviews consume Actions minutes as well as AI credits
+under current [GitHub billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
+Include those reviews when assessing the cost of each push/review round. Standard
+public-repository runner usage is free; self-hosted execution, larger runners,
+storage and other providers' quotas need separate accounting. Inspect available
+account evidence rather than applying a fixed OS multiplier or treating elapsed
+workflow time as billed minutes. Missing billing access is an evidence limit,
+not authority to change billing, runners, visibility or review policy.
+
 Current GitHub documentation supports CLI review requests such as:
 
 ```sh
@@ -88,8 +97,8 @@ source's retirement without adding a security scan to every routine round.
 
 ## Primary documentation
 
-Provider behavior checked against these references on 2026-10-18; inspect the
-current installed capability before use:
+Review-provider behavior checked 2026-10-18; Actions billing checked 2026-10-27.
+Inspect current provider documentation and installed capabilities before use:
 
 - [Using Copilot code review](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/use-code-review)
 - [Configuring Copilot reviews](https://docs.github.com/en/copilot/how-tos/copilot-on-github/set-up-copilot/configure-code-review)

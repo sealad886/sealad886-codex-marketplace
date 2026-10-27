@@ -22,6 +22,19 @@ For Copilot unavailability record stated reason, attributable cannot-run evidenc
 request/preflight, time, attempted SHA, no-review-coverage status, and whether an
 explicit requirement blocks integration. Do not erase earlier/late findings.
 
+## Repair batches and execution cost
+
+- Actions usage snapshot/window and source; exact billed usage or estimate/unknown:
+- Repository visibility, runner classes; separate review/CI, storage and other quotas:
+- Automatic push/PR/review triggers; existing pending runs/requests:
+
+| Round/batch | Settled source outcomes and finding IDs | Local checks and complete proposed revision | Push/head and reason for any early push | New runs/review requests and measured or estimated execution |
+| --- | --- | --- | --- | --- |
+| One coherent batch, possibly several local commits | Every active source accounted for; exceptions remain blockers | Commands/results, limits and final diff inspection | One ordinary push per batch under existing authority | IDs, attempts, runner basis, no duplicate request |
+
+Preserve final remote checks at the required head/test-merge/merge-group revision.
+Do not turn a missing usage field or an earlier green result into current proof.
+
 ## CI dispositions and revision refresh
 
 | Check/run/attempt/job | Event and tested SHA; PR head/base or group mapping | First meaningful error and evidence | Cause/disposition and scope | Retry authority/budget and result | Current gate/remaining proof |
