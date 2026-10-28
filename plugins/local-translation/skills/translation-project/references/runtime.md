@@ -40,14 +40,26 @@ The deployment config declares:
 | `max_prompt_bytes` | Rendered prompt byte limit |
 | `max_output_tokens` | Planned generation budget |
 | `context_window_tokens` | Actual served context window; must fit tokenized prompt and planned output |
-| `timeout_seconds` | Request timeout within the runtime's allowed range |
+| `timeout_seconds` | Per-request socket timeout, integer 1–60 seconds; default 30 |
+| `run_timeout_seconds` | Total per-locale drafting budget across model checks, tokenization and all segments, integer 1–540 seconds; default 120 |
 | `api_key_env` | Optional environment-variable name for the runner credential |
 
 Numeric defaults are 8,000 input characters per unit, 32,000 rendered prompt bytes,
-2,048 output tokens, a 16,384-token context window, and a 30-second request timeout.
+2,048 output tokens, a 16,384-token context window, a 30-second request timeout,
+and a 120-second per-locale run budget.
 Set the context window to the real deployment limit. The tool also limits a job
 to 32 source segments and eight distinct target locales. Plain-text input is split
 at blank paragraphs while preserving the separators; JSON gives you explicit IDs.
+
+Choose `run_timeout_seconds` for the whole locale before creating the job. A
+multi-segment guide may need more than the default 120 seconds even when each
+request completes within `timeout_seconds`. Raising the total budget does not
+raise the per-request timeout. The 540-second maximum leaves time for saving and
+stdio handling within the Codex declaration's 600-second tool timeout; other
+clients may impose their own limits. The run deadline is checked between requests
+and response reads, while a blocked socket read remains subject to its request
+timeout. A timeout stays a visible failed locale and cannot produce a complete
+candidate. Changing either configuration value requires a replacement job.
 
 The shipped [example config](../../../examples/config.json) contains illustrative
 deployment metadata. Replace it with verified values in your own workspace. Its

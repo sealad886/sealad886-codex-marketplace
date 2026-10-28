@@ -13,5 +13,6 @@
   "max_prompt_bytes": 32000,
   "max_output_tokens": 2048,
   "context_window_tokens": 16384,
-  "timeout_seconds": 30
+  "timeout_seconds": 30,
+  "run_timeout_seconds": 120
 }

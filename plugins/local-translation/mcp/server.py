@@ -36,7 +36,7 @@ MAX_LOCALES = 8
 PROMPT_PROFILE = "index-english-constrained-v1"
 CONFIG_FIELDS = {"base_url", "model", "artifact_revision", "runner_version", "locales",
                  "max_input_chars", "max_prompt_bytes", "max_output_tokens",
-                 "context_window_tokens", "timeout_seconds", "api_key_env"}
+                 "context_window_tokens", "timeout_seconds", "run_timeout_seconds", "api_key_env"}
 ID = re.compile(r"[a-zA-Z0-9][a-zA-Z0-9_.-]{0,79}\Z")
 LOCALE = re.compile(r"[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,8})*\Z")
 BRACE_PLACEHOLDER = re.compile(r"\{\{[^{}\n]+\}\}|\{[^{}\n]+\}")
@@ -151,10 +151,11 @@ def validate_config(config):
             fail("Invalid configured locale")
         text(label, "locale label", 100)
     defaults = {"max_input_chars": 8000, "max_prompt_bytes": 32000,
-                "max_output_tokens": 2048, "context_window_tokens": 16384, "timeout_seconds": 30}
+                "max_output_tokens": 2048, "context_window_tokens": 16384,
+                "timeout_seconds": 30, "run_timeout_seconds": 120}
     bounds = {"max_input_chars": (1, 32000), "max_prompt_bytes": (100, 128000),
               "max_output_tokens": (16, 8192), "context_window_tokens": (128, 262144),
-              "timeout_seconds": (1, 60)}
+              "timeout_seconds": (1, 60), "run_timeout_seconds": (1, 540)}
     config = dict(config)
     for key, default in defaults.items():
         value = config.setdefault(key, default)
@@ -508,7 +509,7 @@ class Workbench:
 
     def run(self, job_id, target_locale, translator_id):
         identifier(translator_id, "translator ID")
-        deadline = time.monotonic() + 120
+        deadline = time.monotonic() + self.config["run_timeout_seconds"]
         with self.locked(job_id) as job:
             self.current(job)
             if target_locale not in job["target_locales"]:

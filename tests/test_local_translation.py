@@ -57,6 +57,8 @@ def runner():
                 self.send_header("Content-Length", "0")
                 self.end_headers()
                 return
+            if state.get("on_completion"):
+                state["on_completion"]()
             message = {"role": "assistant", "content": state["content"]}
             message.update(state.get("message_extra", {}))
             self.send({"model": state["response_model"], "choices": [
@@ -132,6 +134,55 @@ class TranslationTests(unittest.TestCase):
             self.assertEqual(wire["temperature"], 0)
             self.assertEqual(wire["messages"][0]["role"], "user")
             self.assertEqual(state["requests"][-2][1]["messages"], wire["messages"])
+
+    def test_configured_total_budget_allows_a_longer_multisegment_locale(self):
+        with runner() as state:
+            self.source.write_text("Hello {user}: 12\n\nHello {user}: 12\n\nHello {user}: 12")
+            workbench = self.workbench(state)
+            config = json.loads(self.config.read_text())
+            config["timeout_seconds"] = 60
+            for budget, expected in ((None, "failed"), (180, "draft")):
+                with self.subTest(budget=budget):
+                    configured = dict(config)
+                    if budget is not None:
+                        configured["run_timeout_seconds"] = budget
+                    self.config.write_text(json.dumps(configured))
+                    workbench = runtime.Workbench(self.root, self.config)
+                    job = self.create(workbench)
+                    elapsed = [0]
+                    # Each inference takes 45 simulated seconds, within the
+                    # per-request limit; the three-segment locale totals 135.
+                    state["on_completion"] = lambda: elapsed.__setitem__(0, elapsed[0] + 45)
+                    with mock.patch.object(runtime.time, "monotonic", side_effect=lambda: elapsed[0]):
+                        candidate = workbench.run(job, "fr-FR", "translator")
+                    self.assertGreater(elapsed[0], 120)
+                    self.assertEqual(candidate["state"], expected)
+                    self.assertEqual(workbench.status(job)["targets"]["fr-FR"]["state"], expected)
+                    if expected == "draft":
+                        self.assertEqual(len(candidate["segments"]), 3)
+                        self.assertTrue((workbench.jobdir(job) / candidate["artifact"]).exists())
+                    else:
+                        self.assertIn("time budget", candidate["error"])
+                        self.assertNotIn("artifact", candidate)
+
+    def test_total_run_budget_validation_and_request_timeout_remain_separate(self):
+        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "index-test",
+                  "artifact_revision": "verified-revision", "runner_version": "verified-runner",
+                  "locales": {"en-US": "English", "fr-FR": "French"}}
+        self.assertEqual(runtime.validate_config(config)["run_timeout_seconds"], 120)
+        for value in (1, 540):
+            self.assertEqual(runtime.validate_config({**config, "run_timeout_seconds": value})["run_timeout_seconds"], value)
+        for value in (0, 541, True, 120.5, "180", None):
+            with self.subTest(value=value), self.assertRaisesRegex(runtime.TranslationError, "run_timeout_seconds"):
+                runtime.validate_config({**config, "run_timeout_seconds": value})
+        path = self.root / "config.json"
+        path.write_text(json.dumps({**config, "run_timeout_seconds": 540, "timeout_seconds": 1}))
+        workbench = runtime.Workbench(self.root, path)
+        with mock.patch.object(workbench.opener, "open", side_effect=TimeoutError) as network:
+            candidate = workbench.run(self.create(workbench), "fr-FR", "translator")
+        self.assertEqual(candidate["state"], "failed")
+        self.assertIn("Local runner request failed", candidate["error"])
+        self.assertEqual(network.call_args.kwargs["timeout"], 1)
 
     def test_empty_truncated_mismatched_and_corrupt_outputs_remain_failures(self):
         cases = [{"content": ""}, {"finish_reason": "length"}, {"response_model": "wrong-model"},
