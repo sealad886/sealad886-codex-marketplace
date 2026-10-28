@@ -1,0 +1,18 @@
+{
+  "base_url": "http://127.0.0.1:8080/v1",
+  "model": "IndexTeam/Index-Translate-9B",
+  "artifact_revision": "REPLACE_WITH_VERIFIED_MODEL_REVISION",
+  "runner_version": "REPLACE_WITH_INSTALLED_VLLM_VERSION",
+  "locales": {
+    "en-US": "English (United States)",
+    "fr-FR": "French (France)",
+    "de-DE": "German (Germany)",
+    "es-ES": "Spanish (Spain)"
+  },
+  "max_input_chars": 8000,
+  "max_prompt_bytes": 32000,
+  "max_output_tokens": 2048,
+  "context_window_tokens": 16384,
+  "timeout_seconds": 30,
+  "run_timeout_seconds": 120
+}

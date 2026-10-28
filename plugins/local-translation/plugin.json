@@ -1,0 +1,45 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "local-translation",
+  "version": "0.1.0",
+  "description": "Coordinate expert translation agents, draft with a local Index-Translate runner, and track queries, independent revision, and delivery evidence across target locales.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/local-translation",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "translation",
+    "localization",
+    "index-translate",
+    "multi-agent",
+    "local-inference"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Local Translation",
+        "shortDescription": "Expert teams, local drafts",
+        "longDescription": "Run a professional translation workflow with a coordinating project manager, locale-specific translators, independent bilingual revisers, terminology and subject experts, and delivery checks. A bundled Python MCP tool calls an operator-configured local Index-Translate server, preserves immutable source snapshots, tracks queries and corrections, and prepares review-bound delivery candidates. Supports UTF-8 text and structured segments. Model weights and a runner are separate prerequisites; host agents may use cloud models. Audiovisual roles require additional media capabilities and verified references. Human acceptance remains separate from agent review.",
+        "developerName": "Andrew Cox",
+        "category": "Productivity",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/local-translation",
+        "capabilities": [
+          "Interactive",
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Use Local Translation to plan a translation team and check my local Index-Translate setup.",
+          "Translate this guide into my target locales, with independent revision and a shared terminology query process.",
+          "Review this translation job, resolve feedback, and prepare a delivery candidate for my acceptance."
+        ],
+        "brandColor": "#133D4B",
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/logo.png"
+      }
+    }
+  }
+}

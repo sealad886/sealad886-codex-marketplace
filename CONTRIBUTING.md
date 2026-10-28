@@ -31,6 +31,15 @@ validation and a clean consumer installation before publishing this marketplace.
 The local catalog source keeps the full plugin details visible before install.
 Do not create a second server implementation or follow npm latest implicitly.
 
+Local Translation owns its [package guide](plugins/local-translation/README.md)
+and [security policy](plugins/local-translation/SECURITY.md). Its stdlib MCP runtime
+supports text and explicit segments through an operator-configured local
+Index-Translate runner. Run
+`python3 -m unittest discover -s tests -p 'test_local_translation.py' -v`
+for behavioral checks. Agent role instructions,
+deterministic tool validation, runner qualification, and human acceptance are
+separate evidence; preserve those distinctions when extending the package.
+
 ## Before changing Project Delivery
 
 1. Open or reference an issue when the change affects lifecycle semantics, artifact contracts, compatibility, or safety.
