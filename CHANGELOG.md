@@ -3,6 +3,24 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Local Translation 0.1.0 - 2026-10-28
+
+### Added
+
+- A professional translation workflow covering sixteen expert responsibilities,
+  actual host-agent delegation, attributed exchanges, independent bilingual AI
+  revision, shared queries, correction rounds and human acceptance authority.
+- Eight local MCP tools for multilingual text/segment jobs, Index-Translate
+  drafting, provenance, digest-bound corrections and review, and delivery
+  candidates. Local runner/model installation and linguistic qualification are
+  separate prerequisites.
+- Matching logo, composer and skill icons, README artwork, dual-marketplace
+  discovery, portable/Codex manifests, packaged examples, and validation coverage.
+
+The initial runtime supports UTF-8 prose and explicit JSON segments through a
+configured local vLLM-compatible runner. Audiovisual production, arbitrary
+document reconstruction and qualified human acceptance require additional work.
+
 ## Repository Guidance 0.1.0 - 2026-10-27
 
 ### Added

@@ -45,6 +45,7 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "local-translation": 1,
     "camofox-mcp": 1,
     "iterating-pr-bot-fixes": 1,
     "repo-consolidation": 1,
@@ -60,6 +61,7 @@ EXPECTED_SKILL_COUNTS = {
     "project-delivery": 13,
 }
 PLUGIN_RESOURCE_DIRECTORIES = {
+    "local-translation": ("mcp", "examples", "assets"),
     "camofox-mcp": ("scripts", "assets"),
     "icloud-mail": ("mcp",),
     "semantic-versioning": ("references", "scripts", "templates", "examples"),

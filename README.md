@@ -98,6 +98,15 @@ state ownership, contracts, verification commands, and delivery policies.
 
 **Release:** `0.1.0` · [Guide and adaptation method](plugins/repository-guidance/README.md)
 
+### [Local Translation](plugins/local-translation/README.md)
+
+Coordinate expert translation agents with queries, terminology decisions,
+independent bilingual revision, correction rounds, and delivery evidence. The
+bundled tool drafts text through a configured local Index-Translate runner.
+Host agent models and final human acceptance are separate from local inference.
+
+**Version:** `0.1.0` · [Setup and supported formats](plugins/local-translation/README.md)
+
 ## Install
 
 ### Codex

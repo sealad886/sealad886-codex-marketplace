@@ -1,0 +1,7 @@
+interface:
+  display_name: "Translation Project"
+  short_description: "Coordinate local translation and independent review"
+  brand_color: "#155E75"
+  default_prompt: "Use $translation-project to coordinate expert agents, draft translations with the configured local Index-Translate tool, resolve queries, and prepare reviewed delivery candidates for my target locales."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
