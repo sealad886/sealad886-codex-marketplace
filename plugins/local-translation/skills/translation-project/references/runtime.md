@@ -60,6 +60,10 @@ Drafting and revision calls return target text to the caller. The default status
 projection omits source/target bodies, brief, glossary, query text and review
 notes; `include_segments=true` returns that full review context. This projection
 is not a mode that confines all tool or host-agent processing to the machine.
+Status checks current source/configuration and candidate-file identities. When
+it discovers drift, it retires the workbench's delivery marker and reports that
+the old delivery is no longer current. It does not modify the source or candidate
+files. Status is therefore declared as a state-changing tool.
 
 ## Supported inputs
 
@@ -76,6 +80,14 @@ A `.txt` file contains plain UTF-8 prose. An explicit `.json` source has this sh
   ]
 }
 ```
+
+Segment `format` defaults to `plain`. For a string that is deliberately a printf
+format, set `"format": "printf"` on that JSON segment. This enables printf
+placeholder inventory and nonpositional argument-order checks. Ordinary prose
+such as `Save 10% on orders.` stays in plain mode, so a percent sign is not
+mistaken for the beginning of a formatting instruction. Brace placeholders,
+literal numbers and explicitly protected spans are checked in either mode.
+Use explicit JSON segments for format-bearing strings; `.txt` is plain prose.
 
 Prepare stable unique IDs for review/query linkage. `protected` lists literal
 strings that must survive in that unit; it is not a native-resource grammar.
@@ -98,13 +110,17 @@ MCP names; a host may display them with a server namespace.
 | `translation_status` | `job_id`, optional `include_segments`. Default metadata omits segment bodies and free-text context. `include_segments=true` discloses source/target text, brief, glossary, query questions/answers and review/revision notes to the caller/host. |
 | `translation_query` | `job_id`, `actor_id`, and `question` for a new query; use returned `query_id` and an attributed `answer` to resolve it according to the discovered schema. Runtime attribution is not proof of client authorization. |
 | `translation_apply_revision` | `job_id`, `target_locale`, `actor_id`, `expected_target_sha256`, `replacements` mapping segment ID to corrected text, and `notes`. Applies validated corrections and invalidates prior reviews. |
-| `translation_review` | `job_id`, `target_locale`, `reviewer_id`, `target_sha256`, `verdict`, `notes`. Verdict is `approved`, `changes_requested` or `blocked`; the reviewer must differ from recorded candidate authors. Approval is an attributed AI/tool record, not human acceptance. |
+| `translation_review` | `job_id`, `target_locale`, `reviewer_id`, `target_sha256`, `expected_context_revision`, `verdict`, `notes`. Supply the integer context revision actually inspected. Verdict is `approved`, `changes_requested` or `blocked`; the reviewer must differ from recorded candidate authors. Approval is an attributed AI/tool record, not human acceptance. |
 | `translation_prepare_delivery` | `job_id`. Requires current successful reviewed targets and no unresolved queries; prepares a candidate manifest, never publishes or asserts human acceptance. |
 
 Review/apply-revision calls require current digests to prevent stale work from
 becoming current evidence. Shared input/configuration changes require a new job.
-Adding or answering a shared query invalidates existing target reviews; revisit
-the answer's impact and obtain current review evidence before delivery.
+Adding or answering a shared query increments `context_revision` and invalidates
+existing target reviews. Status and candidate responses expose the current
+revision. Read full review context with `include_segments=true` and submit the
+revision you actually inspected; the server rejects a delayed review from an
+older context even when target text has not changed. Revisit the answer's impact
+and obtain current review evidence before delivery.
 The old job's files remain evidence; identify its successor in the project record.
 Do not mutate stored JSON manually or reinterpret a failed language as completed.
 

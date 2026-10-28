@@ -3,7 +3,7 @@
 ## Assignment
 
 - Role, actor ID, actual host agent ID and recipient:
-- Job, target locale, source/reference identities and candidate digest:
+- Job, target locale, source/reference identities, candidate digest and context revision:
 - Owned segments/artifacts and required full/sampled coverage:
 - Brief, terminology and prior decision references:
 - Permitted tools and data disclosures:
@@ -13,7 +13,7 @@
 ## Response
 
 - Work actually performed and coverage:
-- Candidate/artifact digest inspected:
+- Candidate/artifact digest and shared-context revision actually inspected:
 - Findings by segment, category, severity, evidence and suggested remedy:
 - Translator response or reasoned disagreement:
 - Adjudicator/owner decision, attribution and affected locales:

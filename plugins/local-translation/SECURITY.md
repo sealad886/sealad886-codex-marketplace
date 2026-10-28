@@ -36,6 +36,11 @@ a security boundary against another process with the same OS-user access. This
 package is not a network-facing multi-tenant service. Do not expose its artifacts
 or runner publicly without a separately designed authorization boundary.
 
+Status can update workbench readiness: discovered source/configuration or output
+drift retires a previously ready delivery marker. It never repairs or overwrites
+the changed source or candidate file. Its tool annotation reflects that state
+change; a status call is not declared read-only.
+
 The tool checks supported input paths, response shape, model identity, termination
 and structural invariants. A prompt cannot guarantee semantic correctness or
 prevent every injection-induced mistranslation. The translation model receives no

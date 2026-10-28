@@ -42,6 +42,10 @@ the caller/host. Local
 inference and host-agent privacy are separate: remote agents cannot fully review
 source/target content without receiving it. Agree that data flow first.
 
+Status also checks whether inputs and candidate files still match the job. If it
+discovers a change, it retires the workbench's ready-delivery marker and reports
+the affected identities; source and candidate files remain untouched.
+
 ### Local client commands
 
 From this marketplace's root, the installed CLIs expose these commands:
@@ -72,8 +76,11 @@ multi-agent execution. Consult your installed client's help if its commands diff
 - UTF-8 plain text and explicit JSON text segments; multiple configured locales.
 - Frozen job inputs and configuration, local model checks, prompt tokenization,
   response/termination validation and supported invariant checks.
+- Plain prose treats percentages literally; explicit JSON segments can declare
+  `format: "printf"` for printf-placeholder and argument-order checks.
 - Per-locale drafts, visible failures, query records, digest-bound revisions and
-  independent-actor review records, and a gated delivery candidate manifest.
+  independent-actor review records bound to the inspected shared-context revision,
+  and a gated delivery candidate manifest.
 - Expert-agent assignments, direct or PM-relayed conversations, bounded correction
   rounds, shared-change propagation, and human scope/content/acceptance decisions.
 

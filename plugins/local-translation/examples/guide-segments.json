@@ -3,11 +3,19 @@
     {
       "id": "welcome",
       "text": "Welcome, {user_name}. Open Settings to choose a language.",
-      "protected": ["{user_name}"]
+      "protected": [
+        "{user_name}"
+      ]
     },
     {
       "id": "warning",
       "text": "Do not disconnect the device during the 3 minute update.",
+      "protected": []
+    },
+    {
+      "id": "progress-format",
+      "text": "Downloaded %1$d of %2$d files.",
+      "format": "printf",
       "protected": []
     }
   ]

@@ -89,7 +89,9 @@ class TranslationTests(unittest.TestCase):
         return workbench.create_job("source.txt", "en-US", ["fr-FR"], "Mobile guide; formal tone", **kwargs)["id"]
 
     def approve(self, workbench, job, candidate, reviewer="reviser-fr"):
-        return workbench.review(job, "fr-FR", reviewer, candidate["sha256"], "approved", "Compared all units with source; no open findings")
+        context_revision = workbench.status(job)["context_revision"]
+        return workbench.review(job, "fr-FR", reviewer, candidate["sha256"], context_revision,
+                                "approved", "Compared all units with source; no open findings")
 
     def test_multilocale_candidates_require_independent_review_and_no_human_claim(self):
         with runner() as state:
@@ -104,7 +106,8 @@ class TranslationTests(unittest.TestCase):
                 workbench.prepare_delivery(job)
             state["content"] = "Hallo {user}: 12"
             german = workbench.run(job, "de-DE", "translator-de")
-            workbench.review(job, "de-DE", "reviser-de", german["sha256"], "approved", "Full bilingual revision")
+            workbench.review(job, "de-DE", "reviser-de", german["sha256"], german["context_revision"],
+                             "approved", "Full bilingual revision")
             manifest = workbench.prepare_delivery(job)
             self.assertEqual(manifest["state"], "ready_for_human_acceptance")
             self.assertFalse(manifest["human_acceptance"])
@@ -205,6 +208,56 @@ class TranslationTests(unittest.TestCase):
             with self.assertRaisesRegex(runtime.TranslationError, "configuration changed"):
                 new_workbench.run(job, "fr-FR", "translator")
 
+    def test_delayed_review_cannot_approve_an_earlier_shared_context(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            job = self.create(workbench)
+            candidate = workbench.run(job, "fr-FR", "translator")
+            self.assertEqual(candidate["context_revision"], 0)
+            query = workbench.query(job, "terminologist", question="Which product meaning applies?")
+            self.assertEqual(query["context_revision"], 1)
+            answered = workbench.query(job, "content-owner", query_id=query["id"], answer="Use the revised product meaning")
+            self.assertEqual(answered["context_revision"], 2)
+            with self.assertRaisesRegex(runtime.TranslationError, "context revision is stale"):
+                workbench.review(job, "fr-FR", "delayed-reviser", candidate["sha256"], candidate["context_revision"],
+                                 "approved", "Review completed before the question")
+            with self.assertRaises(runtime.TranslationError):
+                workbench.prepare_delivery(job)
+            current = workbench.status(job)
+            self.assertEqual(current["targets"]["fr-FR"]["sha256"], candidate["sha256"])
+            receipt = workbench.review(job, "fr-FR", "current-reviser", candidate["sha256"], current["context_revision"],
+                                       "approved", "Compared the unchanged text with the resolved question")
+            self.assertEqual(receipt["context_revision"], 2)
+            self.assertEqual(workbench.prepare_delivery(job)["context_revision"], 2)
+
+    def test_orphaned_candidate_after_state_write_failure_does_not_block_retry(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            job = self.create(workbench)
+            candidate = workbench.run(job, "fr-FR", "translator")
+            self.approve(workbench, job, candidate)
+            workbench.prepare_delivery(job)
+            write = runtime.write_json
+
+            def reject_state(path, value):
+                if path.name == "job.json":
+                    raise OSError("Controlled state write failure")
+                return write(path, value)
+
+            with mock.patch.object(runtime, "write_json", side_effect=reject_state):
+                with self.assertRaises(OSError):
+                    workbench.apply_revision(job, "fr-FR", "translator", candidate["sha256"],
+                                             {"s0001": "Salut {user}: 12"}, "First attempt")
+            orphan = workbench.jobdir(job) / "fr-FR-r0002.txt"
+            orphan_bytes = orphan.read_bytes()
+            revised = workbench.apply_revision(job, "fr-FR", "translator", candidate["sha256"],
+                                               {"s0001": "Coucou {user}: 12"}, "Retry after storage recovered")
+            self.assertEqual(revised["revision"], 3)
+            self.assertNotEqual(revised["artifact"], orphan.name)
+            self.assertEqual(orphan.read_bytes(), orphan_bytes)
+            self.assertEqual(workbench.status(job)["targets"]["fr-FR"]["sha256"], revised["sha256"])
+            self.assertTrue((workbench.jobdir(job) / candidate["artifact"]).exists())
+
     def test_changes_retire_persisted_delivery_without_losing_its_evidence(self):
         with runner() as state:
             workbench = self.workbench(state)
@@ -220,7 +273,7 @@ class TranslationTests(unittest.TestCase):
                     elif change == "query":
                         query = workbench.query(job, "content-owner", question="Clarify the source meaning")
                     else:
-                        workbench.review(job, "fr-FR", "reviser-fr", candidate["sha256"],
+                        workbench.review(job, "fr-FR", "reviser-fr", candidate["sha256"], candidate["context_revision"],
                                          "changes_requested", "Reopened a meaning issue")
                     self.assertIsNone(workbench.status(job)["delivery"])
                     marker = json.loads((workbench.jobdir(job) / "delivery-candidate.json").read_text())
@@ -291,6 +344,75 @@ class TranslationTests(unittest.TestCase):
             self.assertIsNone(workbench.status(job)["delivery"])
             prepared = workbench.prepare_delivery(job)
             self.assertEqual(workbench.status(job)["delivery"]["state"], prepared["state"])
+
+    def test_status_retires_delivery_when_source_config_or_candidate_drifts(self):
+        with runner() as state:
+            for drift in ("source", "config", "candidate", "missing_source", "missing_candidate"):
+                with self.subTest(drift=drift):
+                    self.source.write_text("Hello {user}: 12")
+                    workbench = self.workbench(state)
+                    job = self.create(workbench)
+                    candidate = workbench.run(job, "fr-FR", "translator")
+                    self.approve(workbench, job, candidate)
+                    prepared = workbench.prepare_delivery(job)
+                    artifact = workbench.jobdir(job) / candidate["artifact"]
+                    if drift == "source":
+                        self.source.write_text("Changed source by its content owner")
+                    elif drift == "missing_source":
+                        self.source.unlink()
+                    elif drift == "missing_candidate":
+                        artifact.unlink()
+                    elif drift == "config":
+                        config = json.loads(self.config.read_text())
+                        config["artifact_revision"] = "changed-model-artifact"
+                        self.config.write_text(json.dumps(config))
+                        workbench = runtime.Workbench(self.root, self.config)
+                    else:
+                        artifact.write_text("Externally changed candidate")
+                    source_bytes = self.source.read_bytes() if self.source.exists() else None
+                    candidate_bytes = artifact.read_bytes() if artifact.exists() else None
+                    status = workbench.status(job)
+                    self.assertIsNone(status["delivery"])
+                    self.assertEqual(status["source_current"], drift not in {"source", "missing_source"})
+                    self.assertEqual(status["config_current"], drift != "config")
+                    self.assertEqual(status["targets"]["fr-FR"]["artifact_current"], drift not in {"candidate", "missing_candidate"})
+                    self.assertIsNone(workbench.status(job, include_segments=True)["delivery"])
+                    marker = json.loads((workbench.jobdir(job) / "delivery-candidate.json").read_text())
+                    self.assertEqual(marker["state"], "superseded")
+                    self.assertFalse(marker["human_acceptance"])
+                    self.assertEqual(marker["artifacts"], prepared["artifacts"])
+                    self.assertTrue(list(workbench.jobdir(job).glob("delivery-history-*.json")))
+                    self.assertEqual(self.source.read_bytes() if self.source.exists() else None, source_bytes)
+                    self.assertEqual(artifact.read_bytes() if artifact.exists() else None, candidate_bytes)
+
+    def test_failed_preparation_retires_manifest_when_it_discovers_drift(self):
+        with runner() as state:
+            for drift in ("source", "config", "candidate", "missing_source", "missing_candidate"):
+                with self.subTest(drift=drift):
+                    self.source.write_text("Hello {user}: 12")
+                    workbench = self.workbench(state)
+                    job = self.create(workbench)
+                    candidate = workbench.run(job, "fr-FR", "translator")
+                    self.approve(workbench, job, candidate)
+                    workbench.prepare_delivery(job)
+                    if drift == "source":
+                        self.source.write_text("Changed source")
+                    elif drift == "missing_source":
+                        self.source.unlink()
+                    elif drift == "missing_candidate":
+                        (workbench.jobdir(job) / candidate["artifact"]).unlink()
+                    elif drift == "config":
+                        config = json.loads(self.config.read_text())
+                        config["artifact_revision"] = "changed-model-artifact"
+                        self.config.write_text(json.dumps(config))
+                        workbench = runtime.Workbench(self.root, self.config)
+                    else:
+                        (workbench.jobdir(job) / candidate["artifact"]).write_text("Changed candidate")
+                    with self.assertRaises(runtime.TranslationError):
+                        workbench.prepare_delivery(job)
+                    marker = json.loads((workbench.jobdir(job) / "delivery-candidate.json").read_text())
+                    self.assertEqual(marker["state"], "superseded")
+                    self.assertIsNone(workbench.status(job)["delivery"])
 
     def test_paths_structures_duplicate_keys_and_unsupported_sources(self):
         with runner() as state:
@@ -365,7 +487,8 @@ class TranslationTests(unittest.TestCase):
             candidates = {}
             for locale in ("fr-FR", "de-DE"):
                 candidate = workbench.run(job, locale, "translator-" + locale)
-                workbench.review(job, locale, "reviser-" + locale, candidate["sha256"], "approved", "Compared every source segment")
+                workbench.review(job, locale, "reviser-" + locale, candidate["sha256"], candidate["context_revision"],
+                                 "approved", "Compared every source segment")
                 candidates[locale] = candidate
             workbench.query(job, "subject-reviewer", question="Clarify shared meaning")
             for target in workbench.status(job)["targets"].values():
@@ -373,7 +496,8 @@ class TranslationTests(unittest.TestCase):
             revised = workbench.apply_revision(job, "fr-FR", "reviser-fr", candidates["fr-FR"]["sha256"],
                                                {"s0001": "Salut {user}: 12"}, "Direct correction")
             with self.assertRaisesRegex(runtime.TranslationError, "author"):
-                workbench.review(job, "fr-FR", "reviser-fr", revised["sha256"], "approved", "Cannot approve own correction")
+                workbench.review(job, "fr-FR", "reviser-fr", revised["sha256"], revised["context_revision"],
+                                 "approved", "Cannot approve own correction")
 
     def test_state_symlinks_and_candidate_tampering_block_delivery(self):
         with runner() as state:
@@ -404,7 +528,8 @@ class TranslationTests(unittest.TestCase):
                                                {"s0001": "Salut {user}: 12"}, "PRIVATE_REVISION")
             query = workbench.query(job, "terminologist", question="PRIVATE_QUESTION")
             workbench.query(job, "content-owner", query_id=query["id"], answer="PRIVATE_ANSWER")
-            workbench.review(job, "fr-FR", "reviser", revised["sha256"], "approved", "PRIVATE_REVIEW")
+            workbench.review(job, "fr-FR", "reviser", revised["sha256"], workbench.status(job)["context_revision"],
+                             "approved", "PRIVATE_REVIEW")
             workbench.prepare_delivery(job)
             status = json.dumps(workbench.status(job))
             for marker in ("PRIVATE_", "Hello {user}", "Salut {user}"):
@@ -448,11 +573,33 @@ class TranslationTests(unittest.TestCase):
             self.assertEqual(state_path.read_bytes(), original)
 
     def test_printf_binding_inventory_and_numeric_gate(self):
-        runtime.invariants("%1$s %2$d", "%2$d %1$s", [])
+        runtime.invariants("%1$s %2$d", "%2$d %1$s", [], "printf")
+        runtime.invariants("Percent %% value %s", "%s pour cent %%", [], "printf")
         for source, target in (("%s %d", "%d %s"), ("{x} {x}", "{x}"), ("Value 10", "Valeur 11"),
                                ("Value %@ %zu %.2f %%", "Valeur %@ %zu %.2d %%")):
             with self.subTest(source=source), self.assertRaises(runtime.TranslationError):
-                runtime.invariants(source, target, [])
+                runtime.invariants(source, target, [], "printf")
+
+    def test_percentage_prose_and_explicit_printf_segments_follow_declared_format(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            self.source.write_text("Save 10% on orders.")
+            state["content"] = "Économisez 10 % sur vos commandes."
+            self.assertEqual(workbench.run(self.create(workbench), "fr-FR", "translator")["state"], "draft")
+            source = self.root / "source.json"
+            source.write_text(json.dumps({"segments": [{"id": "sale", "text": "Save 10% on orders."}]}))
+            job = workbench.create_job("source.json", "en-US", ["fr-FR"], "Sale prose")["id"]
+            self.assertEqual(workbench.run(job, "fr-FR", "translator")["state"], "draft")
+            source.write_text(json.dumps({"segments": [{"id": "count", "text": "Hello %s: %d", "format": "printf"}]}))
+            for output, expected in (("Bonjour %s : %d", "draft"), ("Bonjour %d : %s", "failed"),
+                                     ("Bonjour %s : %f", "failed")):
+                with self.subTest(output=output):
+                    state["content"] = output
+                    job = workbench.create_job("source.json", "en-US", ["fr-FR"], "Printf message")["id"]
+                    self.assertEqual(workbench.run(job, "fr-FR", "translator")["state"], expected)
+            source.write_text(json.dumps({"segments": [{"id": "bad", "text": "Text", "format": "html"}]}))
+            with self.assertRaisesRegex(runtime.TranslationError, "Segment format"):
+                workbench.create_job("source.json", "en-US", ["fr-FR"], "Unsupported format")
 
     def test_mcp_transcript_and_errors_do_not_echo_input_or_secrets(self):
         messages = [b'{bad json}\n',
@@ -467,6 +614,8 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(responses[0]["error"]["code"], -32700)
         self.assertEqual(responses[1]["result"]["protocolVersion"], runtime.PROTOCOL)
         self.assertEqual(len(responses[2]["result"]["tools"]), 8)
+        status_tool = next(tool for tool in responses[2]["result"]["tools"] if tool["name"] == "translation_status")
+        self.assertFalse(status_tool["annotations"]["readOnlyHint"])
         self.assertTrue(responses[3]["result"]["isError"])
         self.assertNotIn(b"do-not-echo", result.stdout + result.stderr)
         self.assertEqual(result.stderr, b"")
