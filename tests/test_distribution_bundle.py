@@ -18,6 +18,7 @@ CHECKER = REPOSITORY_ROOT / "scripts" / "check_distribution_bundle.py"
 sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
 from check_distribution_bundle import materialize_runtime_closure  # noqa: E402
+from check_copilot_marketplace import validate_portable_mcp  # noqa: E402
 from test_validation import add_portable_manifest, create_minimal_plugin
 
 
@@ -83,7 +84,8 @@ class DistributionBundleTests(unittest.TestCase):
             )
             (source / ".mcp.json").write_text(json.dumps({"mcpServers": {
                 "local-translation": {"command": "python3", "cwd": ".",
-                                      "args": ["./mcp/server.py"]},
+                                      "args": ["./mcp/server.py"],
+                                      "env_vars": ["EXAMPLE_TOKEN", "_private_name"]},
             }}))
             (source / "mcp.json").write_text(json.dumps({
                 "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
@@ -94,6 +96,7 @@ class DistributionBundleTests(unittest.TestCase):
             output = Path(temporary) / "dist/local-translation"
             result = run_checker("--output", str(output), root=source)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(validate_portable_mcp(output, overlay), [])
             for relative in ("mcp/helper.py", "mcp/server.py", "examples/config.json", "assets/banner.svg",
                              "plugin.json", "mcp.json", ".mcp.json"):
                 self.assertEqual((source / relative).read_bytes(),
@@ -102,6 +105,18 @@ class DistributionBundleTests(unittest.TestCase):
                                     cwd=temporary, capture_output=True, text=True,
                                     timeout=SUBPROCESS_TIMEOUT_SECONDS)
             self.assertEqual(launch.returncode, 0, launch.stderr)
+
+    def test_malformed_mcp_environment_allowlists_are_rejected(self) -> None:
+        for names in (None, {}, "TOKEN", ["TOKEN", "TOKEN"], [None], [1],
+                      ["KEY=value"], ["bad-name"], ["1BAD"], [""]):
+            with self.subTest(names=names), tempfile.TemporaryDirectory() as temporary:
+                source = copy_conversation_visuals(temporary)
+                write_mcp_server(source, {"command": "python3", "cwd": ".",
+                    "args": ["./mcp/server.py"], "env_vars": names})
+                result = run_checker(root=source)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("env_vars must contain unique environment variable names",
+                              result.stdout + result.stderr)
 
     def test_camofox_node_bundle_retains_setup_helpers_and_portable_config(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

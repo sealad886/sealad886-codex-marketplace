@@ -4,6 +4,7 @@
       "command": "python3",
       "args": ["./mcp/server.py"],
       "cwd": ".",
+      "env_vars": ["LOCAL_TRANSLATION_ROOT", "LOCAL_TRANSLATION_CONFIG", "LOCAL_TRANSLATION_API_KEY"],
       "tool_timeout_sec": 600
     }
   }

@@ -27,6 +27,24 @@ You must supply configuration in the client environment/settings using that
 client's documented mechanism. Installation alone cannot infer your workspace,
 deployment identity or data permissions. Do not edit a versioned plugin cache.
 
+For Codex, the bundled declaration explicitly forwards only
+`LOCAL_TRANSLATION_ROOT`, `LOCAL_TRANSLATION_CONFIG`, and optional
+`LOCAL_TRANSLATION_API_KEY` from the environment that launches Codex. Set the
+first two before starting the client. If the runner requires a credential, set
+`api_key_env` to `"LOCAL_TRANSLATION_API_KEY"` in your deployment config and supply
+its value in that launch environment. Omit `api_key_env` for an unauthenticated
+runner. Other arbitrary variable names are not forwarded by this declaration.
+Restart the client after changing its launch environment, then call
+`translation_health` to verify the installed server can read its configuration
+and reach the intended model. See the official [stdio environment
+rules](https://learn.chatgpt.com/docs/extend/mcp#stdio-servers).
+
+The portable `mcp.json` follows Agent Plugins 1.0 and does not use Codex's
+`env_vars` extension. Other clients must provide the same required variables and
+the optional name selected by `api_key_env` through their own MCP launch
+environment. Confirm a successful health call in that client before creating a
+job; tool discovery alone does not verify configuration forwarding.
+
 The deployment config declares:
 
 | Field | Meaning |

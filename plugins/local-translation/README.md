@@ -23,8 +23,10 @@ replies and adjudications through the host's actual delegation/messaging tools.
    Installation does not download weights or start inference.
 3. Configure `LOCAL_TRANSLATION_ROOT` and `LOCAL_TRANSLATION_CONFIG` in the MCP
    process environment. Follow the [runtime guide](skills/translation-project/references/runtime.md)
-   for exact fields, supported sources and tool contracts. Keep credentials out
-   of plugin files and configure any required runner key through its named env var.
+   for exact fields, supported sources and tool contracts. Codex forwards those
+   two variables and optional `LOCAL_TRANSLATION_API_KEY` from its launch
+   environment; use that credential name for `api_key_env` in Codex. Keep values
+   out of plugin files and restart the client after changing its environment.
 4. Invoke the skill with your source file, exact target locales, audience, approved
    resources and acceptance owner. Run a representative pilot before a large batch.
 

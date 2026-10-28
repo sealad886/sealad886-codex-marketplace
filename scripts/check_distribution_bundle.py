@@ -84,7 +84,8 @@ UNIVERSAL_FORBIDDEN_DISTRIBUTION_PARTS = {
 PROJECT_DELIVERY_FORBIDDEN_DISTRIBUTION_PARTS = {"references", "scripts"}
 PLUGIN_NAME = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 MAX_PLUGIN_NAME_LENGTH = 64
-SUPPORTED_MCP_SERVER_FIELDS = {"command", "args", "cwd", "tool_timeout_sec"}
+SUPPORTED_MCP_SERVER_FIELDS = {"command", "args", "cwd", "env_vars", "tool_timeout_sec"}
+ENVIRONMENT_VARIABLE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def forbidden_distribution_parts(plugin_name: str) -> set[str]:
@@ -183,6 +184,12 @@ def add_local_mcp_dependencies(
             raise ValueError("local MCP server command must be python3 or node")
         if server.get("cwd") != ".":
             raise ValueError("local MCP server cwd must be '.'")
+        environment_names = server.get("env_vars", [])
+        if (not isinstance(environment_names, list)
+                or any(not isinstance(name, str) or not ENVIRONMENT_VARIABLE.fullmatch(name)
+                       for name in environment_names)
+                or len(environment_names) != len(set(environment_names))):
+            raise ValueError("local MCP server env_vars must contain unique environment variable names")
         timeout = server.get("tool_timeout_sec")
         if timeout is not None and (
             isinstance(timeout, bool)
