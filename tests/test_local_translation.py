@@ -47,6 +47,10 @@ def runner():
             if self.path == "/tokenize":
                 self.send({"count": state["token_count"]})
                 return
+            if state.get("malformed_status"):
+                self.wfile.write(b"PRIVATE_MALFORMED_HTTP_STATUS\r\n\r\n")
+                self.close_connection = True
+                return
             if state.get("redirect"):
                 self.send_response(307)
                 self.send_header("Location", "http://192.0.2.1/forbidden")
@@ -158,6 +162,40 @@ class TranslationTests(unittest.TestCase):
                     self.assertEqual(candidate["state"], "failed")
                     if mutation.get("token_count"):
                         self.assertNotEqual(state["requests"][-1][0], "/v1/chat/completions")
+
+    def test_malformed_runner_http_fails_locale_and_keeps_stdio_session_alive(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            job = self.create(workbench)
+            state["malformed_status"] = True
+            messages = [
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {
+                    "name": "translation_run", "arguments": {
+                        "job_id": job, "target_locale": "fr-FR", "translator_id": "translator"}}},
+                {"jsonrpc": "2.0", "id": 2, "method": "ping"},
+            ]
+            env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1",
+                   "LOCAL_TRANSLATION_ROOT": str(self.root), "LOCAL_TRANSLATION_CONFIG": str(self.config)}
+            result = subprocess.run([sys.executable, str(SERVER)],
+                                    input="".join(json.dumps(message) + "\n" for message in messages),
+                                    env=env, capture_output=True, text=True, timeout=15, check=True)
+            replies = [json.loads(line) for line in result.stdout.splitlines()]
+            self.assertEqual(len(replies), 2)
+            failed = json.loads(replies[0]["result"]["content"][0]["text"])
+            self.assertEqual(failed["state"], "failed")
+            self.assertIn("Local runner request failed", failed["error"])
+            self.assertEqual(workbench.status(job)["targets"]["fr-FR"]["state"], "failed")
+            self.assertEqual(replies[1]["result"], {})
+            self.assertNotIn("PRIVATE_MALFORMED_HTTP_STATUS", result.stdout + result.stderr)
+            self.assertEqual(result.stderr, "")
+
+    def test_unexpected_tool_exception_is_sanitized_and_ping_remains_available(self):
+        with mock.patch.object(runtime, "Workbench", side_effect=RuntimeError("PRIVATE_EXCEPTION_DETAIL")):
+            response = runtime.dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                                         "params": {"name": "translation_health", "arguments": {}}})
+        self.assertTrue(response["result"]["isError"])
+        self.assertNotIn("PRIVATE_EXCEPTION_DETAIL", json.dumps(response))
+        self.assertEqual(runtime.dispatch({"jsonrpc": "2.0", "id": 2, "method": "ping"})["result"], {})
 
     def test_failed_locale_does_not_erase_other_locale(self):
         with runner() as state:
@@ -479,6 +517,21 @@ class TranslationTests(unittest.TestCase):
             path.write_text(json.dumps(content))
             with self.subTest(content=content), self.assertRaises(runtime.TranslationError):
                 runtime.Workbench(self.root, path)
+
+    def test_example_provenance_placeholders_are_rejected_before_network_access(self):
+        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "REPLACE_WITH_CUSTOM_ALIAS",
+                  "artifact_revision": "verified-revision", "runner_version": "verified-runner",
+                  "locales": {"en-US": "English", "fr-FR": "French"}}
+        self.assertEqual(runtime.validate_config(config)["model"], "REPLACE_WITH_CUSTOM_ALIAS")
+        path = self.root / "config.json"
+        for field in ("artifact_revision", "runner_version"):
+            with self.subTest(field=field):
+                invalid = {**config, field: "REPLACE_WITH_VERIFIED_DEPLOYMENT_VALUE"}
+                path.write_text(json.dumps(invalid))
+                with mock.patch.object(runtime.Workbench, "http") as network:
+                    with self.assertRaisesRegex(runtime.TranslationError, "Replace the example placeholder"):
+                        runtime.Workbench(self.root, path).health()
+                    network.assert_not_called()
 
     def test_shared_queries_invalidate_all_locales_and_new_authors_cannot_self_review(self):
         with runner() as state:

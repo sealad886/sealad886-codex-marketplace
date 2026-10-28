@@ -11,6 +11,7 @@ import argparse
 from collections import Counter
 from contextlib import contextmanager
 import hashlib
+from http.client import HTTPException
 import ipaddress
 import json
 import os
@@ -139,6 +140,9 @@ def validate_config(config):
         fail("Runner must be a loopback HTTP(S) /v1 endpoint with an explicit port")
     for key in ("model", "artifact_revision", "runner_version"):
         text(config[key], key, 200)
+    for key in ("artifact_revision", "runner_version"):
+        if config[key].strip().startswith("REPLACE_WITH_"):
+            fail(f"Replace the example placeholder for {key} with verified deployment metadata")
     locales = config["locales"]
     if not isinstance(locales, dict) or not 1 <= len(locales) <= 100:
         fail("Configure an explicit locale-to-prompt-label registry")
@@ -273,7 +277,7 @@ class Workbench:
                     if total > MAX_RESPONSE:
                         fail("Runner response exceeds the size limit")
                 body = b"".join(chunks)
-        except (error.URLError, OSError, TimeoutError):
+        except (error.URLError, OSError, TimeoutError, HTTPException):
             fail("Local runner request failed; check the deployment and its timeout")
         if len(body) > MAX_RESPONSE:
             fail("Runner response exceeds the size limit")
@@ -752,7 +756,9 @@ def dispatch(message):
                 response["result"] = {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}], "isError": False}
             except TranslationError as exc:
                 response["result"] = {"content": [{"type": "text", "text": str(exc)}], "isError": True}
-            except (OSError, ValueError, TypeError, KeyError, AttributeError):
+            except Exception:
+                # A failed tool call must not terminate the stdio session or
+                # expose arbitrary dependency/runner exception details.
                 response["result"] = {"content": [{"type": "text", "text": "Translation operation failed; check local configuration and artifact permissions"}], "isError": True}
     else:
         response["error"] = {"code": -32601, "message": "Method not found"}
