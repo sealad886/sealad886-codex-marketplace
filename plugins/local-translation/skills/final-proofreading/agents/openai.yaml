@@ -1,0 +1,7 @@
+interface:
+  display_name: "Final Proofreading"
+  short_description: "Inspect the actual rendered delivery artifact"
+  brand_color: "#155E75"
+  default_prompt: "Use $final-proofreading to compare my actual rendered deliverable with the approved text, inspect layout and presentation defects, and return version-bound corrections and coverage."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

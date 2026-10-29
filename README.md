@@ -100,12 +100,13 @@ state ownership, contracts, verification commands, and delivery policies.
 
 ### [Local Translation](plugins/local-translation/README.md)
 
-Coordinate expert translation agents with queries, terminology decisions,
-independent bilingual revision, correction rounds, and delivery evidence. The
-bundled tool drafts text through a configured local Index-Translate runner.
-Host agent models and final human acceptance are separate from local inference.
+Assign a translation coordinator and nineteen separately invocable expert skills,
+including translator, independent bilingual reviser, terminologist, editor,
+proofreader, quality lead and media specialists. Each subagent loads its role's
+working method and exchanges attributed findings and replies. Eight bundled
+local MCP tools support text jobs through a configured Index-Translate runner.
 
-**Version:** `0.1.0` · [Setup and supported formats](plugins/local-translation/README.md)
+**Version:** `0.2.0` · [Role directory and setup](plugins/local-translation/README.md)
 
 ## Install
 
@@ -139,6 +140,7 @@ codex plugin add adversarial-audit@sealad886-codex-marketplace
 codex plugin add web-research@sealad886-codex-marketplace
 codex plugin add repository-guidance@sealad886-codex-marketplace
 codex plugin add camofox-mcp@sealad886-codex-marketplace
+codex plugin add local-translation@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.

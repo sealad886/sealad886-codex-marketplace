@@ -1,0 +1,7 @@
+interface:
+  display_name: "Media Coordination"
+  short_description: "Reconcile cuts, audio and track scope"
+  brand_color: "#155E75"
+  default_prompt: "Use $local-translation:media-coordination to perform the assigned media coordination work, read the shared expert contract, acknowledge my remit and evidence gaps, and return an attributed specialist handoff."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Locale Translation"
+  short_description: "Draft and self-check meaning for a specific locale"
+  brand_color: "#155E75"
+  default_prompt: "Use $locale-translation for my assigned target locale: draft with the configured local tool, compare against the source, research terminology, and return uncertainties for independent revision."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

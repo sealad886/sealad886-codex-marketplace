@@ -1,0 +1,7 @@
+interface:
+  display_name: "Media Conformance"
+  short_description: "Map and verify final-cut changes"
+  brand_color: "#155E75"
+  default_prompt: "Use $local-translation:media-conformance to perform the assigned media conformance work, read the shared expert contract, acknowledge my remit and evidence gaps, and return an attributed specialist handoff."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

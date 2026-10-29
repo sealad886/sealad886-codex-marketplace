@@ -1,0 +1,7 @@
+interface:
+  display_name: "Translation Quality Evaluation"
+  short_description: "Assess observed defects, coverage and release risk"
+  brand_color: "#155E75"
+  default_prompt: "Use $quality-evaluation to assess translation evidence against the agreed rubric, adjudicate findings, report inspected coverage and unresolved risk, and recommend corrective work."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

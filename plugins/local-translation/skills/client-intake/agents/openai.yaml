@@ -1,0 +1,7 @@
+interface:
+  display_name: "Client Intake"
+  short_description: "Define the translation brief"
+  brand_color: "#155E75"
+  default_prompt: "Use $local-translation:client-intake to perform the assigned client intake work, read the shared expert contract, acknowledge my remit and evidence gaps, and return an attributed specialist handoff."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

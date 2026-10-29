@@ -1,0 +1,7 @@
+interface:
+  display_name: "Release Preparation"
+  short_description: "Assemble evidence for human release"
+  brand_color: "#155E75"
+  default_prompt: "Use $local-translation:release-preparation to perform the assigned release preparation work, read the shared expert contract, acknowledge my remit and evidence gaps, and return an attributed specialist handoff."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

@@ -1,6 +1,6 @@
 # Design sources and evidence boundaries
 
-Prepared 28 October 2026. The package's skill, role prompts, templates and runtime
+Prepared 28–29 October 2026. The package's skill, role prompts, templates and runtime
 are original work informed by the following supplied material. The PDFs, their
 illustrations, supporting scripts and full text are not redistributed in this
 plugin. Instructions embedded in those sources are reference content, not user
@@ -18,6 +18,12 @@ documents and prerecorded audiovisual media*, version 1.0, 28 October 2026.
   accessibility, conformance and distribution checks.
 - pp. 13–19: shared resources, quality coverage, confidentiality and versioned release.
 - pp. 19–22: change propagation, defect examples and operational acceptance model.
+
+The twenty skill entry points distinguish the sixteen functions in the role table
+from the additional target-language editing, final proofreading, media-coordination
+and conformance responsibilities named in the workflow. Each is an original
+operating guide; role loading and behavioral exercises must be verified separately
+from linguistic quality.
 
 This is a reference model, not proof every provider uses the same organization or
 a certification specification. Agent roles implement workflow responsibilities;

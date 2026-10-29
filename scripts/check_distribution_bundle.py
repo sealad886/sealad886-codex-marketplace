@@ -45,7 +45,7 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
-    "local-translation": 1,
+    "local-translation": 20,
     "camofox-mcp": 1,
     "iterating-pr-bot-fixes": 1,
     "repo-consolidation": 1,

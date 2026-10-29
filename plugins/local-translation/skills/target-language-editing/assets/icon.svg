@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" role="img" aria-label="Local Translation: connected language pages">
+  <rect width="128" height="128" rx="26" fill="#133D4B"/>
+  <path d="M19 34c0-11 8-17 18-14l31 9c10 3 16 12 16 23v35L49 76 29 91V78c-6-1-10-6-10-13Z" fill="#F4F1E8"/>
+  <path d="m66 49 26-9c10-3 18 4 18 15v34c0 8-6 14-13 14h-3v13l-18-14-18 4V64c0-7 2-12 8-15Z" fill="#F5BE68"/>
+  <path d="m30 65 13-31h9l13 31H55l-2-7H42l-3 7Zm15-15h5l-3-9Z" fill="#133D4B" fill-rule="evenodd"/>
+  <path d="M72 65h30m-15-9v8m-9 3c2 11 10 19 24 25m-6-25c-4 12-12 20-25 25" fill="none" stroke="#133D4B" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

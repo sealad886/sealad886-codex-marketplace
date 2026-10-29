@@ -1,0 +1,7 @@
+interface:
+  display_name: "Independent Bilingual Revision"
+  short_description: "Compare source and target with independent evidence"
+  brand_color: "#155E75"
+  default_prompt: "Use $bilingual-revision as a distinct reviser: compare the current source and target against the brief, return evidence-backed findings, and resolve them with the translator before recording a verdict."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

@@ -7,11 +7,43 @@ terminology and subject review, correction loops, and a human release decision.
 The bundled local MCP tool drafts supported text into multiple target locales
 using an explicitly configured Index-Translate deployment.
 
-The [Translation Project skill](skills/translation-project/SKILL.md) provides the
-workflow. Its [role map](skills/translation-project/references/roles.md) covers all
-sixteen professional-service functions in the supplied whitepaper, with conditional
-AV specialists and explicit human decision rights. Agents exchange findings,
-replies and adjudications through the host's actual delegation/messaging tools.
+The [Translation Project coordinator](skills/translation-project/SKILL.md) assigns
+work to nineteen separately invocable specialist skills. Each subagent loads its
+assigned skill, acknowledges the remit and evidence gaps, follows that role's
+working method, and returns an attributed handoff. The [role directory](skills/.shared/references/roles.md)
+maps all sixteen whitepaper functions and the additional editing, proofreading,
+media-coordination and conformance responsibilities to actual skills. Agents
+exchange findings, replies and adjudications through the host's real
+collaboration tools.
+
+## Assign a specialist
+
+Use `$local-translation:translation-project` for end-to-end coordination. The
+coordinator commissions only the roles needed by the job, respecting host agent
+slots; twenty available skills do not require twenty simultaneous agents.
+Translator and independent reviser assignments for the same material must go to
+different actual subagents.
+
+Individual skills also work directly. For example:
+
+> Use `$local-translation:bilingual-revision` to compare this French candidate
+> against the approved English source, brief and glossary. Identify meaning and
+> completeness errors, ask the translator to respond, and return the unresolved
+> decisions with their evidence.
+
+Each assignment names the installed role-skill path, owned locale and segments,
+current artifact and shared-context identities, allowed tools, recipient and
+stop conditions. A role-loading receipt shows which skill was read. Findings
+then receive an actual counterpart response, adjudication where needed, and a
+recheck. The [shared expert contract](skills/.shared/references/expert-contract.md)
+and [handoff template](skills/.shared/templates/expert-handoff.md) define that
+exchange once for every role.
+
+Skills provide specialist procedures and decision support. They do not retrain
+an agent, prove language/domain competence, or confer human qualifications.
+Evaluate a representative pilot and the returned work; loading a role alone is
+not a quality result. See the [role directory](skills/.shared/references/roles.md)
+for all twenty entry points and their evidence requirements.
 
 ## Start a project
 
@@ -22,7 +54,7 @@ replies and adjudications through the host's actual delegation/messaging tools.
    listing, chat completions and chat tokenization, and your own deployment config.
    Installation does not download weights or start inference.
 3. Configure `LOCAL_TRANSLATION_ROOT` and `LOCAL_TRANSLATION_CONFIG` in the MCP
-   process environment. Follow the [runtime guide](skills/translation-project/references/runtime.md)
+   process environment. Follow the [runtime guide](skills/.shared/references/runtime.md)
    for exact fields, supported sources and tool contracts. Codex forwards those
    two variables and optional `LOCAL_TRANSLATION_API_KEY` from its launch
    environment; use that credential name for `api_key_env` in Codex. Keep values
@@ -70,7 +102,7 @@ inspect its source before adding another registration. For a temporary Copilot
 session with the source package, the CLI also supports
 `copilot --plugin-dir "$PWD/plugins/local-translation"`. Supply the MCP environment
 before starting the client and verify eight discovered translation tools and the
-Translation Project skill. Installation alone does not verify live inference or
+twenty skills. Installation alone does not verify live inference or
 multi-agent execution. Consult your installed client's help if its commands differ.
 
 ## Implemented scope
@@ -106,13 +138,13 @@ meaning, completeness of every idea, product accuracy or publication quality.
 `translation_prepare_delivery` prepares a candidate manifest. The actual human
 release owner must accept identified files; this package does not publish them.
 
-Read [acceptance evidence](skills/translation-project/references/acceptance.md),
-[format boundaries](skills/translation-project/references/formats.md),
-[security](SECURITY.md), and [source provenance](skills/translation-project/references/provenance.md).
+Read [acceptance evidence](skills/.shared/references/acceptance.md),
+[format boundaries](skills/.shared/references/formats.md),
+[security](SECURITY.md), and [source provenance](skills/.shared/references/provenance.md).
 
 ## Contributing and verification
 
-Keep runtime/tool schemas, the skill, examples, both MCP declarations and both
+Keep runtime/tool schemas, all role skills, shared protocols, examples, both MCP declarations and both
 plugin manifests aligned. Preserve source originals, current-digest review gates,
 visible partial failure, local endpoint restrictions and human decision rights.
 Do not add another format or runner by flattening unsupported input or bypassing
