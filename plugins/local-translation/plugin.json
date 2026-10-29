@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "local-translation",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Coordinate a translation team with separate expert role skills, local Index-Translate drafting, and evidence-bound revision and delivery across target locales.",
   "author": {
     "name": "Andrew Cox",
@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "Local Translation",
         "shortDescription": "Expert teams, local drafts",
-        "longDescription": "Coordinate a translation project through twenty separately invocable skills: a project coordinator and nineteen specialists covering intake, resources, source preparation, translation, terminology, independent bilingual revision, editing, proofreading, quality, media workflows and release preparation. The coordinator gives each real subagent its installed role skill and shared handoff protocol, records agent identities, and routes findings, replies and adjudication. Eight bundled local MCP tools call a configured Index-Translate runner and bind text candidates and reviews to source, target and shared-context revisions. Model weights, media tools and human acceptance remain separate prerequisites; host agents may use cloud models.",
+        "longDescription": "Coordinate a translation project through twenty separately invocable skills: a project coordinator and nineteen specialists covering intake, resources, source preparation, translation, terminology, independent bilingual revision, editing, proofreading, quality, media workflows and release preparation. The coordinator gives each real subagent its installed role skill and shared handoff protocol, records agent identities, and routes findings, replies and adjudication. Ten bundled local MCP tools provide a settings form, draft text with an existing Index-Translate runner, and bind candidates and reviews to source, target and shared-context revisions. Model weights, media tools and human acceptance remain separate prerequisites; host agents may use cloud models.",
         "developerName": "Andrew Cox",
         "category": "Productivity",
         "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/local-translation",
@@ -32,7 +32,7 @@
           "Write"
         ],
         "defaultPrompt": [
-          "Use the Translation Project coordinator to assign role skills and check my local Index-Translate setup.",
+          "Open Local Translation settings so I can connect my local Index-Translate runner.",
           "Translate this guide with translator and independent reviser agents, supported by terminology and subject specialists.",
           "Use Bilingual Revision to compare this candidate with its source and return findings for the translator."
         ],

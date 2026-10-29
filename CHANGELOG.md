@@ -3,6 +3,24 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Local Translation 0.3.0 - 2026-10-29
+
+### Added
+
+- A local settings form opened from the chat, with persistent workspace and
+  inference-engine settings that take effect without an app restart or MCP
+  environment edits.
+- Bootstrap settings inspection and setup tools, available before configuration.
+  Test the exact model and chat tokenization using synthetic text before saving;
+  preserve previous settings when validation fails.
+- Optional runner authentication entered in the local form and stored in a
+  private per-user settings file, omitted from tool responses and job records.
+
+### Fixed
+
+- Make first-run setup usable from desktop-launched Codex and Copilot. Explicit
+  launch-environment configuration remains a whole-configuration override.
+
 ## Local Translation 0.2.0 - 2026-10-29
 
 ### Added

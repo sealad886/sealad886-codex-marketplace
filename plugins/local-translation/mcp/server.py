@@ -12,6 +12,7 @@ from collections import Counter
 from contextlib import contextmanager
 import hashlib
 from http.client import HTTPException
+import importlib.util
 import ipaddress
 import json
 import os
@@ -25,7 +26,7 @@ from urllib.parse import urlsplit
 import uuid
 
 
-VERSION = "0.1.0"
+VERSION = "0.3.0"
 PROTOCOL = "2025-06-18"
 MAX_FRAME = 1024 * 1024
 MAX_FILE = 256 * 1024
@@ -47,8 +48,26 @@ PRINTF_PLACEHOLDER = re.compile(
 NUMBER = re.compile(r"[0-9]+(?:[.,][0-9]+)*")
 
 
+def _local_module(name):
+    """Load package-owned siblings without relying on the host's import path."""
+    alias = "_local_translation_" + name
+    if alias not in sys.modules:
+        spec = importlib.util.spec_from_file_location(alias, Path(__file__).with_name(name + ".py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules[alias] = module
+    return sys.modules[alias]
+
+
+settings = _local_module("settings")
+
+
 class TranslationError(Exception):
     """Only safe, static error messages cross the MCP boundary."""
+
+
+class RunnerAuthenticationError(TranslationError):
+    """The local runner rejected its credential; never retain the HTTP body."""
 
 
 def fail(message):
@@ -186,16 +205,51 @@ def invariants(source, target, protected, text_format="plain"):
 
 
 class Workbench:
-    def __init__(self, root=None, config_path=None):
-        root = root or os.environ.get("LOCAL_TRANSLATION_ROOT")
-        config_path = config_path or os.environ.get("LOCAL_TRANSLATION_CONFIG")
-        if not root or not config_path:
-            fail("Set LOCAL_TRANSLATION_ROOT and LOCAL_TRANSLATION_CONFIG before using translation tools")
-        self.root = Path(root).expanduser().resolve(strict=True)
+    def __init__(self, root=None, config_path=None, *, deployment=None, api_key=None):
+        self.configuration_source = "explicit"
+        self.config_path = None
+        self._api_key = api_key
+        if deployment is not None:
+            if root is None or config_path is not None:
+                fail("Deployment verification requires a workspace folder and deployment settings")
+            self.configuration_source = "verification"
+        else:
+            if root is None and config_path is None:
+                if "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ:
+                    root = os.environ.get("LOCAL_TRANSLATION_ROOT")
+                    config_path = os.environ.get("LOCAL_TRANSLATION_CONFIG")
+                    self.configuration_source = "environment"
+                else:
+                    saved = settings.load_settings()
+                    if saved is None:
+                        fail("Local Translation is not configured. Call translation_open_settings to choose your workspace and inference engine")
+                    root, deployment = saved["root"], saved["deployment"]
+                    self._api_key = saved.get("api_key")
+                    if "api_key_env" in deployment:
+                        fail("Saved settings cannot also select an environment credential")
+                    self.config_path = settings.settings_path()
+                    self.configuration_source = "saved_settings"
+            if deployment is None:
+                if not root or not config_path:
+                    fail("An environment or explicit override requires both LOCAL_TRANSLATION_ROOT and LOCAL_TRANSLATION_CONFIG; remove the override to use saved settings")
+                try:
+                    self.config_path = Path(config_path).expanduser().resolve(strict=True)
+                except (OSError, TypeError, ValueError):
+                    fail("Cannot read the configured deployment file")
+                deployment = load_json(read_bytes(self.config_path))
+        try:
+            self.root = Path(root).expanduser().resolve(strict=True)
+        except (OSError, TypeError, ValueError):
+            fail("Translation root must be an existing directory")
         if not self.root.is_dir():
             fail("Translation root must be an existing directory")
-        self.config_path = Path(config_path).expanduser().resolve(strict=True)
-        self.config = validate_config(load_json(read_bytes(self.config_path)))
+        self.config = validate_config(deployment)
+        if self._api_key is not None:
+            if (not isinstance(self._api_key, str) or not self._api_key or len(self._api_key) > 4096
+                    or "\r" in self._api_key or "\n" in self._api_key):
+                fail("Configured runner credential is missing or invalid")
+            if self.config.get("api_key_env"):
+                fail("Choose one runner credential source")
         self.config_sha256 = digest(self.config)
         self.opener = request.build_opener(request.ProxyHandler({}), NoRedirect())
         self.store = self.root / ".local-translation" / "jobs"
@@ -255,10 +309,12 @@ class Workbench:
         url = base + path if path != "/tokenize" else base[:-3] + path
         headers = {"Content-Type": "application/json"}
         env = self.config.get("api_key_env")
+        key = self._api_key
         if env:
             key = os.environ.get(env)
             if not key or "\r" in key or "\n" in key:
                 fail("Configured runner credential is missing or invalid")
+        if key:
             headers["Authorization"] = "Bearer " + key
         req = request.Request(url, data=encoded(payload) if payload is not None else None, headers=headers)
         try:
@@ -278,6 +334,12 @@ class Workbench:
                     if total > MAX_RESPONSE:
                         fail("Runner response exceeds the size limit")
                 body = b"".join(chunks)
+        except error.HTTPError as exc:
+            status = exc.code
+            exc.close()
+            if status in {401, 403}:
+                raise RunnerAuthenticationError("Local runner requires a valid API key; enter it in translation_open_settings, never in chat") from None
+            fail("Local runner request failed; check the deployment and its timeout")
         except (error.URLError, OSError, TimeoutError, HTTPException):
             fail("Local runner request failed; check the deployment and its timeout")
         if len(body) > MAX_RESPONSE:
@@ -292,9 +354,32 @@ class Workbench:
         if not isinstance(models, list) or self.config["model"] not in [m.get("id") for m in models if isinstance(m, dict)]:
             fail("Configured exact model is absent from the local runner")
 
+    def tokenize(self, payload, deadline=None):
+        tokens = self.http("/tokenize", {**payload, "add_generation_prompt": True}, deadline).get("count")
+        if type(tokens) is not int or tokens <= 0:
+            fail("Runner tokenize endpoint must return a positive count for the rendered chat template")
+        if tokens + self.config["max_output_tokens"] + 64 > self.config["context_window_tokens"]:
+            fail("Rendered prompt plus output budget exceeds the configured context window")
+        return tokens
+
+    def check_tokenizer(self, deadline=None):
+        locales = list(self.config["locales"])
+        job = {"source_locale": locales[0], "brief": "Synthetic compatibility check; no user source content.", "glossary": {}}
+        segment = {"text": "Local Translation compatibility check.", "protected": [], "format": "plain"}
+        prompt = self.prompt(job, locales[-1], segment)
+        if len(prompt.encode("utf-8")) > self.config["max_prompt_bytes"]:
+            fail("Rendered prompt exceeds the configured byte budget")
+        return self.tokenize({"model": self.config["model"], "messages": [{"role": "user", "content": prompt}],
+                              "chat_template_kwargs": {"enable_thinking": False}}, deadline)
+
     def health(self):
-        self.check_model()
-        return {"configured": True, "runner_model_available": True, "model": self.config["model"],
+        deadline = time.monotonic() + self.config["run_timeout_seconds"]
+        self.check_model(deadline)
+        self.check_tokenizer(deadline)
+        return {"configured": True, "runner_model_available": True, "tokenizer_compatible": True,
+                "configuration_source": self.configuration_source,
+                "configuration_path": str(self.config_path) if self.config_path else None,
+                "model": self.config["model"],
                 "artifact_revision": self.config["artifact_revision"], "runner_version": self.config["runner_version"],
                 "locales": self.config["locales"], "privacy": "Only numeric-loopback runner access is enforced. Runner internals and host agent processing need separate verification.",
                 "qualification": "Configured provenance is operator-supplied; no linguistic or hardware qualification is implied."}
@@ -415,11 +500,7 @@ class Workbench:
         messages = [{"role": "user", "content": prompt}]
         payload = {"model": self.config["model"], "messages": messages,
                    "chat_template_kwargs": {"enable_thinking": False}}
-        tokens = self.http("/tokenize", {**payload, "add_generation_prompt": True}, deadline).get("count")
-        if type(tokens) is not int or tokens <= 0:
-            fail("Runner tokenize endpoint must return a positive count for the rendered chat template")
-        if tokens + self.config["max_output_tokens"] + 64 > self.config["context_window_tokens"]:
-            fail("Rendered prompt plus output budget exceeds the configured context window")
+        tokens = self.tokenize(payload, deadline)
         response = self.http("/chat/completions", {**payload, "temperature": 0,
                              "max_tokens": self.config["max_output_tokens"], "stream": False}, deadline)
         if response.get("model") != self.config["model"]:
@@ -684,13 +765,76 @@ class Workbench:
         return manifest
 
 
+def verify_deployment(root, deployment, api_key=None):
+    """Check the same model/tokenizer contract as translation without generating."""
+    workbench = Workbench(root, deployment=deployment, api_key=api_key)
+    deadline = time.monotonic() + workbench.config["run_timeout_seconds"]
+    try:
+        models = workbench.http("/models", deadline=deadline).get("data")
+    except RunnerAuthenticationError:
+        raise settings.SettingsError("auth_required") from None
+    except TranslationError:
+        raise settings.SettingsError("runner_unreachable") from None
+    if not isinstance(models, list) or workbench.config["model"] not in [m.get("id") for m in models if isinstance(m, dict)]:
+        raise settings.SettingsError("model_unavailable")
+    try:
+        workbench.check_tokenizer(deadline)
+    except RunnerAuthenticationError:
+        raise settings.SettingsError("auth_required") from None
+    except TranslationError:
+        raise settings.SettingsError("tokenizer_unsupported") from None
+    return {"runner_model_available": True, "tokenizer_compatible": True}
+
+
+def translation_settings():
+    """Inspect redacted configuration without contacting the inference engine."""
+    environment = "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ
+    if environment:
+        result = {"configuration_source": "environment", "settings_path": str(settings.settings_path()),
+                  "environment_override": True}
+        try:
+            workbench = Workbench()
+        except (TranslationError, settings.SettingsError) as exc:
+            return {**result, "configured": False, "error": str(exc),
+                    "next_step": "Supply both environment overrides, or remove them and call translation_open_settings"}
+        return {**result, "configured": True, "root": str(workbench.root), "deployment": workbench.config,
+                "configuration_path": str(workbench.config_path),
+                "credential_configured": bool(workbench.config.get("api_key_env") and os.environ.get(workbench.config["api_key_env"])),
+                "next_step": "Call translation_health to check the active engine; saved browser settings do not override this environment"}
+    result = settings.public_settings()
+    return {**result, "configuration_source": "saved_settings" if result["configured"] else None,
+            "environment_override": False,
+            "next_step": "Call translation_health to check the engine" if result["configured"] else
+                         "Call translation_open_settings to choose a workspace and configure the inference engine"}
+
+
+def translation_health():
+    try:
+        workbench = Workbench()
+    except (TranslationError, settings.SettingsError) as exc:
+        environment = "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ
+        return {"configured": False, "runner_model_available": False, "setup_required": True,
+                "error": str(exc), "next_step":
+                "Supply both environment overrides, or remove them and call translation_open_settings" if environment else
+                "Call translation_open_settings to configure Local Translation"}
+    return workbench.health()
+
+
+def translation_open_settings():
+    if "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ:
+        fail("Environment configuration is active. Edit its deployment file, or remove both LOCAL_TRANSLATION_ROOT and LOCAL_TRANSLATION_CONFIG and reopen settings to use the browser configuration")
+    return _local_module("setup").open_settings()
+
+
 def schema(required=(), **properties):
     return {"type": "object", "properties": properties, "required": list(required), "additionalProperties": False}
 
 
 S = {"type": "string", "minLength": 1}
 TOOLS = [
-    ("translation_health", "Check the configured local runner model and declared provenance. Does not establish privacy or translation quality.", schema(), "health"),
+    ("translation_settings", "Inspect redacted Local Translation settings and the active configuration source without contacting the engine. Never returns an API key.", schema(), None),
+    ("translation_open_settings", "Open a temporary local browser page to configure the workspace and inference engine. Enter an optional API key only in that page, never in chat. Settings persist outside the plugin cache.", schema(), None),
+    ("translation_health", "Check the configured local runner model, synthetic chat tokenization and declared provenance. If unconfigured, explain how to open setup. Does not establish translation quality.", schema(), "health"),
     ("translation_create_job", "Snapshot a UTF-8 .txt or explicit-segment .json source and approved brief/glossary into a new immutable multi-locale job.",
      schema(("source_path", "source_locale", "target_locales", "brief"), source_path=S, source_locale=S,
             target_locales={"type": "array", "items": S, "minItems": 1, "maxItems": 8}, brief=S,
@@ -741,7 +885,7 @@ def dispatch(message):
         response["result"] = {}
     elif method == "tools/list":
         response["result"] = {"tools": [{"name": name, "description": description, "inputSchema": contract,
-                                          "annotations": {"readOnlyHint": name == "translation_health",
+                                          "annotations": {"readOnlyHint": name in {"translation_health", "translation_settings"},
                                                           "destructiveHint": False, "openWorldHint": False}}
                                          for name, description, contract, _ in TOOLS]}
     elif method == "tools/call":
@@ -753,9 +897,11 @@ def dispatch(message):
             try:
                 arguments = params.get("arguments", {})
                 validate_arguments(arguments, tool[2])
-                result = getattr(Workbench(), tool[3])(**arguments)
+                bootstrap = {"translation_health": translation_health, "translation_settings": translation_settings,
+                             "translation_open_settings": translation_open_settings}
+                result = bootstrap[tool[0]](**arguments) if tool[0] in bootstrap else getattr(Workbench(), tool[3])(**arguments)
                 response["result"] = {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}], "isError": False}
-            except TranslationError as exc:
+            except (TranslationError, settings.SettingsError) as exc:
                 response["result"] = {"content": [{"type": "text", "text": str(exc)}], "isError": True}
             except Exception:
                 # A failed tool call must not terminate the stdio session or
@@ -771,7 +917,7 @@ def main():
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
-        assert len(TOOLS) == 8
+        assert len(TOOLS) == 10
         assert dispatch({"jsonrpc": "2.0", "id": 1, "method": "ping"})["result"] == {}
         invariants("Count %1$d of {total}: 12", "{total}: 12; %1$d", [], "printf")
         print("local-translation self-test passed (protocol and invariants; no inference)")
