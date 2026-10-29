@@ -9,41 +9,71 @@ Calls run synchronously; queue independent work through the host/PM.
 
 ## Prerequisites and configuration
 
-Use Python 3.11 or newer and a vLLM-compatible local server exposing model listing,
+Use Python 3.11 or newer and a local oMLX or vLLM-compatible server exposing model listing,
 chat completions and tokenization for chat messages. The required tokenization
 endpoint is `/tokenize` on the same local origin, outside the `/v1` prefix. A server
 with only an OpenAI chat endpoint is insufficient. In particular, do not assume
 an Ollama or llama.cpp endpoint implements this package's tokenization contract.
 
-Configure the actual host MCP process environment:
+oMLX 0.7.3rc1 accepts the required `model`, `messages`,
+`add_generation_prompt` and `chat_template_kwargs` fields at `/tokenize` and
+returns `count`. Its default port is 8000; use the actual port and served model
+alias from your deployment. A converted MLX artifact often has a different alias
+from the upstream model repository. The oMLX
+[API compatibility guide](https://github.com/jundot/omlx#api-compatibility)
+describes the routes. This support is a protocol contract, not evidence that a
+particular installed Index artifact has passed a translation pilot.
 
-- `LOCAL_TRANSLATION_ROOT`: absolute path to an authorized existing workspace.
-- `LOCAL_TRANSLATION_CONFIG`: absolute path to your local JSON deployment config.
-- Optional runner credential: the environment variable named by `api_key_env`.
-  Keep its value outside plugin files, config examples, prompts and logs.
+### Desktop setup
 
-The plugin's MCP declaration starts `python3` with its contained `mcp/server.py`.
-You must supply configuration in the client environment/settings using that
-client's documented mechanism. Installation alone cannot infer your workspace,
-deployment identity or data permissions. Do not edit a versioned plugin cache.
+Ask **“Open Local Translation settings.”** The bootstrap tool
+`translation_open_settings` opens a short-lived local browser form even before
+the engine is configured. Enter the absolute path of an existing authorized
+workspace, engine URL, exact model alias, verified artifact revision and runner
+version, and locale registry. Advanced fields control context and time budgets.
+Enter an optional runner API key directly in the form; never send it in chat.
 
-For Codex, the bundled declaration explicitly forwards only
-`LOCAL_TRANSLATION_ROOT`, `LOCAL_TRANSLATION_CONFIG`, and optional
-`LOCAL_TRANSLATION_API_KEY` from the environment that launches Codex. Set the
-first two before starting the client. If the runner requires a credential, set
-`api_key_env` to `"LOCAL_TRANSLATION_API_KEY"` in your deployment config and supply
-its value in that launch environment. Omit `api_key_env` for an unauthenticated
-runner. Other arbitrary variable names are not forwarded by this declaration.
-Restart the client after changing its launch environment, then call
-`translation_health` to verify the installed server can read its configuration
-and reach the intended model. See the official [stdio environment
-rules](https://learn.chatgpt.com/docs/extend/mcp#stdio-servers).
+Choose **Test and save**. The server validates the fields, checks `/v1/models`
+for the exact alias and probes `/tokenize` with synthetic chat messages and the
+same template options used during translation. It checks the token count against
+the output/context budget. No source file, completion request or translation job
+is involved. A failed check preserves the previous settings. This check does not
+prove model provenance, completion behavior or linguistic quality; run the
+representative translation pilot separately.
 
-The portable `mcp.json` follows Agent Plugins 1.0 and does not use Codex's
-`env_vars` extension. Other clients must provide the same required variables and
-the optional name selected by `api_key_env` through their own MCP launch
-environment. Confirm a successful health call in that client before creating a
-job; tool discovery alone does not verify configuration forwarding.
+Settings are saved outside the installed package at
+`~/.config/local-translation/settings.json`, or
+`$XDG_CONFIG_HOME/local-translation/settings.json` when that variable is supplied.
+The directory uses mode 0700 and atomic settings writes use mode 0600 on POSIX.
+The optional API key is stored in this private local file without encryption;
+it is omitted from tool responses, job metadata and browser prefills. Keep the
+settings directory outside shared/version-controlled storage. Reopening the form
+lets the user keep, replace or remove the stored key.
+
+Both Codex and Copilot use the same saved settings. They survive plugin updates
+and apply on the next tool call without restarting either client.
+`translation_settings` reports the active source, settings path and redacted
+configuration. `translation_health` verifies the connection after setup. Do not
+edit a versioned plugin cache or the client's MCP declaration to configure the
+engine. The bundled stdio process and its downstream inference HTTP connection
+are separate connections; tool discovery proves only the former.
+
+### Explicit process-environment configuration
+
+For managed/CLI deployments, a complete `LOCAL_TRANSLATION_ROOT` and
+`LOCAL_TRANSLATION_CONFIG` pair overrides saved settings. The first is an
+absolute existing workspace; the second points to your deployment JSON. A partial
+pair is an error, rather than a mixture with saved settings. The settings page
+reports an active environment override instead of changing an inactive file.
+
+An optional credential comes from the variable named by `api_key_env`. Codex's
+declaration forwards `LOCAL_TRANSLATION_ROOT`, `LOCAL_TRANSLATION_CONFIG` and
+`LOCAL_TRANSLATION_API_KEY` from its launch environment. Use that credential name
+in Codex. The portable declaration uses no Codex-specific forwarding extension;
+other clients control their explicit environment. See the official
+[stdio environment rules](https://learn.chatgpt.com/docs/extend/mcp#stdio-servers).
+Restart a client only when changing this explicit launch environment. The normal
+desktop saved-settings flow needs none of these variables.
 
 The deployment config declares:
 
@@ -60,7 +90,7 @@ The deployment config declares:
 | `context_window_tokens` | Actual served context window; must fit tokenized prompt and planned output |
 | `timeout_seconds` | Per-request socket timeout, integer 1–60 seconds; default 30 |
 | `run_timeout_seconds` | Total per-locale drafting budget across model checks, tokenization and all segments, integer 1–540 seconds; default 120 |
-| `api_key_env` | Optional environment-variable name for the runner credential |
+| `api_key_env` | Optional environment-variable name for an explicitly environment-configured deployment; the desktop form stores its optional key privately instead |
 
 Numeric defaults are 8,000 input characters per unit, 32,000 rendered prompt bytes,
 2,048 output tokens, a 16,384-token context window, a 30-second request timeout,
@@ -134,7 +164,9 @@ MCP names; a host may display them with a server namespace.
 
 | Tool | Main inputs and result |
 | --- | --- |
-| `translation_health` | No arguments. Inspect local configuration and served-model availability before job creation/runs. It cannot prove that the runner itself has no remote upstream. |
+| `translation_settings` | No arguments. Report the active settings source and redacted configuration, including setup instructions when unconfigured. Does not contact the engine. |
+| `translation_open_settings` | No arguments. Open the plugin's short-lived local settings form. User-entered credentials never pass through MCP arguments. Does not install or start inference. |
+| `translation_health` | No arguments. Check the exact model and synthetic chat tokenization before job creation/runs. An unconfigured response points to setup. It cannot prove that the runner itself has no remote upstream. |
 | `translation_create_job` | `source_path` relative to root, `source_locale`, `target_locales`, `brief`, `glossary`. Freezes supported source, configuration and resources; returns a job ID. |
 | `translation_run` | `job_id`, `target_locale`, `translator_id`. Drafts one target with the configured local deployment, validates completion and structural invariants, and stores a candidate or visible failure. |
 | `translation_status` | `job_id`, optional `include_segments`. Default metadata omits segment bodies and free-text context. `include_segments=true` discloses source/target text, brief, glossary, query questions/answers and review/revision notes to the caller/host. |

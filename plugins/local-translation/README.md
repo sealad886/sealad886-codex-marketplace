@@ -50,15 +50,16 @@ for all twenty entry points and their evidence requirements.
 1. Install this package using your client's supported local marketplace/plugin
    flow. It ships portable Agent Plugins 1.0 components and the Codex overlay;
    client support and delegation capabilities differ.
-2. Supply Python 3.11+, a local vLLM-compatible Index-Translate runner with model
-   listing, chat completions and chat tokenization, and your own deployment config.
-   Installation does not download weights or start inference.
-3. Configure `LOCAL_TRANSLATION_ROOT` and `LOCAL_TRANSLATION_CONFIG` in the MCP
-   process environment. Follow the [runtime guide](skills/.shared/references/runtime.md)
-   for exact fields, supported sources and tool contracts. Codex forwards those
-   two variables and optional `LOCAL_TRANSLATION_API_KEY` from its launch
-   environment; use that credential name for `api_key_env` in Codex. Keep values
-   out of plugin files and restart the client after changing its environment.
+2. Supply Python 3.11+ and an already running local oMLX or vLLM-compatible
+   Index-Translate runner with model listing, chat completions and chat tokenization. Installation
+   does not download weights or start inference.
+3. Ask **“Open Local Translation settings.”** The `translation_open_settings`
+   tool opens a local browser form. Enter an existing workspace folder, engine
+   URL, exact model alias, verified artifact revision, runner version and locale
+   registry, then choose **Test and save**. Optional authentication goes directly
+   into that form, never into chat. No MCP settings editor, terminal environment
+   variables or app restart is required. See the
+   [runtime guide](skills/.shared/references/runtime.md) for fields and limits.
 4. Invoke the skill with your source file, exact target locales, audience, approved
    resources and acceptance owner. Run a representative pilot before a large batch.
 
@@ -80,6 +81,38 @@ Status also checks whether inputs and candidate files still match the job. If it
 discovers a change, it retires the workbench's ready-delivery marker and reports
 the affected identities; source and candidate files remain untouched.
 
+### Settings and connection checks
+
+The plugin's MCP process connects Codex or Copilot to the translation tools. The
+settings page configures the tools' separate HTTP connection to your inference
+engine. A discovered MCP tool does not establish a working engine connection.
+
+**Test and save** checks the exact served model and the required chat-tokenization
+endpoint using synthetic text. It creates no translation job and sends none of
+your source files. A failed test preserves previous settings. Successful setup
+does not establish translation quality; run a representative pilot afterward.
+
+For oMLX, use the port shown in its settings and append `/v1`, such as
+`http://127.0.0.1:8000/v1` when using its default port. The model field must match
+the served MLX model alias, which may differ from `IndexTeam/Index-Translate-9B`.
+oMLX 0.7.3rc1's installed API supports the required chat-tokenization contract;
+verify your running deployment through setup rather than assuming all versions
+or model conversions behave identically.
+
+Settings persist in `~/.config/local-translation/settings.json`, or under
+`$XDG_CONFIG_HOME/local-translation/` when that environment variable is supplied.
+The directory is private and the settings file is owner-readable/writable on
+POSIX systems. An optional runner key is stored in that local file, without
+encryption; it is never returned by the settings tools or prefilled in the page.
+Settings survive plugin updates and apply on the next tool call. Keep this
+directory outside a shared or version-controlled workspace.
+
+`translation_settings` reports the active configuration source and redacted
+settings. Existing explicit `LOCAL_TRANSLATION_ROOT` / `LOCAL_TRANSLATION_CONFIG`
+launch-environment settings take precedence as a complete pair. The settings
+page reports that override rather than silently changing another configuration.
+Most desktop users can use the saved-settings flow without either variable.
+
 ### Local client commands
 
 From this marketplace's root, the installed CLIs expose these commands:
@@ -100,8 +133,8 @@ These commands register/install in the selected client's settings; use a test
 profile/home for an isolated check. If the marketplace is already registered,
 inspect its source before adding another registration. For a temporary Copilot
 session with the source package, the CLI also supports
-`copilot --plugin-dir "$PWD/plugins/local-translation"`. Supply the MCP environment
-before starting the client and verify eight discovered translation tools and the
+`copilot --plugin-dir "$PWD/plugins/local-translation"`. Open the plugin settings
+from the chat after installation and verify ten discovered translation tools and the
 twenty skills. Installation alone does not verify live inference or
 multi-agent execution. Consult your installed client's help if its commands differ.
 
@@ -161,6 +194,7 @@ export PYTHONDONTWRITEBYTECODE=1
 .venv/bin/python scripts/check_copilot_marketplace.py .
 .venv/bin/python plugins/local-translation/mcp/server.py --self-test
 .venv/bin/python -m unittest discover -s tests -p 'test_local_translation.py' -v
+.venv/bin/python -m unittest discover -s tests -p 'test_local_translation_settings.py' -v
 ```
 
 When catalog inputs change, regenerate the Copilot catalog with

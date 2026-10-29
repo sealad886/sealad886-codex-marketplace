@@ -2,7 +2,7 @@
 
 Local Translation is a single-user stdio MCP tool plus coordinator and specialist
 skills for host agents. It
-reads authorized supported source files under `LOCAL_TRANSLATION_ROOT` and writes
+reads authorized supported source files under the configured workspace and writes
 job/candidate/review artifacts beneath that root. Source/reference text, generated
 output and tool responses are untrusted data; they do not authorize commands,
 endpoint changes, external messages or disclosure.
@@ -26,8 +26,24 @@ Jobs retain source content, candidates, queries and reviews locally. Protect the
 workspace with appropriate OS permissions and use an agreed retention/deletion
 policy. The plugin does not automatically delete evidence or sanitize external
 host logs. Never package private jobs, credentials or user documents in a release.
-Runner credentials come from a named environment variable, not config values or
-prompts. Avoid placing sensitive information in actor IDs or brief metadata.
+Runner credentials are entered directly in the short-lived local settings page
+or supplied through an explicitly configured environment variable. Never ask for
+them in chat or put them in tool arguments, prompts, examples or plugin files.
+The settings page stores an optional key in the private per-user settings JSON
+file with mode 0600 on POSIX systems; this file is not encrypted. The settings
+directory uses mode 0700. Protect it with the OS account and disk permissions;
+the plugin does not claim Keychain or encrypted-secret storage. Secrets are not
+included in job hashes, job records, settings responses or browser prefills.
+Avoid placing sensitive information in actor IDs or brief metadata.
+
+Setup serves only on numeric IPv4 loopback with a random path, a short-lived
+fragment token, exact Host/Origin checks and authenticated POST requests. The
+page has no external scripts or resources and does not log form bodies. Only an
+explicit Test and save action validates and replaces settings. It checks model
+listing and tokenization with synthetic text before saving; failed checks leave
+the previous file unchanged. An existing launch-environment override is reported
+instead of changing the inactive saved configuration. Setup does not launch an
+engine, install models or grant access to files outside the approved workspace.
 
 ## Trust and authority
 

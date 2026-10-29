@@ -103,10 +103,11 @@ state ownership, contracts, verification commands, and delivery policies.
 Assign a translation coordinator and nineteen separately invocable expert skills,
 including translator, independent bilingual reviser, terminologist, editor,
 proofreader, quality lead and media specialists. Each subagent loads its role's
-working method and exchanges attributed findings and replies. Eight bundled
-local MCP tools support text jobs through a configured Index-Translate runner.
+working method and exchanges attributed findings and replies. Ten bundled
+local MCP tools support text jobs and a local settings form for connecting an
+existing Index-Translate runner without editing MCP environment settings.
 
-**Version:** `0.2.0` · [Role directory and setup](plugins/local-translation/README.md)
+**Version:** `0.3.0` · [Role directory and setup](plugins/local-translation/README.md)
 
 ## Install
 

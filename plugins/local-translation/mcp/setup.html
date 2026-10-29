@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Set up Local Translation</title>
+<style nonce="{{NONCE}}">
+:root{color-scheme:light dark;font:16px/1.5 system-ui,sans-serif;background:light-dark(#f3f5f7,#141b23);color:light-dark(#172d38,#e9f0f5)}*{box-sizing:border-box}body{margin:0}main{max-width:760px;margin:36px auto;padding:32px;background:light-dark(#fff,#1d2934);border:1px solid light-dark(#dbe2e7,#354754);border-radius:18px}h1{font-size:29px;line-height:1.2;margin-top:0}h2{font-size:20px;margin-top:28px}label{display:block;font-weight:650;margin:18px 0 5px}input,textarea,select,button{width:100%;padding:10px 12px;font:inherit;border:1px solid #7d919f;border-radius:7px;background:light-dark(#fff,#141f28);color:inherit}textarea{min-height:120px;resize:vertical}.hint{font-size:14px;color:light-dark(#526570,#bccbd5);margin:5px 0 12px}.notice{padding:13px 16px;background:light-dark(#edf7f6,#163a3a);border-left:4px solid #278982;border-radius:4px}button{margin-top:24px;background:#087c74;color:#fff;font-weight:700;border:0;cursor:pointer}button:disabled{opacity:.6;cursor:wait}:focus-visible{outline:3px solid #d28a19;outline-offset:3px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 20px}details{margin-top:24px}summary{cursor:pointer;font-weight:650}#status{min-height:24px;white-space:pre-line}code{overflow-wrap:anywhere;font-size:13px}@media(max-width:650px){main{margin:0;border-radius:0;padding:22px}.grid{display:block}}
+</style>
+</head>
+<body><main>
+<h1>Set up Local Translation</h1>
+<p>Connect the plugin to your running local Index-Translate model in oMLX or a vLLM-compatible engine. These settings work when you open Codex or Copilot normally, without editing MCP settings or restarting the app.</p>
+<p class="notice">The engine must expose model listing and chat tokenization, including <code>POST /tokenize</code>. Compatibility depends on the installed engine version. This page checks the connection and tokenizer without generating a translation or downloading models.</p>
+<form id="settings">
+<h2>Workspace and engine</h2>
+<label for="root">Translation workspace folder</label>
+<input id="root" required maxlength="4096" placeholder="/absolute/path/to/your/translation-workspace" spellcheck="false" autocomplete="off">
+<p class="hint">An existing folder containing the files you authorize the plugin to read. Job and review records are saved beneath this folder. Enter its full local path.</p>
+<label for="base_url">Local engine URL</label>
+<input id="base_url" type="url" required maxlength="200" placeholder="http://127.0.0.1:8080/v1" spellcheck="false" autocomplete="off">
+<p class="hint">Use the port shown in your oMLX or runner settings, with /v1 at the end. Replace localhost with 127.0.0.1. Remote endpoints and hostnames are not accepted.</p>
+<label for="model">Exact served model name</label>
+<input id="model" required maxlength="200" placeholder="Model alias reported by your engine" spellcheck="false" autocomplete="off">
+<p class="hint">Must match an entry returned by the engine’s /v1/models endpoint. Check the runner you actually started.</p>
+<div class="grid"><div><label for="artifact_revision">Model artifact / revision</label><input id="artifact_revision" required maxlength="200" autocomplete="off" placeholder="Pinned revision and quantization, if used"></div><div><label for="runner_version">Runner version / build</label><input id="runner_version" required maxlength="200" autocomplete="off" placeholder="Installed runner version"></div></div>
+<p class="hint">Enter metadata you verified in your deployment. A successful connection cannot attest the model’s files or training, and the plugin does not invent these values.</p>
+<label for="locales">Allowed languages and locales</label>
+<textarea id="locales" required spellcheck="false" aria-describedby="locales-help">en-US=English (United States)
+fr-FR=French (France)
+de-DE=German (Germany)</textarea>
+<p class="hint" id="locales-help">One locale=language label per line. Include the source and every target locale. Register only the languages you intend to use and qualify.</p>
+<h2>Optional engine authentication</h2>
+<label for="credential_action">API key</label>
+<select id="credential_action"><option value="keep">Keep the saved key, if any</option><option value="replace">Use a new key</option><option value="clear">Clear the saved key; use no authentication</option></select>
+<label for="api_key">New API key</label>
+<input id="api_key" type="password" maxlength="4096" autocomplete="new-password" spellcheck="false" disabled>
+<p class="hint">Enter a key only in this local browser page, never in chat. If saved, it is stored as plaintext in your private user settings file (0600 on POSIX); it is not stored in Keychain. It is never returned to the assistant or prefilled here. Other processes running as your user can read this file.</p>
+<details><summary>Generation limits and timeouts</summary>
+<p class="hint">Use limits supported by your actual engine. The context window must fit both the tokenized prompt and output. Changing deployment settings requires a replacement translation job.</p>
+<div class="grid">
+<div><label for="max_input_chars">Input characters per segment</label><input id="max_input_chars" type="number" min="1" max="32000" value="8000" required></div>
+<div><label for="max_prompt_bytes">Prompt bytes per segment</label><input id="max_prompt_bytes" type="number" min="100" max="128000" value="32000" required></div>
+<div><label for="max_output_tokens">Maximum output tokens</label><input id="max_output_tokens" type="number" min="16" max="8192" value="2048" required></div>
+<div><label for="context_window_tokens">Served context window (tokens)</label><input id="context_window_tokens" type="number" min="128" max="262144" value="16384" required></div>
+<div><label for="timeout_seconds">Request timeout (seconds)</label><input id="timeout_seconds" type="number" min="1" max="60" value="30" required></div>
+<div><label for="run_timeout_seconds">Whole-locale timeout (seconds)</label><input id="run_timeout_seconds" type="number" min="1" max="540" value="120" required></div>
+</div></details>
+<button id="save" type="submit" disabled>Check connection and save</button>
+</form>
+<p id="status" role="status" aria-live="polite">Loading your local settings…</p>
+<p class="hint">This private page expires after ten minutes and closes its local server after saving. Settings stay outside the plugin installation and survive plugin updates. Existing settings are preserved when a check or save fails.</p>
+<p class="hint" id="storage"></p>
+</main>
+<script nonce="{{NONCE}}">
+'use strict';
+const token=location.hash.slice(1);history.replaceState(null,'',location.pathname);
+const byId=id=>document.getElementById(id),form=byId('settings'),button=byId('save'),status=byId('status'),key=byId('api_key');
+const textFields=['base_url','model','artifact_revision','runner_version'];
+const numericFields=['max_input_chars','max_prompt_bytes','max_output_tokens','context_window_tokens','timeout_seconds','run_timeout_seconds'];
+let expectedRevision=null;
+async function request(data){const response=await fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/json','X-Setup-Token':token},body:JSON.stringify(data)});return {response,result:await response.json()};}
+byId('credential_action').addEventListener('change',()=>{key.value='';key.disabled=byId('credential_action').value!=='replace';key.required=!key.disabled;});
+async function load(){if(!token){status.textContent='This page is invalid. Open a new Local Translation settings page from the plugin.';return;}try{const {response,result}=await request({action:'read'});if(!response.ok)throw new Error();expectedRevision=result.settings_revision;byId('storage').textContent='Settings file: '+result.settings_path;if(result.configured){byId('root').value=result.root;const deployment=result.deployment;for(const name of [...textFields,...numericFields])if(deployment[name]!==undefined)byId(name).value=deployment[name];byId('locales').value=Object.entries(deployment.locales||{}).map(([locale,label])=>locale+'='+label).join('\n');status.textContent=result.credential_configured?'Existing settings loaded. A saved API key is present; its value is hidden.':'Existing settings loaded. No API key is saved.';}else status.textContent='Choose your workspace and enter the running engine’s verified settings.';button.disabled=false;}catch{status.textContent='Could not load private settings. Check file permissions and open a new setup page.';}}
+form.addEventListener('submit',async event=>{event.preventDefault();const deployment={};for(const name of textFields)deployment[name]=byId(name).value.trim();for(const name of numericFields)deployment[name]=Number(byId(name).value);const locales={};for(const line of byId('locales').value.split(/\r?\n/)){if(!line.trim())continue;const index=line.indexOf('=');const locale=line.slice(0,index).trim(),label=line.slice(index+1).trim();if(index<1||!locale||!label||Object.hasOwn(locales,locale)){status.textContent='Use one unique locale=language label per line.';return;}Object.defineProperty(locales,locale,{value:label,enumerable:true,writable:true,configurable:true});}deployment.locales=locales;const data={action:'save',root:byId('root').value.trim(),deployment,credential_action:byId('credential_action').value,expected_revision:expectedRevision};if(data.credential_action==='replace')data.api_key=key.value;key.value='';button.disabled=true;status.textContent='Checking the exact model and chat tokenizer…';try{const {response,result}=await request(data);if(result.saved){form.hidden=true;status.textContent='Settings saved. The model and tokenizer checks passed; translation generation has not been tested. Return to the plugin and run translation_health, then a representative pilot. You can close this page.';}else{status.textContent=result.error||'The check failed. Nothing was saved.';button.disabled=response.status===403||result.code==='stale_configuration'||result.code==='page_expired';}}catch{status.textContent='This setup page is no longer available. Open a new page from the plugin.';button.disabled=true;}});
+load();
+</script>
+</body></html>

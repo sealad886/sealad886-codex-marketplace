@@ -39,12 +39,23 @@ def runner():
 
         def do_GET(self):
             state["requests"].append((self.path, None))
+            state.setdefault("authorization", []).append(self.headers.get("Authorization"))
+            if state.get("auth_path") == self.path:
+                self.send_error(state["auth_status"], "PRIVATE_RUNNER_AUTH_DETAIL")
+                return
             self.send({"data": [{"id": state["model"]}]})
 
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             state["requests"].append((self.path, body))
+            state.setdefault("authorization", []).append(self.headers.get("Authorization"))
+            if state.get("auth_path") == self.path:
+                self.send_error(state["auth_status"], "PRIVATE_RUNNER_AUTH_DETAIL")
+                return
             if self.path == "/tokenize":
+                if state.get("tokenizer_missing"):
+                    self.send_error(404)
+                    return
                 self.send({"count": state["token_count"]})
                 return
             if state.get("malformed_status"):
@@ -98,6 +109,134 @@ class TranslationTests(unittest.TestCase):
         context_revision = workbench.status(job)["context_revision"]
         return workbench.review(job, "fr-FR", reviewer, candidate["sha256"], context_revision,
                                 "approved", "Compared all units with source; no open findings")
+
+    def test_unconfigured_bootstrap_tools_are_usable_without_environment_or_workbench(self):
+        with mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": str(self.root / "preferences")}, clear=True):
+            with mock.patch.object(runtime, "Workbench", side_effect=AssertionError("settings must bootstrap independently")):
+                value = runtime.translation_settings()
+                self.assertFalse(value["configured"])
+                self.assertIn("translation_open_settings", value["next_step"])
+            health = runtime.dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                                       "params": {"name": "translation_health", "arguments": {}}})
+            self.assertFalse(health["result"]["isError"])
+            self.assertFalse(json.loads(health["result"]["content"][0]["text"])["configured"])
+            with mock.patch.object(runtime._local_module("setup"), "open_settings", return_value={"browser_opened": True}) as page:
+                opened = runtime.dispatch({"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                                           "params": {"name": "translation_open_settings", "arguments": {}}})
+                self.assertFalse(opened["result"]["isError"])
+                page.assert_called_once_with()
+            self.assertFalse(runtime.settings.settings_path().exists())
+
+    def test_saved_settings_connect_after_stdio_restart_without_launch_environment(self):
+        secret = "SYNTHETIC_PRIVATE_RUNNER_TOKEN"
+        with runner() as state, mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": str(self.root / "preferences")}, clear=True):
+            deployment = self.workbench(state).config
+            runtime.settings.save_settings(str(self.root), deployment, api_key_action="replace", api_key=secret,
+                                           validate=runtime.validate_config, verify=runtime.verify_deployment)
+            workbench = runtime.Workbench()
+            self.assertEqual(workbench.configuration_source, "saved_settings")
+            self.assertNotIn("api_key", workbench.config)
+            self.assertEqual(workbench.config_sha256, runtime.digest(deployment))
+            messages = [{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "translation_settings", "arguments": {}}},
+                        {"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "translation_health", "arguments": {}}},
+                        {"jsonrpc": "2.0", "id": 3, "method": "ping"}]
+            process = subprocess.run([sys.executable, str(SERVER)], input="".join(json.dumps(m) + "\n" for m in messages),
+                                     capture_output=True, text=True, timeout=15, check=True,
+                                     env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+            replies = [json.loads(line) for line in process.stdout.splitlines()]
+            self.assertTrue(all(not r.get("result", {}).get("isError") for r in replies))
+            saved = json.loads(replies[0]["result"]["content"][0]["text"])
+            health = json.loads(replies[1]["result"]["content"][0]["text"])
+            self.assertTrue(saved["credential_configured"])
+            self.assertTrue(health["runner_model_available"])
+            self.assertTrue(health["tokenizer_compatible"])
+            self.assertEqual(health["configuration_source"], "saved_settings")
+            self.assertEqual(replies[2]["result"], {})
+            self.assertNotIn(secret, process.stdout + process.stderr)
+            self.assertEqual(process.stderr, "")
+            self.assertFalse((self.root / ".local-translation").exists())
+            self.assertEqual([p for p, _ in state["requests"]], ["/v1/models", "/tokenize", "/v1/models", "/tokenize"])
+            self.assertTrue(all(h == "Bearer " + secret for h in state["authorization"]))
+
+    def test_environment_override_is_complete_and_takes_precedence_over_saved_settings(self):
+        with runner() as state, mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": str(self.root / "preferences")}, clear=True):
+            original = self.workbench(state).config
+            saved = {**original, "artifact_revision": "saved-revision"}
+            runtime.settings.save_settings(str(self.root), saved, validate=runtime.validate_config, verify=runtime.verify_deployment)
+            with mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_ROOT": str(self.root), "LOCAL_TRANSLATION_CONFIG": str(self.config)}):
+                workbench = runtime.Workbench()
+                self.assertEqual(workbench.config["artifact_revision"], "abc123")
+                info = runtime.translation_settings()
+                self.assertEqual(info["configuration_source"], "environment")
+                self.assertTrue(info["environment_override"])
+                with mock.patch.object(runtime._local_module("setup"), "open_settings") as page:
+                    with self.assertRaisesRegex(runtime.TranslationError, "Environment configuration is active"):
+                        runtime.translation_open_settings()
+                    page.assert_not_called()
+            with mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_ROOT": str(self.root)}):
+                with self.assertRaisesRegex(runtime.TranslationError, "both LOCAL_TRANSLATION"):
+                    runtime.Workbench()
+                self.assertFalse(runtime.translation_settings()["configured"])
+                with self.assertRaisesRegex(runtime.TranslationError, "remove both"):
+                    runtime.translation_open_settings()
+            self.assertEqual(runtime.Workbench().config["artifact_revision"], "saved-revision")
+
+    def test_saved_deployment_changes_retire_delivery_and_credentials_never_enter_jobs(self):
+        secret = "SYNTHETIC_PRIVATE_JOB_TOKEN"
+        with runner() as state, mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": str(self.root / "preferences")}, clear=True):
+            deployment = self.workbench(state).config
+            runtime.settings.save_settings(str(self.root), deployment, api_key_action="replace", api_key=secret,
+                                           validate=runtime.validate_config, verify=runtime.verify_deployment)
+            workbench = runtime.Workbench()
+            job = self.create(workbench)
+            candidate = workbench.run(job, "fr-FR", "translator")
+            self.approve(workbench, job, candidate)
+            workbench.prepare_delivery(job)
+            self.assertNotIn(secret, json.dumps(workbench.status(job, include_segments=True)))
+            self.assertNotIn(secret, (workbench.jobdir(job) / "job.json").read_text())
+            changed = {**deployment, "artifact_revision": "new-revision"}
+            runtime.settings.save_settings(str(self.root), changed, validate=runtime.validate_config, verify=runtime.verify_deployment)
+            current = runtime.Workbench()
+            status = current.status(job)
+            self.assertFalse(status["config_current"])
+            self.assertIsNone(status["delivery"])
+            marker = json.loads((current.jobdir(job) / "delivery-candidate.json").read_text())
+            self.assertEqual(marker["state"], "superseded")
+            self.assertTrue((current.jobdir(job) / candidate["artifact"]).exists())
+            self.assertNotIn(secret, json.dumps(runtime.translation_settings()))
+            self.assertNotIn(secret, json.dumps(runtime.translation_health()))
+
+    def test_deployment_verification_rejects_missing_models_and_tokenizer_without_creating_jobs(self):
+        with runner() as state:
+            deployment = self.workbench(state).config
+            self.assertTrue(runtime.verify_deployment(str(self.root), deployment)["tokenizer_compatible"])
+            for mutation, code in (({"model": "not-served"}, "model_unavailable"),
+                                   ({"tokenizer_missing": True}, "tokenizer_unsupported"),
+                                   ({"token_count": True}, "tokenizer_unsupported"),
+                                   ({"token_count": 999999}, "tokenizer_unsupported")):
+                state.update(model="index-test", tokenizer_missing=False, token_count=100)
+                state.update(mutation)
+                with self.subTest(mutation=mutation), self.assertRaises(runtime.settings.SettingsError) as caught:
+                    runtime.verify_deployment(str(self.root), deployment)
+                self.assertEqual(caught.exception.code, code)
+            self.assertFalse((self.root / ".local-translation").exists())
+            self.assertNotIn("/v1/chat/completions", [p for p, _ in state["requests"]])
+
+    def test_engine_authentication_failures_offer_private_setup_without_echoing_server_details(self):
+        with runner() as state:
+            deployment = self.workbench(state).config
+            for path in ("/v1/models", "/tokenize"):
+                for status in (401, 403):
+                    state.update(auth_path=path, auth_status=status)
+                    with self.subTest(path=path, status=status):
+                        with self.assertRaises(runtime.settings.SettingsError) as caught:
+                            runtime.verify_deployment(str(self.root), deployment)
+                        self.assertEqual(caught.exception.code, "auth_required")
+                        self.assertNotIn("PRIVATE_RUNNER_AUTH_DETAIL", str(caught.exception))
+                        with self.assertRaises(runtime.RunnerAuthenticationError) as health:
+                            runtime.Workbench(self.root, deployment=deployment).health()
+                        self.assertIn("translation_open_settings", str(health.exception))
+                        self.assertNotIn("PRIVATE_RUNNER_AUTH_DETAIL", str(health.exception))
 
     def test_multilocale_candidates_require_independent_review_and_no_human_claim(self):
         with runner() as state:
@@ -717,9 +856,12 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(len(responses), 4)
         self.assertEqual(responses[0]["error"]["code"], -32700)
         self.assertEqual(responses[1]["result"]["protocolVersion"], runtime.PROTOCOL)
-        self.assertEqual(len(responses[2]["result"]["tools"]), 8)
+        self.assertEqual(len(responses[2]["result"]["tools"]), 10)
         status_tool = next(tool for tool in responses[2]["result"]["tools"] if tool["name"] == "translation_status")
         self.assertFalse(status_tool["annotations"]["readOnlyHint"])
+        for name in ("translation_settings", "translation_health"):
+            self.assertTrue(next(t for t in responses[2]["result"]["tools"] if t["name"] == name)["annotations"]["readOnlyHint"])
+        self.assertFalse(next(t for t in responses[2]["result"]["tools"] if t["name"] == "translation_open_settings")["annotations"]["readOnlyHint"])
         self.assertTrue(responses[3]["result"]["isError"])
         self.assertNotIn(b"do-not-echo", result.stdout + result.stderr)
         self.assertEqual(result.stderr, b"")
