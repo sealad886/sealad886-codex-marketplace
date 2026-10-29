@@ -5,12 +5,19 @@ The file is independent of plugin cache versions. Secrets returned by
 """
 
 from contextlib import contextmanager
+import errno
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import stat
 import tempfile
+
+if os.name == "nt":
+    import msvcrt
+else:
+    import fcntl
 
 
 MAX_SETTINGS_BYTES = 65536
@@ -29,6 +36,7 @@ class SettingsError(RuntimeError):
         "invalid_input": "Enter an existing absolute workspace folder and valid engine settings. Nothing was saved.",
         "invalid_credential": "Enter a nonempty API key without line breaks, or choose Keep or Clear. Nothing was saved.",
         "local_settings_failed": "Could not read or lock private Local Translation settings. Check local file permissions and close other setup pages, then try again.",
+        "settings_busy": "Another settings save is active. Nothing was saved. Wait for it to finish, then try again.",
         "stale_configuration": "Settings changed while this page was open. Nothing was saved. Reopen setup to use the latest settings.",
         "verification_failed": "The engine compatibility check failed. Nothing was saved. Check the local endpoint, exact model alias and tokenizer support.",
         "model_unavailable": "The exact model alias is not listed by this engine. Check the served model name. Nothing was saved.",
@@ -124,6 +132,11 @@ def public_settings():
 
 @contextmanager
 def _locked(path):
+    """Hold a nonblocking OS lock, automatically released if the process dies.
+
+    Keep the regular lock file in place: deleting it could let another process
+    lock a different inode while an existing writer still holds the old one.
+    """
     descriptor = None
     lock = path.parent / ".settings.lock"
     try:
@@ -132,17 +145,34 @@ def _locked(path):
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         if os.name == "posix":
             path.parent.chmod(0o700)
-        descriptor = os.open(lock, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except OSError:
+        if lock.is_symlink():
+            raise OSError()
+        descriptor = os.open(lock, os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        info = os.fstat(descriptor)
+        if not stat.S_ISREG(info.st_mode) or lock.is_symlink():
+            raise OSError()
+        try:
+            if os.name == "nt":
+                if info.st_size == 0:
+                    os.write(descriptor, b"\0")
+                os.lseek(descriptor, 0, os.SEEK_SET)
+                msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+            else:
+                fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError as error:
+            if error.errno in {errno.EACCES, errno.EAGAIN, errno.EWOULDBLOCK}:
+                raise SettingsError("settings_busy") from None
+            raise
+    except (OSError, SettingsError) as error:
+        if descriptor is not None:
+            os.close(descriptor)
+        if isinstance(error, SettingsError):
+            raise
         raise SettingsError("local_settings_failed") from None
     try:
         yield
     finally:
         os.close(descriptor)
-        try:
-            lock.unlink(missing_ok=True)
-        except OSError:
-            pass
 
 
 def save_settings(root, deployment, *, api_key_action="keep", api_key=None,

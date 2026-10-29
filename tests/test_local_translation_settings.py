@@ -9,7 +9,9 @@ import io
 import json
 import os
 from pathlib import Path
+import queue
 import stat
+import subprocess
 import sys
 import tempfile
 import threading
@@ -166,6 +168,65 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(result.exception.code, "save_failed")
         self.assertEqual(settings.settings_path().read_bytes(), before)
         self.assertEqual(list(settings.settings_path().parent.glob(".settings-*")), [])
+
+    def test_process_death_releases_settings_lock_without_manual_recovery(self):
+        self.save()
+        before = settings.settings_path().read_bytes()
+        script = """
+import importlib.util
+import sys
+spec = importlib.util.spec_from_file_location('child_translation_settings', sys.argv[1])
+settings = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(settings)
+with settings._locked(settings.settings_path()):
+    print('LOCKED', flush=True)
+    sys.stdin.read(1)
+"""
+        child = subprocess.Popen(
+            [sys.executable, "-c", script, str(MCP / "settings.py")],
+            stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+            text=True, env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"})
+        try:
+            ready = queue.Queue(maxsize=1)
+            reader = threading.Thread(target=lambda: ready.put(child.stdout.readline()), daemon=True)
+            reader.start()
+            self.assertEqual(ready.get(timeout=5), "LOCKED\n")
+            with self.assertRaises(settings.SettingsError) as result:
+                self.save(dict(self.deployment(), artifact_revision="after-interruption"))
+            self.assertEqual(result.exception.code, "settings_busy")
+            self.assertEqual(settings.settings_path().read_bytes(), before)
+            child.terminate()
+            child.wait(timeout=5)
+            # Termination bypassed the child's context-manager cleanup. A new
+            # save must succeed without deleting or editing hidden lock files.
+            self.save(dict(self.deployment(), artifact_revision="after-interruption"))
+            self.assertEqual(settings.load_settings()["deployment"]["artifact_revision"], "after-interruption")
+        finally:
+            if child.poll() is None:
+                child.kill()
+                child.wait(timeout=5)
+            child.stdin.close()
+            child.stdout.close()
+
+    def test_settings_lock_rejects_symlink_and_nonregular_file_without_changing_settings(self):
+        self.save()
+        before = settings.settings_path().read_bytes()
+        lock = settings.settings_path().parent / ".settings.lock"
+        lock.unlink()
+        outside = self.directory / "outside-lock-target"
+        outside.write_text("outside-content")
+        lock.symlink_to(outside)
+        with self.assertRaises(settings.SettingsError) as result:
+            self.save()
+        self.assertEqual(result.exception.code, "local_settings_failed")
+        self.assertEqual(outside.read_text(), "outside-content")
+        self.assertEqual(settings.settings_path().read_bytes(), before)
+        lock.unlink()
+        lock.mkdir()
+        with self.assertRaises(settings.SettingsError) as result:
+            self.save()
+        self.assertEqual(result.exception.code, "local_settings_failed")
+        self.assertEqual(settings.settings_path().read_bytes(), before)
 
     def test_stale_edits_rejected_before_and_after_engine_probe(self):
         self.save()
