@@ -93,8 +93,8 @@
     },
     {
       "name": "local-translation",
-      "description": "Coordinate expert translation agents, draft with a local Index-Translate runner, and track queries, independent revision, and delivery evidence across target locales.",
-      "version": "0.1.0",
+      "description": "Coordinate a translation team with separate expert role skills, local Index-Translate drafting, and evidence-bound revision and delivery across target locales.",
+      "version": "0.2.0",
       "source": "./plugins/local-translation"
     }
   ]

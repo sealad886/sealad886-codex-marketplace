@@ -65,6 +65,18 @@ class DistributionBundleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             source = Path(temporary) / "source/local-translation"
             create_minimal_plugin(source, name="local-translation")
+            # The coordinated team must survive packaging as separate skills,
+            # with one canonical shared protocol available to every role.
+            sample = source / "skills/sample/SKILL.md"
+            template = sample.read_text()
+            for index in range(1, 20):
+                role = source / "skills" / f"expert-{index}"
+                role.mkdir()
+                (role / "SKILL.md").write_text(template.replace("name: sample", f"name: expert-{index}"))
+            shared = source / "skills/.shared/references/expert-contract.md"
+            shared.parent.mkdir(parents=True)
+            shared.write_text("# Shared expert handoff\nRetain assignment and review evidence.\n")
+            sample.write_text(template + "\nRead the [shared contract](../.shared/references/expert-contract.md).\n")
             overlay_path = source / ".codex-plugin/plugin.json"
             overlay = json.loads(overlay_path.read_text())
             overlay.update({"skills": "./skills/", "mcpServers": "./.mcp.json"})
@@ -97,7 +109,10 @@ class DistributionBundleTests(unittest.TestCase):
             result = run_checker("--output", str(output), root=source)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertEqual(validate_portable_mcp(output, overlay), [])
+            self.assertEqual({p.parent.name for p in (source / "skills").glob("*/SKILL.md")},
+                             {p.parent.name for p in (output / "skills").glob("*/SKILL.md")})
             for relative in ("mcp/helper.py", "mcp/server.py", "examples/config.json", "assets/banner.svg",
+                             "skills/.shared/references/expert-contract.md",
                              "plugin.json", "mcp.json", ".mcp.json"):
                 self.assertEqual((source / relative).read_bytes(),
                                  (output / relative).read_bytes())

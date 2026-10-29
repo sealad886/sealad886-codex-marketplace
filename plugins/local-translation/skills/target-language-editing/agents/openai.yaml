@@ -1,0 +1,7 @@
+interface:
+  display_name: "Target-Language Editing"
+  short_description: "Improve target coherence within the approved brief"
+  brand_color: "#155E75"
+  default_prompt: "Use $target-language-editing to improve coherence, readability, register and house style while preserving accepted meaning and routing substantive changes for bilingual revision."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

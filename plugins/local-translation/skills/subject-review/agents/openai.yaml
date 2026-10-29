@@ -1,0 +1,7 @@
+interface:
+  display_name: "Subject and Client-Market Review"
+  short_description: "Check domain relationships, product use and audience fit"
+  brand_color: "#155E75"
+  default_prompt: "Use $subject-review to examine the translation for domain meaning, approved product usage and audience suitability, then return evidence-backed feedback for linguistic adjudication."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

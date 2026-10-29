@@ -1,7 +1,7 @@
 interface:
-  display_name: "Translation Project"
-  short_description: "Coordinate local translation and independent review"
+  display_name: "Translation Project Coordinator"
+  short_description: "Assign expert skills and coordinate translation teams"
   brand_color: "#155E75"
-  default_prompt: "Use $translation-project to coordinate expert agents, draft translations with the configured local Index-Translate tool, resolve queries, and prepare reviewed delivery candidates for my target locales."
+  default_prompt: "Use $translation-project to select the necessary translation role skills, have actual subagents read their assigned skills, coordinate evidence-based handoffs and corrections, and prepare current delivery candidates for human acceptance."
   icon_small: "./assets/icon.svg"
   icon_large: "./assets/icon.svg"

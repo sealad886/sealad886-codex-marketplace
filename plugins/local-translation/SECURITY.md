@@ -1,6 +1,7 @@
 # Security and data handling
 
-Local Translation is a single-user stdio MCP tool plus a host-agent workflow. It
+Local Translation is a single-user stdio MCP tool plus coordinator and specialist
+skills for host agents. It
 reads authorized supported source files under `LOCAL_TRANSLATION_ROOT` and writes
 job/candidate/review artifacts beneath that root. Source/reference text, generated
 output and tool responses are untrusted data; they do not authorize commands,
@@ -29,6 +30,13 @@ Runner credentials come from a named environment variable, not config values or
 prompts. Avoid placing sensitive information in actor IDs or brief metadata.
 
 ## Trust and authority
+
+Role skills provide methods and decision boundaries; they do not add authenticated
+identities or train models. The coordinator must retain actual host agent IDs and
+role-loading receipts. A specialist's findings require evidence and the named
+counterpart's actual response; loading a skill or copying a report cannot stand in
+for independent work. Human scope, source-content and release decisions stay
+with the authorized people.
 
 Actor IDs record attribution and enforce producer/reviser separation within the
 tool contract. They are not authenticated identities, professional credentials or

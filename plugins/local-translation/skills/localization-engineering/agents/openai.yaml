@@ -1,0 +1,7 @@
+interface:
+  display_name: "Localization Engineering"
+  short_description: "Prepare complete, reconstructable translation inputs"
+  brand_color: "#155E75"
+  default_prompt: "Use $localization-engineering to inspect my source assets, identify missing content and protected structure, and prepare a verified translation working package."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

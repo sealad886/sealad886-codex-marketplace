@@ -36,7 +36,11 @@ and [security policy](plugins/local-translation/SECURITY.md). Its stdlib MCP run
 supports text and explicit segments through an operator-configured local
 Index-Translate runner. Run
 `python3 -m unittest discover -s tests -p 'test_local_translation.py' -v`
-for behavioral checks. Agent role instructions,
+for behavioral checks. The package has twenty separately discoverable skills:
+one coordinator and nineteen specialists. Shared references and templates live
+under `skills/.shared/`; role-specific methods stay in the owning skill. Keep the
+role directory and packaged discovery count aligned, and verify role loading and
+actual handoffs separately from metadata discovery. Agent role instructions,
 deterministic tool validation, runner qualification, and human acceptance are
 separate evidence; preserve those distinctions when extending the package.
 

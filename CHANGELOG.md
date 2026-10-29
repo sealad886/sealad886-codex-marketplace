@@ -3,6 +3,26 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Local Translation 0.2.0 - 2026-10-29
+
+### Added
+
+- Nineteen specialist skills alongside the Translation Project coordinator,
+  covering every whitepaper function and separate editing, proofreading,
+  media-coordination and conformance work.
+- Explicit installed-skill loading receipts, role-specific methods and expert
+  handoffs for actual subagents, with findings, counterpart replies,
+  adjudication and recheck evidence.
+
+### Changed
+
+- Centralize shared references and templates beneath `skills/.shared/` and route
+  coordinator assignments to named specialist skills. Retain distinct translator
+  and reviser agents and actual human scope, content and release decisions.
+- Discover and package all twenty skills in both clients. Runtime text/segment
+  tools remain shared; role instructions do not add media-processing tools or
+  establish professional qualifications.
+
 ## Local Translation 0.1.0 - 2026-10-28
 
 ### Added

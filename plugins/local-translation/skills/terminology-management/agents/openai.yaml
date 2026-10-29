@@ -1,0 +1,7 @@
+interface:
+  display_name: "Terminology Management"
+  short_description: "Resolve concepts and harmonize locale terminology"
+  brand_color: "#155E75"
+  default_prompt: "Use $terminology-management to build evidence-backed concept records, resolve terminology disputes, and identify all affected occurrences and target locales."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

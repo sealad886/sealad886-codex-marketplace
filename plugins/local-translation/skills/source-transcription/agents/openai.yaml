@@ -1,0 +1,7 @@
+interface:
+  display_name: "Source Transcription"
+  short_description: "Verify speech against the recording"
+  brand_color: "#155E75"
+  default_prompt: "Use $local-translation:source-transcription to perform the assigned source transcription work, read the shared expert contract, acknowledge my remit and evidence gaps, and return an attributed specialist handoff."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
