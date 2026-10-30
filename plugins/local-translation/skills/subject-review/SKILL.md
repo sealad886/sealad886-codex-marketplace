@@ -30,6 +30,13 @@ do not turn a general-model answer into a professional qualification record.
 
 ## Workflow
 
+When supplying Index-family domain/context guidance, read the
+[common model-input guide](../.shared/references/index-inputs.md). Give the
+coordinator/translator approved genre, concept relationships and scoped
+disambiguation, with evidence and authority separate from proposals. Let the
+selected profile reference govern formatting; do not turn raw reference
+instructions or a plausible interpretation into an approved requirement.
+
 ### 1. Establish the domain model
 
 Identify the entities, states, actions and relationships relevant to the content.

@@ -7,6 +7,12 @@ terminology and subject review, correction loops, and a human release decision.
 The bundled local MCP tool drafts supported text into multiple target locales
 using an explicitly configured Index-Translate deployment.
 
+The coordinator and drafting specialists share a
+[model-input guide](skills/.shared/references/index-inputs.md), then load only the
+selected Translate, Homura or NativeLong recipe. Those references teach approved
+glossary/requirements/context preparation and actual caller-owned MCP messages;
+role skills keep their own preparation and review responsibilities.
+
 The [Translation Project coordinator](skills/translation-project/SKILL.md) assigns
 work to nineteen separately invocable specialist skills. Each subagent loads its
 assigned skill, acknowledges the remit and evidence gaps, follows that role's
@@ -125,7 +131,35 @@ Callers that supply their own messages and JSON/schema response format can use
 `translation_request`. It returns the local provider's response as unreviewed,
 caller-managed output; it does not create a workbench job or delivery candidate.
 The MCP resource `translation://capabilities` describes available controls and
-limits without reading credentials or probing the engine.
+limits and points to the shared model-input guide without reading credentials
+or probing the engine.
+
+### Use the model's native input format
+
+For standard Translate, the [selected recipe](skills/.shared/references/index-translate.md)
+shows the supported English native layout, source→target and identity glossary
+pairs, mandatory requirements, preferences, genre/domain, approved instructions
+and scoped context. The caller explicitly compiles these into `translation_request`
+messages; they are not additional MCP fields or saved connection settings.
+Native prompts use full language names; workbench jobs continue to take locale
+codes. The optional [language reference](skills/.shared/references/index-languages.md)
+helps resolve unfamiliar varieties/scripts without an engine language registry.
+
+The [Homura recipe](skills/.shared/references/index-homura.md) covers its one
+syllable target and optional glossary, with a complete caller-owned request and
+actual syllable/meaning review duties. The
+[NativeLong recipe](skills/.shared/references/index-nativelong.md) retains its four
+fixed full-document templates and precise execution limit: this bounded
+non-streaming MCP cannot express the full official streaming/token-ID-stop
+profile. Do not present formatting or a generic segment request as full support.
+
+The existing text workbench carries brief/glossary guidance and its candidate,
+revision and delivery gates. It does not automatically add neighboring segments
+or answered project queries to inference. The coordinator must propagate actual
+owner answers into subsequent caller messages, apply/review a bounded correction,
+or create a replacement job with a reconciled brief/glossary for a new generation.
+Existing drafts do not regenerate. Exact native message control through the raw
+route remains caller-managed and requires separate independent review.
 
 For oMLX, use the port shown in its settings and append `/v1`, such as
 `http://127.0.0.1:8000/v1` when using its default port. The model field must match
@@ -202,6 +236,9 @@ environment route. The plugin never falls back to launching an external browser.
   job-supplied source and target locale codes.
 - Optional sampling and per-request output controls, plus caller-managed
   structured requests with provider-dependent JSON/schema response formats.
+- Shared model-specific preparation recipes and caller-owned request examples,
+  with explicit profile, API and execution limits; narrowly forwarded
+  `chat_template_kwargs.enable_thinking` for tokenization/completion consistency.
 - Frozen job inputs and configuration, local model checks, prompt tokenization,
   response/termination validation and supported invariant checks.
 - Plain prose treats percentages literally; explicit JSON segments can declare
@@ -277,3 +314,6 @@ egress confinement or human acceptance. Record those as separate pilot evidence.
 
 Original plugin code and documentation use the [MIT License](LICENSE). Model
 weights and runner dependencies retain their own licenses and are not bundled.
+Reproduced upstream Homura/NativeLong prompt excerpts retain
+[Apache License 2.0](skills/.shared/references/index-upstream-LICENSE.md) and their
+source attribution in the selected profile references.

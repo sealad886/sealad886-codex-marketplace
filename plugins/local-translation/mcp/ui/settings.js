@@ -18,7 +18,7 @@ const numericFields = ["max_input_chars", "max_prompt_bytes", "max_output_tokens
 // Keep the key in the masked input for this screen’s lifetime.
 // Only the in-flight private tool call receives a transient copy.
 // Never send settings through messages, model context, logs, or persistent UI state.
-const app = new App({ name: "Local Translation settings", version: "0.5.0" }, {}, { autoResize: true, strict: true });
+const app = new App({ name: "Local Translation settings", version: "0.6.0" }, {}, { autoResize: true, strict: true });
 let expectedRevision = null;
 let connected = false;
 let busy = false;

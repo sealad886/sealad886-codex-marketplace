@@ -1,0 +1,15 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Translate this English consumer-device guide into French. Apply all requirements.\n\n[Source]\nOpen Settings. Do not disconnect the device during the battery update. Keep APP_ID available.\n\n[Constraints]\n1. [Hard Constraint] Terminology mapping: Settings -> Paramètres, APP_ID -> APP_ID\n2. [Hard Constraint] Preserve the prohibition against disconnecting the device during the update.\n3. [Note] Genre: consumer-device guide for first-time adult users in France. Prefer concise, direct instructions.\n4. [Note] Approved owner clarification for this passage: battery update means the battery-management firmware update, not charging.\n\nReturn only the French translation."
+    }
+  ],
+  "generation_options": {
+    "temperature": 0,
+    "max_output_tokens": 512
+  },
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  }
+}

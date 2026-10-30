@@ -42,7 +42,30 @@ liaison; do not record your preferred interpretation as the client's answer.
 
 ### 2. Produce the declared draft
 
-For the local-tool route, require a successful health check and an existing frozen
+Before Index-family drafting, **read the
+[common model-input guide](../.shared/references/index-inputs.md), then the selected
+Translate, Homura or NativeLong profile reference linked there**. It supplies the
+native format, MCP examples where supported, decoding recommendations and
+execution/API limits. Load the language table only when the language/variety needs it.
+
+Prepare the caller input from approved glossary concepts, mandatory requirements,
+preferences, translation treatment, genre/domain and scoped owner context.
+Resolve full language names and locale conventions, distinguish identity mappings
+from translated terms, and keep untrusted source/reference passages separate
+from approved guidance. Construct the actual message using the selected recipe;
+do not assume the MCP turns a project handoff into native input. Report a required
+input or model profile that the chosen route cannot support.
+
+Use `translation_request` only for a commissioned caller-managed route. Retain
+its exact submitted messages, effective options and actual response for a
+different reviser; it creates no workbench review/delivery status. Explicitly
+incorporate real owner answers into subsequent compatible messages. Query records
+do not forward themselves, and an existing draft does not regenerate. A bounded
+repair needs current revision; new workbench generation needs a replacement job
+with the reconciled approved brief/glossary. Never claim an earlier prompt used
+a later answer.
+
+For the text-workbench route, require a successful health check and an existing frozen
 job. Call `translation_run` for your assigned locale and observed actor identity
 only in the coordinator's serialized writing slot. Pass commissioned
 `generation_options` when specified; otherwise use the saved defaults. Output
@@ -75,8 +98,11 @@ For each reviser issue, accept and propose a correction, supply evidence for a
 reasoned disagreement, or identify a new requirement/valid alternative. Discuss
 concept disputes with terminology and subject specialists. Escalate source intent
 to the actual owner. Follow the shared correction-round limit rather than debating
-indefinitely. Apply authorized replacements through `translation_apply_revision`
-with the current `expected_target_sha256` in a serialized slot; return the new identity.
+indefinitely. For workbench candidates, apply authorized replacements through
+`translation_apply_revision` with the current `expected_target_sha256` in a
+serialized slot; return the new identity. For caller-managed output, retain the
+actual corrected artifact/response and approved decision record for independent
+recheck; do not fabricate a workbench revision receipt.
 
 ## Outputs and handoff
 
@@ -84,6 +110,8 @@ Use the [expert handoff](../.shared/templates/expert-handoff.md). Return candida
 identity and coverage, self-check results, terminology choices, uncertainties,
 query references and responses to each finding. Give the independent reviser the
 source, brief, candidate and current context revision through permitted channels.
+For caller-managed output, supply the actual submitted prompt, response and
+approved decision identities instead of a nonexistent job/context revision.
 
 ## Completion evidence
 

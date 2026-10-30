@@ -59,6 +59,13 @@ sources describe upstream identities and interfaces:
 - [Official text prompt builder](https://github.com/bilibili/Index-Translate/blob/912e86c8325d6c7c29a6a0b09c5f53482c6602f6/inference/llm/translate.py)
   and [prompt guide](https://github.com/bilibili/Index-Translate/blob/912e86c8325d6c7c29a6a0b09c5f53482c6602f6/docs/prompts.md):
   source/requirements messaging, not a guaranteed structural decoder.
+- The [shared model-input guide](index-inputs.md) routes to standard Translate,
+  Homura and NativeLong recipes with direct primary-source attribution and API
+  limits. Exact reproduced Homura/NativeLong prompt excerpts retain their
+  [upstream Apache License 2.0](index-upstream-LICENSE.md). The optional language
+  reference transcribes the technical report's factual language/variety inventory;
+  neither inventory membership nor a supported prompt format proves deployment
+  quality or constraint adherence.
 - [Index-Translate-9B model card](https://huggingface.co/IndexTeam/Index-Translate-9B):
   declared model scope and inference examples, not acceptance of a user's locale pair.
 - [vLLM OpenAI-compatible serving](https://docs.vllm.ai/en/stable/serving/openai_compatible_server/):

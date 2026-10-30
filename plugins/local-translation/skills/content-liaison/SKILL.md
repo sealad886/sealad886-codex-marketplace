@@ -23,6 +23,11 @@ permission. You can accept a direct query without an existing translation job.
 - Actual content or creative owner, query channel and decision deadline.
 - For audiovisual queries, the exact cut, audio version and observable scene.
 
+Before preparing context for Index-family drafting, **read the
+[common model-input guide](../.shared/references/index-inputs.md), then its selected
+profile reference**. The shared recipe determines how approved clarifications
+can reach that model; a query log is not an automatically injected context field.
+
 ## Workflow
 
 1. Reconstruct the issue at its source. Read the full relevant passage, table or
@@ -45,6 +50,14 @@ permission. You can accept a direct query without an existing translation job.
    Ask the terminologist to update concept guidance and identify every dependent
    occurrence with translators and engineering. Return meaning-changing target
    edits to bilingual revision using current candidate and context identities.
+7. Give the coordinator and translator the scoped approved interpretation and
+   its authority, distinguishing mandatory requirements, preferences and background
+   from proposed answers or raw reference quotations. Require explicit inclusion
+   in the next compatible native message and obtain actual input evidence.
+   Escalate a profile that cannot represent a mandatory clarification. Existing
+   drafts do not regenerate: route bounded corrections for current revision, or
+   reconcile the answer into a replacement workbench job's brief/glossary before
+   new generation. Do not claim an earlier prompt contained a later answer.
 
 For "charge", distinguish an electrical state, a fee and an accusation using the
 source context. Present the evidence and consequential choice; do not choose a

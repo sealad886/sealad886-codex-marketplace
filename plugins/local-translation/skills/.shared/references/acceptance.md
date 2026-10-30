@@ -22,6 +22,14 @@ Severity follows consequence: a reversed prohibition or destructive-action error
 blocks release; a minor style preference is not automatically an error. Distinguish
 source defects, target defects, acceptable alternatives and new requirements.
 
+For Index-family work, use the [common input guide](index-inputs.md) and selected
+profile to inspect actual submitted guidance and owner-answer timing. Check
+semantic compliance with approved terminology, mandatory requirements and
+justified preference tradeoffs. Homura requires actual syllable/meaning checks;
+separately executed NativeLong work requires whole-document coverage and
+termination evidence. A requested condition or well-formed prompt proves neither
+execution nor adherence.
+
 The independent bilingual reviser needs source, target, brief, resources and prior
 decisions. A different agent provides a separate AI pass, but may share a model's
 systematic errors. Record this limitation. A qualified human's review and any

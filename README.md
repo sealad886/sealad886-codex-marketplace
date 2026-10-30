@@ -105,11 +105,12 @@ including translator, independent bilingual reviser, terminologist, editor,
 proofreader, quality lead and media specialists. Each subagent loads its role's
 working method and exchanges attributed findings and replies. Eleven model-facing
 MCP tools support coordinated translation jobs and caller-controlled inference
-requests, with optional sampling and output constraints. Session job files stay
+requests, with optional sampling/output controls. Shared model-family references
+guide the roles in preparing native inputs through progressive disclosure. Session job files stay
 temporary, and reviewed workbench candidates return to the caller. Native plugin settings open a bundled
 configuration modal for connecting an existing Index-Translate runner.
 
-**Version:** `0.5.0` · [Role directory and setup](plugins/local-translation/README.md)
+**Version:** `0.6.0` · [Role directory and setup](plugins/local-translation/README.md)
 
 ## Install
 

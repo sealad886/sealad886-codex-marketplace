@@ -1,0 +1,15 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "请将以下文本翻译为法语，译文严格控制在 6 个音节。要求：严格遵守术语映射表【moon -> lune】。直接输出翻译结果，不要进行任何解释。\n\nThe moon lights our way."
+    }
+  ],
+  "generation_options": {
+    "temperature": 0.3,
+    "max_output_tokens": 512
+  },
+  "chat_template_kwargs": {
+    "enable_thinking": false
+  }
+}

@@ -1,5 +1,12 @@
 # Translation project brief
 
+For Index-family work, record the selected profile/route; approved mandatory
+requirements, preferences, translation treatment, genre/domain and contextual
+background; term-concept scope; and actual owner clarifications with attribution.
+Keep proposals and raw reference passages separate. Follow the
+[common model-input guide](../references/index-inputs.md) and selected profile
+recipe; these records are not extra MCP or engine-configuration fields.
+
 - Project identifier and owner:
 - Purpose, audience, domain, consequence of error:
 - Source files, source locale, approved revision/digest and completeness inventory:

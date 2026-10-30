@@ -25,6 +25,10 @@ replace a bilingual reviser merely because you maintain the terminology policy.
 
 Obtain complete relevant context; a list of isolated source words cannot establish
 which concepts a project uses. Note which language/domain judgments remain unqualified.
+Before preparing terminology for Index-family drafting, **read the
+[common model-input guide](../.shared/references/index-inputs.md), then its selected
+profile reference**. That shared recipe owns term-pair serialization, identity
+mapping and model-specific limits; do not substitute a different role-local format.
 
 ## Workflow
 
@@ -48,6 +52,14 @@ Ask locale translators to test expression, inflection, register and audience fit
 Compare candidate forms against approved organization/product usage. Inspect
 negative examples and contexts where a proposed term must not be used. Resolve
 conflicting references according to the agreed precedence, not a majority vote.
+
+Deliver approved source→target pairs for each target locale with concept,
+occurrence scope, status and exceptions. Separate protected literal names from
+translated terms and approved domain disambiguation from unresolved proposals.
+Confirm with the translator how the selected profile can represent these inputs;
+escalate incompatible required guidance rather than silently dropping it. Inspect
+the actual submitted prompt and target use. A transmitted glossary or substring
+match does not prove the right concept, inflection or meaning.
 
 For example, “charge” as an electrical quantity and “charge” as a fee need separate
 concept records; replacing every occurrence with one approved spelling is unsafe.

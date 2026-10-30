@@ -29,6 +29,17 @@ A fresh actor label inside the same authoring agent does not create independence
 
 ## Workflow
 
+For Index-family work, read the
+[common model-input guide](../.shared/references/index-inputs.md) and selected
+profile reference before assessing model-input compliance. Inspect the actual
+submitted messages or workbench inputs, approved terminology/requirements and
+owner-answer timing. Check meaning and actual constraint adherence rather than
+assuming a requested condition was applied. A later answer cannot change an
+earlier prompt, and caller-managed output has no workbench approval status.
+For that route, inspect the actual source, submitted prompt, response and approved
+decision identities in place of a workbench job/context revision; retain an
+attributed independent report without inventing a runtime receipt.
+
 ### 1. Establish reviewable identity and coverage
 
 Confirm that the provided source, candidate and references are the versions named
@@ -65,7 +76,7 @@ that the issue is fixed. If a correction or shared answer changed the candidate
 or context, reacquire the actual current review materials and repeat affected
 checks. Preserve the old evidence as historical; do not transplant its verdict.
 
-When authorized to record the runtime review in a serialized writing slot, use
+For an existing workbench job, when authorized to record the runtime review in a serialized writing slot, use
 `translation_review` with `target_sha256` set to the current target digest, the observed reviser identity,
 and `expected_context_revision` equal to the revision actually inspected. Use
 `changes_requested` or `blocked` when justified; approve only completed assigned

@@ -1,6 +1,6 @@
 {
   "name": "local-translation",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Coordinate a translation team with separate expert role skills, local Index-Translate drafting, and evidence-bound revision and delivery across target locales.",
   "author": {
     "name": "Andrew Cox",
@@ -21,7 +21,7 @@
   "interface": {
     "displayName": "Local Translation",
     "shortDescription": "Expert teams, local drafts",
-    "longDescription": "Coordinate a translation project through twenty separately invocable skills: a project coordinator and nineteen specialists covering intake, resources, source preparation, translation, terminology, independent bilingual revision, editing, proofreading, quality, media workflows and release preparation. The coordinator gives each real subagent its installed role skill and shared handoff protocol, records agent identities, and routes findings, replies and adjudication. Eleven model-facing tools support coordinated translation jobs and caller-controlled inference requests, including caller-defined JSON/schema output constraints. A capabilities resource describes supported controls and limits. Job files stay temporary for the session. Native plugin settings open an in-app configuration modal that queries available models from an endpoint and optional key. Advanced sampling controls are optional; app-only operations keep credentials outside model turns. Model weights, media tools and human acceptance remain separate prerequisites; host agents may use cloud models.",
+    "longDescription": "Coordinate a translation project through twenty separately invocable skills: a project coordinator and nineteen specialists covering intake, resources, source preparation, translation, terminology, independent bilingual revision, editing, proofreading, quality, media workflows and release preparation. The coordinator gives each real subagent its installed role skill and shared handoff protocol, records agent identities, and routes findings, replies and adjudication. Eleven model-facing tools support coordinated translation jobs and caller-controlled inference requests. Role skills use centrally maintained Index-Translate references for model-native glossary, constraints, context and specialized profile recipes, with explicit execution limits. Caller-defined JSON/schema output constraints remain available. A capabilities resource describes supported controls and limits. Job files stay temporary for the session. Native plugin settings open an in-app configuration modal that queries available models from an endpoint and optional key. Advanced sampling controls are optional; app-only operations keep credentials outside model turns. Model weights, media tools and human acceptance remain separate prerequisites; host agents may use cloud models.",
     "developerName": "Andrew Cox",
     "category": "Productivity",
     "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/local-translation",

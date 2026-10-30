@@ -15,6 +15,9 @@ your role-loading receipt, then use that skill's procedure for the owned scope.
 - Actual host agent ID after creation; assigned actor ID:
 - Job or pre-job scope; source locale; target locale:
 - Source/reference identities, approved brief and terminology, prior decisions:
+- For Index-family preparation/drafting: common-guide and selected-profile paths;
+  approved requirements/context with owner attribution; actual submitted-input
+  evidence and any requirement the chosen route cannot express:
 - Candidate/output identity and current target digest/context revision, if any:
 - Exact owned segments/artifacts, full or sampled coverage and exclusions:
 - Role-specific deliverable and intended recipient:

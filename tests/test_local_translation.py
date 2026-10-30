@@ -498,9 +498,59 @@ class TranslationTests(unittest.TestCase):
                                       ([{"role": "user", "content": "Hello"}], {"base_url": "http://other"})):
                 with self.subTest(messages=messages, options=options), self.assertRaises(runtime.TranslationError):
                     workbench.request(messages, options)
+            self.assertEqual(state["requests"], [])
             with self.assertRaisesRegex(runtime.TranslationError, "byte budget"):
                 workbench.request([{"role": "user", "content": "x" * 33000}])
             self.assertFalse(any(path == "/v1/chat/completions" for path, _ in state["requests"]))
+
+    def test_caller_template_flag_reaches_identical_tokenizer_and_completion_payloads(self):
+        # Native Index recipes require the same chat-template flag at preflight
+        # and generation; callers retain control over their message formatting.
+        with runner() as state:
+            workbench = self.workbench(state)
+            messages = [{"role": "user", "content": "Caller-owned native translation prompt."}]
+            for enabled in (False, True):
+                with self.subTest(enable_thinking=enabled):
+                    reply = workbench.request(messages, {"max_output_tokens": 64},
+                                              chat_template_kwargs={"enable_thinking": enabled})
+                    tokenizer, completion = state["requests"][-2][1], state["requests"][-1][1]
+                    self.assertEqual(tokenizer["chat_template_kwargs"], {"enable_thinking": enabled})
+                    self.assertEqual(completion["chat_template_kwargs"], tokenizer["chat_template_kwargs"])
+                    self.assertEqual(completion["messages"], messages)
+                    self.assertTrue(reply["unreviewed"])
+                    self.assertTrue(reply["caller_managed"])
+            self.assertIsNone(runtime._session_directory)
+
+    def test_caller_template_flags_reject_unknown_fields_and_nonbooleans_before_network(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            for flags in ([], "false", {"enable_thinking": "false"}, {"enable_thinking": 0},
+                          {"enable_thinking": None}, {"other_template_setting": False}):
+                with self.subTest(flags=flags), self.assertRaises(runtime.TranslationError):
+                    workbench.request([{"role": "user", "content": "Hello"}],
+                                      chat_template_kwargs=flags)
+            self.assertEqual(state["requests"], [])
+
+    def test_documented_native_request_examples_use_the_public_request_contract(self):
+        # Keep executable shared-guide examples aligned with the existing raw
+        # transport; no native formatter or translation job is implied.
+        with runner() as state:
+            self.workbench(state)
+            for filename in ("index-translate-request.json", "index-homura-request.json"):
+                with self.subTest(example=filename), mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_CONFIG": str(self.config)}):
+                    arguments = json.loads((SERVER.parent.parent / "examples" / filename).read_text())
+                    result = runtime.dispatch({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                        "params": {"name": "translation_request", "arguments": arguments}})["result"]
+                    self.assertFalse(result["isError"])
+                    reply = json.loads(result["content"][0]["text"])
+                    self.assertTrue(reply["caller_managed"])
+                    self.assertTrue(reply["unreviewed"])
+                    tokenizer, completion = state["requests"][-2][1], state["requests"][-1][1]
+                    self.assertEqual(completion["messages"], arguments["messages"])
+                    self.assertEqual(tokenizer["messages"], completion["messages"])
+                    self.assertEqual(completion["chat_template_kwargs"], arguments["chat_template_kwargs"])
+                    self.assertEqual(tokenizer["chat_template_kwargs"], completion["chat_template_kwargs"])
+            self.assertIsNone(runtime._session_directory)
 
     def test_configured_total_budget_allows_a_longer_multisegment_locale(self):
         with runner() as state:
