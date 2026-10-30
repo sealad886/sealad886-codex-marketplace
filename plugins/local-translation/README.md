@@ -53,43 +53,60 @@ for all twenty entry points and their evidence requirements.
 2. Supply Python 3.11+ and an already running local oMLX or vLLM-compatible
    Index-Translate runner with model listing, chat completions and chat tokenization. Installation
    does not download weights or start inference.
-3. Ask **“Open Local Translation settings.”** The `translation_open_settings`
-   tool opens a local browser form. Enter an existing workspace folder, engine
-   URL, exact model alias, verified artifact revision, runner version and locale
-   registry, then choose **Test and save**. Optional authentication goes directly
-   into that form, never into chat. No MCP settings editor, terminal environment
-   variables or app restart is required. See the
+3. Open the plugin's settings and choose **Configure local inference**. Codex
+   opens the bundled configuration form as a modal inside the app. Enter the
+   engine URL, exact model alias, verified artifact revision, runner version and
+   locale registry, then choose **Test and save**. Optional authentication goes
+   directly into the masked key field, never into chat. No translation workspace,
+   MCP settings editor, terminal environment variables or app restart is required.
+   The coordinator can also open the form inside a compatible MCP App host when
+   you ask **“Open Local Translation settings.”** See the
    [runtime guide](skills/.shared/references/runtime.md) for fields and limits.
-4. Invoke the skill with your source file, exact target locales, audience, approved
-   resources and acceptance owner. Run a representative pilot before a large batch.
+4. Give the calling agent your approved source content, exact target locales,
+   audience, resources and acceptance owner. The agent supplies plain text or
+   explicit segments through MCP. Run a representative pilot before a large batch.
 
 Example request:
 
-> Use Translation Project to translate the approved UTF-8 guide in my configured
-> workspace from en-US into fr-FR and de-DE. Use the approved UI terminology,
-> assign a translator and a separate bilingual reviser for each locale, resolve
-> shared questions through me, and prepare delivery candidates for my review.
+> Use Translation Project to translate this approved guide from en-US into
+> fr-FR and de-DE. Use the approved UI terminology, assign a translator and a
+> separate bilingual reviser for each locale, resolve shared questions through
+> me, and return delivery candidates for my review.
 
-The tool stores job artifacts beneath the configured workspace. Default status
-omits source/target bodies and free-text review context. `include_segments=true`
-returns segments, brief, glossary, questions/answers and review/revision notes to
-the caller/host. Local
-inference and host-agent privacy are separate: remote agents cannot fully review
-source/target content without receiving it. Agree that data flow first.
+The calling agent supplies `source_text` or `segments` to `translation_create_job`;
+the tool does not read a caller-selected source path. It keeps frozen inputs,
+candidates and review records in a private temporary directory for the MCP
+process. Calls within that session share job state. Normal process exit removes
+it; restarting the server invalidates the job IDs. A crash or forced termination
+may leave files in the operating system's temporary storage.
 
-Status also checks whether inputs and candidate files still match the job. If it
-discovers a change, it retires the workbench's ready-delivery marker and reports
-the affected identities; source and candidate files remain untouched.
+Draft, revision and prepared-delivery responses include the actual UTF-8 content,
+segments and digests through MCP. The calling agent decides where to retain the
+returned results and evidence under the user's instructions. Temporary paths are
+not a delivery interface. See
+[session lifetime and migration](skills/.shared/references/runtime.md#temporary-session-lifecycle)
+before upgrading or retaining results.
+
+Default status omits source/target bodies and free-text review context.
+`include_segments=true` returns segments, brief, glossary, questions/answers and
+review/revision notes to the caller/host. Local inference and host-agent privacy
+are separate: remote agents cannot fully review source/target content without
+receiving it. Agree that data flow first.
+
+Status checks the frozen temporary source snapshot, configuration and candidate
+identities. Drift retires the workbench's ready-delivery marker. The calling
+agent must create a replacement job when its original source changes; the MCP
+server does not monitor the caller's files.
 
 ### Settings and connection checks
 
 The plugin's MCP process connects Codex or Copilot to the translation tools. The
-settings page configures the tools' separate HTTP connection to your inference
+in-app form configures the tools' separate HTTP connection to your inference
 engine. A discovered MCP tool does not establish a working engine connection.
 
 **Test and save** checks the exact served model and the required chat-tokenization
 endpoint using synthetic text. It creates no translation job and sends none of
-your source files. A failed test preserves previous settings. Successful setup
+your source content. A failed test preserves previous settings. Successful setup
 does not establish translation quality; run a representative pilot afterward.
 
 For oMLX, use the port shown in its settings and append `/v1`, such as
@@ -103,15 +120,25 @@ Settings persist in `~/.config/local-translation/settings.json`, or under
 `$XDG_CONFIG_HOME/local-translation/` when that environment variable is supplied.
 The directory is private and the settings file is owner-readable/writable on
 POSIX systems. An optional runner key is stored in that local file, without
-encryption; it is never returned by the settings tools or prefilled in the page.
+encryption. In a supported MCP Apps host, the app-only save operation sends it
+directly to the local server. The host must enforce app-only tool visibility and
+call the server without creating a model turn; this is verified for Codex desktop
+0.166.0-alpha.5.1. Keys are omitted from responses and form prefills, and the form
+sends no state into model context or a message. Other hosts need the same
+app-only enforcement before using this form for credentials.
 Settings survive plugin updates and apply on the next tool call. Keep this
 directory outside a shared or version-controlled workspace.
 
 `translation_settings` reports the active configuration source and redacted
-settings. Existing explicit `LOCAL_TRANSLATION_ROOT` / `LOCAL_TRANSLATION_CONFIG`
-launch-environment settings take precedence as a complete pair. The settings
-page reports that override rather than silently changing another configuration.
-Most desktop users can use the saved-settings flow without either variable.
+engine settings. An explicit `LOCAL_TRANSLATION_CONFIG` launch-environment value
+can point to an engine deployment JSON and takes precedence over saved settings.
+The settings form reports that override rather than changing an inactive file.
+Most desktop users need no launch-environment variables. For previous
+workspace-based settings, the form offers **Back up and upgrade saved settings**.
+That explicit action retains a private byte-for-byte backup before replacement.
+The same migration is available through the packaged
+[settings migration](skills/.shared/references/runtime.md#migrate-previous-settings)
+before this version can use them.
 
 ### Local client commands
 
@@ -134,13 +161,20 @@ profile/home for an isolated check. If the marketplace is already registered,
 inspect its source before adding another registration. For a temporary Copilot
 session with the source package, the CLI also supports
 `copilot --plugin-dir "$PWD/plugins/local-translation"`. Open the plugin settings
-from the chat after installation and verify ten discovered translation tools and the
+after installation and verify ten model-facing translation tools and the
 twenty skills. Installation alone does not verify live inference or
 multi-agent execution. Consult your installed client's help if its commands differ.
 
+The native settings modal requires a host with MCP Apps and the `openai/settings`
+extension. Its four app-only settings operations are hidden from the model's
+tool catalog. Codex desktop provides this surface. A CLI that cannot render MCP
+Apps can still use saved engine settings or the explicit deployment-file
+environment route. The plugin never falls back to launching an external browser.
+
 ## Implemented scope
 
-- UTF-8 plain text and explicit JSON text segments; multiple configured locales.
+- Inline UTF-8 plain text or explicit text segments through MCP; multiple
+  configured locales.
 - Frozen job inputs and configuration, local model checks, prompt tokenization,
   response/termination validation and supported invariant checks.
 - Plain prose treats percentages literally; explicit JSON segments can declare
@@ -168,8 +202,9 @@ track, accessibility, conformance and playback work is actually performed.
 A distinct reviser agent provides a separate AI pass, not qualified human revision
 or ISO conformity. Structural checks and successful inference do not establish
 meaning, completeness of every idea, product accuracy or publication quality.
-`translation_prepare_delivery` prepares a candidate manifest. The actual human
-release owner must accept identified files; this package does not publish them.
+`translation_prepare_delivery` returns a candidate manifest and each locale's
+content through MCP. The actual human release owner must accept the identified
+content or caller-retained files; this package does not publish them.
 
 Read [acceptance evidence](skills/.shared/references/acceptance.md),
 [format boundaries](skills/.shared/references/formats.md),
@@ -178,8 +213,10 @@ Read [acceptance evidence](skills/.shared/references/acceptance.md),
 ## Contributing and verification
 
 Keep runtime/tool schemas, all role skills, shared protocols, examples, both MCP declarations and both
-plugin manifests aligned. Preserve source originals, current-digest review gates,
-visible partial failure, local endpoint restrictions and human decision rights.
+plugin manifests aligned. Preserve caller originals, immutable inline inputs,
+temporary-session cleanup, returned-content identities, current-digest review
+gates, visible partial failure, local endpoint restrictions and human decision
+rights.
 Do not add another format or runner by flattening unsupported input or bypassing
 tokenization. Define the parser/runner contract and meaningful failure tests first.
 

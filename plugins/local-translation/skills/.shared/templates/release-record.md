@@ -2,7 +2,7 @@
 
 - Current job and superseded predecessors:
 - Approved source and reference digests:
-- Requested locales and exact final files/digests:
+- Requested locales and exact returned content or caller-retained files/digests:
 - Candidate manifest identity:
 - Translator/self-check coverage per locale:
 - Independent AI revision actor, scope and current digest:
@@ -16,7 +16,7 @@
 
 - Actual authorized human and date:
 - Accepted/rejected/deferred:
-- Exact accepted files/digests and any bounded exception:
+- Exact accepted content or files/digests and any bounded exception:
 - Authorized delivery destination/action, if any:
 - Correction contact/procedure and retained working assets:
 

@@ -2,8 +2,11 @@
 
 ## Implemented document path
 
-The installed tool reads UTF-8 plain text or explicit JSON text segments from the
-configured workspace. Stable segment identifiers preserve source-target linkage.
+The installed tool receives UTF-8 plain text through `source_text` or an explicit
+`segments` array through MCP. It keeps only temporary session artifacts and
+returns translated content through MCP. The calling agent handles any authorized
+source-file reading and result retention. Stable segment identifiers preserve
+source-target linkage.
 The tool does not parse, reconstruct, render or validate arbitrary Markdown,
 HTML, PDF, DOCX, slide decks, Android XML, Apple string catalogs or ICU messages.
 Placeholders/number checks cover defined patterns; they are structural heuristics,

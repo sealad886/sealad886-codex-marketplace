@@ -43,8 +43,11 @@ structure cases and human correction effort before a production claim.
 
 ## Delivery gates
 
-`translation_prepare_delivery` checks implemented runtime conditions and emits a
-candidate manifest. The PM additionally verifies that all commissioned specialist
+`translation_prepare_delivery` checks implemented runtime conditions and returns
+a candidate manifest plus each locale's exact UTF-8 content, segments and digest
+through MCP. Temporary paths are not deliverables. The calling agent handles
+any authorized result/evidence retention before the session ends. The PM
+additionally verifies that all commissioned specialist
 work occurred, unresolved material queries are closed by the right owners, and
 all evidence names the current files and digests. The actual human release owner
 then accepts, rejects, or grants a documented bounded exception. An actor ID,

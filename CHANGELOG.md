@@ -3,6 +3,36 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Local Translation 0.4.0 - 2026-10-30
+
+### Added
+
+- Native plugin settings with a **Configure local inference** action that opens
+  the bundled MCP App as an in-app modal. Configuration no longer launches a
+  system browser or a local setup website.
+- Masked credential entry through app-only settings operations, outside model
+  turns and conversation content, with explicit keep/replace/clear controls.
+- An explicit in-app upgrade action that backs up retired workspace settings
+  before converting them to engine-only settings.
+
+### Changed
+
+- Accept source prose or explicit text segments directly through MCP. Return
+  draft, revision and reviewed delivery content to the calling agent, including
+  segments and exact digests, so the caller decides where to retain results.
+- Keep job files in private temporary storage for the MCP session. Jobs survive
+  successive calls and are removed on normal server exit; restarting the server
+  invalidates job IDs. Abrupt termination may leave files in the OS temp area.
+- Configure only the local inference engine. Remove the translation workspace,
+  source-path input and `LOCAL_TRANSLATION_ROOT` environment setting.
+
+### Migration
+
+- This is a breaking pre-1.0 tool and settings change. Callers must pass inline
+  source content. Convert old saved settings explicitly with the packaged
+  migration script, which preserves an owner-only backup before replacement.
+  Historical workspace job files are left untouched.
+
 ## Local Translation 0.3.0 - 2026-10-29
 
 ### Added

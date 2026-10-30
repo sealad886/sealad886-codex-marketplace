@@ -41,7 +41,10 @@ handoff. You can assess supplied files directly and report absent job evidence.
    cannot substitute for evidence about changed production output.
 5. Through the coordinator's serialized mutation route, call
    `translation_prepare_delivery` only when runtime gates pass. Read its returned
-   manifest and current status; it is a candidate with human acceptance separate.
+   manifest, returned locale content/segments/digests and current status. Verify
+   the returned content identities and give them to the calling agent for any
+   authorized retention before the MCP session ends. Temporary server paths are
+   not delivery locations. Human acceptance remains separate.
    If the runtime cannot represent the commissioned product, report that gap and
    require the appropriate external production evidence rather than fabricating it.
 6. Present the exact candidate and a concise acceptance brief to the actual human

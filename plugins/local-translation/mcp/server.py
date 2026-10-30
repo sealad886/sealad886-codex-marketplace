@@ -26,7 +26,7 @@ from urllib.parse import urlsplit
 import uuid
 
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 PROTOCOL = "2025-06-18"
 MAX_FRAME = 1024 * 1024
 MAX_FILE = 256 * 1024
@@ -204,45 +204,57 @@ def invariants(source, target, protected, text_format="plain"):
             fail("Candidate changed an explicitly protected span")
 
 
+_session_directory = None
+
+
+def session_store():
+    """Private temporary artifacts shared only by this MCP process."""
+    global _session_directory
+    if _session_directory is None:
+        _session_directory = tempfile.TemporaryDirectory(prefix="local-translation-")
+    store = Path(_session_directory.name) / "jobs"
+    store.mkdir(mode=0o700, exist_ok=True)
+    return store
+
+
+def close_session():
+    """Remove this process's temporary artifacts on normal shutdown."""
+    global _session_directory
+    if _session_directory is not None:
+        _session_directory.cleanup()
+        _session_directory = None
+
+
 class Workbench:
-    def __init__(self, root=None, config_path=None, *, deployment=None, api_key=None):
+    def __init__(self, config_path=None, *, deployment=None, api_key=None):
         self.configuration_source = "explicit"
         self.config_path = None
         self._api_key = api_key
         if deployment is not None:
-            if root is None or config_path is not None:
-                fail("Deployment verification requires a workspace folder and deployment settings")
+            if config_path is not None:
+                fail("Choose a deployment file or explicit deployment settings")
             self.configuration_source = "verification"
         else:
-            if root is None and config_path is None:
-                if "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ:
-                    root = os.environ.get("LOCAL_TRANSLATION_ROOT")
-                    config_path = os.environ.get("LOCAL_TRANSLATION_CONFIG")
+            if config_path is None:
+                if "LOCAL_TRANSLATION_CONFIG" in os.environ:
+                    config_path = os.environ["LOCAL_TRANSLATION_CONFIG"]
                     self.configuration_source = "environment"
                 else:
                     saved = settings.load_settings()
                     if saved is None:
-                        fail("Local Translation is not configured. Call translation_open_settings to choose your workspace and inference engine")
-                    root, deployment = saved["root"], saved["deployment"]
+                        fail("Local Translation is not configured. Call translation_open_settings to configure the inference engine")
+                    deployment = saved["deployment"]
                     self._api_key = saved.get("api_key")
                     if "api_key_env" in deployment:
                         fail("Saved settings cannot also select an environment credential")
                     self.config_path = settings.settings_path()
                     self.configuration_source = "saved_settings"
             if deployment is None:
-                if not root or not config_path:
-                    fail("An environment or explicit override requires both LOCAL_TRANSLATION_ROOT and LOCAL_TRANSLATION_CONFIG; remove the override to use saved settings")
                 try:
                     self.config_path = Path(config_path).expanduser().resolve(strict=True)
                 except (OSError, TypeError, ValueError):
                     fail("Cannot read the configured deployment file")
                 deployment = load_json(read_bytes(self.config_path))
-        try:
-            self.root = Path(root).expanduser().resolve(strict=True)
-        except (OSError, TypeError, ValueError):
-            fail("Translation root must be an existing directory")
-        if not self.root.is_dir():
-            fail("Translation root must be an existing directory")
         self.config = validate_config(deployment)
         if self._api_key is not None:
             if (not isinstance(self._api_key, str) or not self._api_key or len(self._api_key) > 4096
@@ -252,20 +264,10 @@ class Workbench:
                 fail("Choose one runner credential source")
         self.config_sha256 = digest(self.config)
         self.opener = request.build_opener(request.ProxyHandler({}), NoRedirect())
-        self.store = self.root / ".local-translation" / "jobs"
 
-    def safe_path(self, relative):
-        if not isinstance(relative, str) or Path(relative).is_absolute():
-            fail("Source path must be relative to the configured root")
-        candidate = self.root / relative
-        try:
-            resolved = candidate.resolve(strict=True)
-            resolved.relative_to(self.root)
-        except (ValueError, OSError):
-            fail("Source path escapes the configured root or does not exist")
-        if not resolved.is_file() or self.root / ".local-translation" in resolved.parents:
-            fail("Source must be a regular input file outside workbench state")
-        return resolved
+    @property
+    def store(self):
+        return session_store()
 
     def jobdir(self, job_id):
         if not isinstance(job_id, str) or not re.fullmatch(r"[0-9a-f]{32}", job_id):
@@ -273,7 +275,7 @@ class Workbench:
         directory = self.store / job_id
         if directory.is_symlink() or not directory.is_dir():
             fail("Unknown job")
-        for path in (self.root / ".local-translation", self.store):
+        for path in (self.store.parent, self.store):
             if path.is_symlink():
                 fail("Workbench state directories cannot be symlinks")
         return directory
@@ -384,31 +386,31 @@ class Workbench:
                 "locales": self.config["locales"], "privacy": "Only numeric-loopback runner access is enforced. Runner internals and host agent processing need separate verification.",
                 "qualification": "Configured provenance is operator-supplied; no linguistic or hardware qualification is implied."}
 
-    def create_job(self, source_path, source_locale, target_locales, brief, glossary=None):
-        source = self.safe_path(source_path)
-        raw = read_bytes(source)
+    def create_job(self, source_locale, target_locales, brief, source_text=None, segments=None, glossary=None):
+        if (source_text is None) == (segments is None):
+            fail("Supply exactly one of source_text or segments")
         try:
-            content = raw.decode("utf-8")
-        except UnicodeError:
-            fail("Source must be UTF-8")
-        if source.suffix == ".txt":
-            text(content, "source", 64000)
-            segments, skeleton = [], []
-            for part in re.split(r"(\r?\n[ \t]*\r?\n)", content):
-                if not part.strip():
-                    skeleton.append(part)
-                else:
-                    sid = f"s{len(segments) + 1:04d}"
-                    segments.append({"id": sid, "text": part, "protected": [], "format": "plain"})
-                    skeleton.append({"id": sid})
-            output_format = "txt"
-        elif source.suffix == ".json":
-            data = load_json(raw)
-            object_fields(data, {"segments"})
-            segments = data["segments"]
-            skeleton, output_format = None, "json"
-        else:
-            fail("Supported sources are .txt prose and .json explicit segment documents")
+            if source_text is not None:
+                text(source_text, "source", 64000)
+                raw = source_text.encode("utf-8")
+                content = source_text
+                segments, skeleton = [], []
+                for part in re.split(r"(\r?\n[ \t]*\r?\n)", content):
+                    if not part.strip():
+                        skeleton.append(part)
+                    else:
+                        sid = f"s{len(segments) + 1:04d}"
+                        segments.append({"id": sid, "text": part, "protected": [], "format": "plain"})
+                        skeleton.append({"id": sid})
+                output_format = "txt"
+            else:
+                raw = encoded({"segments": segments})
+                segments = load_json(raw)["segments"]
+                skeleton, output_format = None, "json"
+        except (UnicodeError, TypeError, ValueError):
+            fail("Source must contain valid UTF-8 text or explicit segments")
+        if len(raw) > MAX_FILE:
+            fail("Source exceeds the size limit")
         if not isinstance(segments, list) or not 1 <= len(segments) <= MAX_SEGMENTS:
             fail("Source must contain between 1 and 32 segments")
         ids = set()
@@ -446,20 +448,24 @@ class Workbench:
             for term, target in terms.items():
                 text(term, "glossary source", 200)
                 text(target, "glossary target", 200)
-        for path in (self.root / ".local-translation", self.store):
+        for path in (self.store.parent, self.store):
             if path.is_symlink():
                 fail("Workbench state directories cannot be symlinks")
             path.mkdir(mode=0o700, exist_ok=True)
         job_id = uuid.uuid4().hex
         directory = self.store / job_id
         directory.mkdir(mode=0o700)
-        job = {"id": job_id, "source_path": str(source.relative_to(self.root)), "source_sha256": digest(raw),
+        job = {"id": job_id, "source_sha256": digest(raw),
                "source_locale": source_locale, "target_locales": target_locales, "brief": brief,
                "glossary": glossary, "glossary_sha256": digest(glossary), "config_sha256": self.config_sha256,
                "model": self.config["model"], "artifact_revision": self.config["artifact_revision"],
                "runner_version": self.config["runner_version"], "prompt_profile": PROMPT_PROFILE,
                "segments": segments, "skeleton": skeleton, "format": output_format,
                "targets": {}, "queries": [], "context_revision": 0, "delivery": None}
+        source_snapshot = directory / ("source." + output_format)
+        with source_snapshot.open("xb") as stream:
+            os.chmod(source_snapshot, 0o600)
+            stream.write(raw)
         write_json(directory / "job.json", job)
         return self.status(job_id)
 
@@ -474,7 +480,8 @@ class Workbench:
 
     def input_currency(self, job):
         try:
-            source_current = digest(read_bytes(self.safe_path(job["source_path"]))) == job["source_sha256"]
+            snapshot = self.jobdir(job["id"]) / ("source." + job["format"])
+            source_current = not snapshot.is_symlink() and digest(read_bytes(snapshot)) == job["source_sha256"]
         except TranslationError:
             source_current = False
         return source_current, self.config_sha256 == job["config_sha256"]
@@ -613,6 +620,8 @@ class Workbench:
                 self.invalidate_delivery(job, "Translation failed")
             result = {"job_id": job_id, "target_locale": target_locale,
                       "context_revision": job["context_revision"], **target}
+            if target["state"] == "draft":
+                result.update(format=job["format"], content=self.candidate_content(job, target))
         return result
 
     def apply_revision(self, job_id, target_locale, actor_id, expected_target_sha256, replacements, notes):
@@ -632,6 +641,8 @@ class Workbench:
             self.save_candidate(job, target_locale, target)
             result = {"job_id": job_id, "target_locale": target_locale,
                       "context_revision": job["context_revision"], **target}
+            if target["state"] == "draft":
+                result.update(format=job["format"], content=self.candidate_content(job, target))
         return result
 
     def candidate(self, job, locale, expected):
@@ -645,12 +656,25 @@ class Workbench:
             fail("Candidate digest is stale")
         return target
 
+    def candidate_content(self, job, target):
+        """Return the exact verified candidate bytes as UTF-8 over MCP."""
+        path = self.jobdir(job["id"]) / target["artifact"]
+        if path.is_symlink():
+            fail("Candidate artifact changed outside the workbench")
+        body = read_bytes(path, MAX_RESPONSE)
+        if digest(body) != target["sha256"] or body != self.render(job, target["segments"]):
+            fail("Candidate artifact changed outside the workbench")
+        try:
+            return body.decode("utf-8")
+        except UnicodeError:
+            fail("Candidate artifact is not valid UTF-8")
+
     def artifact_current(self, job, target):
         if target.get("state") != "draft":
             return None
-        path = self.jobdir(job["id"]) / target["artifact"]
         try:
-            return not path.is_symlink() and digest(read_bytes(path, MAX_RESPONSE)) == target["sha256"]
+            self.candidate_content(job, target)
+            return True
         except TranslationError:
             return False
 
@@ -736,7 +760,8 @@ class Workbench:
                 result["delivery"] = None
                 if delivery:
                     result["delivery"] = {**delivery, "artifacts": [
-                        {**artifact, "reviews": [review_metadata(r) for r in artifact["reviews"]]}
+                        {**{k: v for k, v in artifact.items() if k not in {"content", "segments"}},
+                         "reviews": [review_metadata(r) for r in artifact["reviews"]]}
                         for artifact in delivery["artifacts"]]}
             result["source_current"] = source_current
             result["config_current"] = config_current
@@ -755,19 +780,24 @@ class Workbench:
                 if not reviews or any(r["verdict"] != "approved" or r["context_revision"] != job["context_revision"] for r in reviews):
                     fail("Every target requires independent approval with no unresolved review findings")
                 artifacts.append({"locale": locale, "sha256": target["sha256"], "artifact": target["artifact"],
-                                  "reviews": reviews})
+                                  "reviews": reviews, "format": job["format"],
+                                  "content": self.candidate_content(job, target), "segments": target["segments"]})
             manifest = {"job_id": job_id, "state": "ready_for_human_acceptance", "human_acceptance": False,
                         "source_sha256": job["source_sha256"], "glossary_sha256": job["glossary_sha256"],
                         "config_sha256": job["config_sha256"], "prompt_profile": PROMPT_PROFILE,
                         "context_revision": job["context_revision"],
                         "artifacts": artifacts, "scope": "Draft text translation; semantic quality and publication acceptance require qualified human review."}
-            job["delivery"] = manifest
+            # Keep evidence metadata in state; content is already held by the
+            # candidates and returned over MCP, so do not triple its storage.
+            job["delivery"] = {**manifest, "artifacts": [
+                {k: v for k, v in artifact.items() if k not in {"content", "segments"}}
+                for artifact in artifacts]}
         return manifest
 
 
-def verify_deployment(root, deployment, api_key=None):
+def verify_deployment(deployment, api_key=None):
     """Check the same model/tokenizer contract as translation without generating."""
-    workbench = Workbench(root, deployment=deployment, api_key=api_key)
+    workbench = Workbench(deployment=deployment, api_key=api_key)
     deadline = time.monotonic() + workbench.config["run_timeout_seconds"]
     try:
         models = workbench.http("/models", deadline=deadline).get("data")
@@ -788,7 +818,7 @@ def verify_deployment(root, deployment, api_key=None):
 
 def translation_settings():
     """Inspect redacted configuration without contacting the inference engine."""
-    environment = "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ
+    environment = "LOCAL_TRANSLATION_CONFIG" in os.environ
     if environment:
         result = {"configuration_source": "environment", "settings_path": str(settings.settings_path()),
                   "environment_override": True}
@@ -796,34 +826,76 @@ def translation_settings():
             workbench = Workbench()
         except (TranslationError, settings.SettingsError) as exc:
             return {**result, "configured": False, "error": str(exc),
-                    "next_step": "Supply both environment overrides, or remove them and call translation_open_settings"}
-        return {**result, "configured": True, "root": str(workbench.root), "deployment": workbench.config,
+                    "next_step": "Check LOCAL_TRANSLATION_CONFIG, or remove it and call translation_open_settings"}
+        return {**result, "configured": True, "deployment": workbench.config,
                 "configuration_path": str(workbench.config_path),
                 "credential_configured": bool(workbench.config.get("api_key_env") and os.environ.get(workbench.config["api_key_env"])),
-                "next_step": "Call translation_health to check the active engine; saved browser settings do not override this environment"}
+                "next_step": "Call translation_health to check the active engine; saved settings do not override this environment"}
     result = settings.public_settings()
     return {**result, "configuration_source": "saved_settings" if result["configured"] else None,
             "environment_override": False,
             "next_step": "Call translation_health to check the engine" if result["configured"] else
-                         "Call translation_open_settings to choose a workspace and configure the inference engine"}
+                         "Call translation_open_settings to configure the inference engine"}
 
 
 def translation_health():
     try:
         workbench = Workbench()
     except (TranslationError, settings.SettingsError) as exc:
-        environment = "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ
+        environment = "LOCAL_TRANSLATION_CONFIG" in os.environ
         return {"configured": False, "runner_model_available": False, "setup_required": True,
                 "error": str(exc), "next_step":
-                "Supply both environment overrides, or remove them and call translation_open_settings" if environment else
+                "Check LOCAL_TRANSLATION_CONFIG, or remove it and call translation_open_settings" if environment else
                 "Call translation_open_settings to configure Local Translation"}
     return workbench.health()
 
 
 def translation_open_settings():
-    if "LOCAL_TRANSLATION_ROOT" in os.environ or "LOCAL_TRANSLATION_CONFIG" in os.environ:
-        fail("Environment configuration is active. Edit its deployment file, or remove both LOCAL_TRANSLATION_ROOT and LOCAL_TRANSLATION_CONFIG and reopen settings to use the browser configuration")
     return _local_module("setup").open_settings()
+
+
+def translation_read_settings():
+    return _local_module("setup").read_settings()
+
+
+def settings_prefill():
+    """UI-only redacted state; legacy settings still permit opening the modal."""
+    defaults = {"configured": False, "deployment": {}, "settings_revision": None,
+                "credential_configured": False, "environment_override": False,
+                "migration_required": False}
+    try:
+        return {**defaults, **translation_settings()}
+    except settings.SettingsError as exc:
+        return {**defaults, "environment_override": "LOCAL_TRANSLATION_CONFIG" in os.environ,
+                "migration_required": exc.code == "migration_required", "code": exc.code, "error": str(exc)}
+
+
+def translation_update_settings(set):
+    # The extension requires an update tool. All edits belong to the private
+    # form, so the native settings schema intentionally has no properties.
+    if not isinstance(set, dict) or set:
+        raise settings.SettingsError("invalid_input")
+    return {"values": {}}
+
+
+def translation_save_settings(deployment, credential_action, expected_revision, api_key=None):
+    """Validate and persist user-submitted data from the private MCP App tool."""
+    if "LOCAL_TRANSLATION_CONFIG" in os.environ:
+        raise settings.SettingsError("environment_override")
+    return settings.save_settings(
+        deployment, api_key_action=credential_action, api_key=api_key,
+        expected_revision=expected_revision, validate=validate_config, verify=verify_deployment)
+
+
+def translation_migrate_settings():
+    if "LOCAL_TRANSLATION_CONFIG" in os.environ:
+        raise settings.SettingsError("environment_override")
+    migration = _local_module("migrate_settings")
+    try:
+        return migration.migrate(validate=validate_config)
+    except migration.MigrationError as exc:
+        # Migration errors have a fixed package-owned message table.
+        raise TranslationError(str(exc)) from None
 
 
 def schema(required=(), **properties):
@@ -833,10 +905,13 @@ def schema(required=(), **properties):
 S = {"type": "string", "minLength": 1}
 TOOLS = [
     ("translation_settings", "Inspect redacted Local Translation settings and the active configuration source without contacting the engine. Never returns an API key.", schema(), None),
-    ("translation_open_settings", "Open a temporary local browser page to configure the workspace and inference engine. Enter an optional API key only in that page, never in chat. Settings persist outside the plugin cache.", schema(), None),
+    ("translation_open_settings", "Open the in-app Local Translation settings form to configure the local inference engine. Enter an optional API key only in that form, never in chat. Requires an MCP Apps host; settings persist outside the plugin cache.", schema(), None),
     ("translation_health", "Check the configured local runner model, synthetic chat tokenization and declared provenance. If unconfigured, explain how to open setup. Does not establish translation quality.", schema(), "health"),
-    ("translation_create_job", "Snapshot a UTF-8 .txt or explicit-segment .json source and approved brief/glossary into a new immutable multi-locale job.",
-     schema(("source_path", "source_locale", "target_locales", "brief"), source_path=S, source_locale=S,
+    ("translation_create_job", "Freeze inline source text or explicit segments and approved brief/glossary in a temporary session job.",
+     schema(("source_locale", "target_locales", "brief"), source_text=S,
+            segments={"type": "array", "minItems": 1, "maxItems": 32, "items": schema(("id", "text"), id=S, text=S,
+                      protected={"type": "array", "items": S, "maxItems": 100},
+                      format={"type": "string", "enum": ["plain", "printf"]})}, source_locale=S,
             target_locales={"type": "array", "items": S, "minItems": 1, "maxItems": 8}, brief=S,
             glossary={"type": "object", "additionalProperties": {"type": "object", "additionalProperties": S}}), "create_job"),
     ("translation_run", "Draft one requested locale with the exact local Index deployment. Failed and partial work remains visible. Never delivers or approves.",
@@ -854,15 +929,66 @@ TOOLS = [
             target_locale=S, reviewer_id=S, target_sha256=S,
             expected_context_revision={"type": "integer", "minimum": 0},
             verdict={"type": "string", "enum": ["approved", "changes_requested", "blocked"]}, notes=S), "review"),
-    ("translation_prepare_delivery", "Prepare a local draft manifest only after complete locale coverage, independent review, and resolved queries. Requires later human acceptance.",
+    ("translation_prepare_delivery", "Return exact UTF-8 candidate contents, segments and digests after complete locale coverage, independent review, and resolved queries. Requires later human acceptance.",
      schema(("job_id",), job_id=S), "prepare_delivery"),
 ]
+PRIVATE_TOOLS = {"translation_read_settings", "translation_update_settings", "translation_save_settings", "translation_migrate_settings"}
+TOOLS.extend([
+    ("translation_read_settings", "Read the native settings layout and private form's redacted state.", schema(), None),
+    ("translation_update_settings", "Accept an empty native settings update; configuration edits use the in-app form.",
+     schema(("set",), set=schema()), None),
+    ("translation_save_settings", "Test and atomically save settings submitted by the user through the in-app form. Never returns the optional API key.",
+     schema(("deployment", "credential_action", "expected_revision"),
+            deployment=schema(("base_url", "model", "artifact_revision", "runner_version", "locales"),
+                base_url=S, model=S, artifact_revision=S, runner_version=S,
+                locales={"type": "object", "minProperties": 1, "maxProperties": 100, "additionalProperties": S},
+                **{key: {"type": "integer"} for key in CONFIG_FIELDS - {
+                    "base_url", "model", "artifact_revision", "runner_version", "locales", "api_key_env"}}),
+            credential_action={"type": "string", "enum": ["keep", "replace", "clear"]},
+            expected_revision={"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+            api_key={"type": "string", "minLength": 1, "maxLength": 4096}), None),
+    ("translation_migrate_settings", "Back up and upgrade this user's retired workspace-format settings only after their explicit action in the settings form. Does not contact the engine or inspect old jobs.", schema(), None),
+])
+OUTPUT_SCHEMAS = {
+    "translation_read_settings": {
+        "type": "object", "properties": {"schema": {"type": "object"}, "values": {"type": "object"},
+            "layout": {"type": "array", "items": {"type": "object"}}}, "required": ["schema", "values"]},
+    "translation_update_settings": schema(("values",), values={"type": "object"}),
+    "translation_save_settings": schema(("saved", "settings_path", "settings_revision", "model", "credential_configured", "compatibility_checked"),
+        saved={"type": "boolean"}, settings_path=S, settings_revision=S, model=S,
+        credential_configured={"type": "boolean"}, compatibility_checked={"type": "boolean"}),
+    "translation_migrate_settings": schema(("migrated", "settings_path", "schema_version"),
+        migrated={"type": "boolean"}, settings_path=S, backup_path=S, schema_version={"type": "integer"}),
+}
+
+
+def tool_descriptor(name, description, contract):
+    result = {"name": name, "description": description, "inputSchema": contract,
+              "annotations": {"readOnlyHint": name in {"translation_health", "translation_settings", "translation_read_settings", "translation_open_settings"},
+                              "destructiveHint": False, "openWorldHint": False}}
+    if name in PRIVATE_TOOLS:
+        result["_meta"] = {"ui": {"visibility": ["app"]}}
+    if name == "translation_open_settings":
+        result["title"] = "Configure local inference"
+        result["_meta"] = {"ui": {"resourceUri": _local_module("setup").RESOURCE_URI}}
+    if name in OUTPUT_SCHEMAS:
+        result["outputSchema"] = OUTPUT_SCHEMAS[name]
+    return result
+
+
+_create_contract = next(tool[2] for tool in TOOLS if tool[0] == "translation_create_job")
+_create_contract["oneOf"] = [{"required": ["source_text"], "not": {"required": ["segments"]}},
+                             {"required": ["segments"], "not": {"required": ["source_text"]}}]
 
 
 def validate_arguments(arguments, contract):
     object_fields(arguments, contract["required"], contract["properties"])
     for key, value in arguments.items():
         kind = contract["properties"][key]["type"]
+        if isinstance(kind, list):
+            if value is None and "null" in kind:
+                continue
+            kind = next((item for item in kind if item != "null"), None)
         if ((kind == "string" and not isinstance(value, str)) or
                 (kind == "boolean" and type(value) is not bool) or
                 (kind == "integer" and type(value) is not int) or
@@ -879,15 +1005,27 @@ def dispatch(message):
     response = {"jsonrpc": "2.0", "id": message["id"]}
     method = message["method"]
     if method == "initialize":
-        response["result"] = {"protocolVersion": PROTOCOL, "capabilities": {"tools": {}},
+        response["result"] = {"protocolVersion": PROTOCOL, "capabilities": {"tools": {}, "resources": {},
+            "extensions": {"openai/settings": {"readTool": "translation_read_settings", "updateTool": "translation_update_settings"}}},
                               "serverInfo": {"name": "local-translation", "version": VERSION}}
     elif method == "ping":
         response["result"] = {}
     elif method == "tools/list":
-        response["result"] = {"tools": [{"name": name, "description": description, "inputSchema": contract,
-                                          "annotations": {"readOnlyHint": name in {"translation_health", "translation_settings"},
-                                                          "destructiveHint": False, "openWorldHint": False}}
+        response["result"] = {"tools": [tool_descriptor(name, description, contract)
                                          for name, description, contract, _ in TOOLS]}
+    elif method == "resources/list":
+        response["result"] = {"resources": [_local_module("setup").resource_descriptor()]}
+    elif method == "resources/templates/list":
+        response["result"] = {"resourceTemplates": []}
+    elif method == "resources/read":
+        params = message.get("params", {})
+        if not isinstance(params, dict) or params.get("uri") != _local_module("setup").RESOURCE_URI:
+            response["error"] = {"code": -32602, "message": "Unknown settings resource"}
+        else:
+            try:
+                response["result"] = {"contents": [_local_module("setup").read_resource()]}
+            except (OSError, UnicodeError):
+                response["error"] = {"code": -32603, "message": "Could not load the in-app settings form. Reinstall the plugin and try again."}
     elif method == "tools/call":
         params = message.get("params", {})
         tool = next((t for t in TOOLS if t[0] == params.get("name")), None) if isinstance(params, dict) else None
@@ -898,15 +1036,25 @@ def dispatch(message):
                 arguments = params.get("arguments", {})
                 validate_arguments(arguments, tool[2])
                 bootstrap = {"translation_health": translation_health, "translation_settings": translation_settings,
-                             "translation_open_settings": translation_open_settings}
+                             "translation_open_settings": translation_open_settings,
+                             "translation_read_settings": translation_read_settings,
+                             "translation_update_settings": translation_update_settings,
+                             "translation_save_settings": translation_save_settings,
+                             "translation_migrate_settings": translation_migrate_settings}
                 result = bootstrap[tool[0]](**arguments) if tool[0] in bootstrap else getattr(Workbench(), tool[3])(**arguments)
-                response["result"] = {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}], "isError": False}
+                response["result"] = {"content": [{"type": "text", "text": json.dumps(result, ensure_ascii=False)}],
+                                      "structuredContent": result, "isError": False}
+                if tool[0] == "translation_read_settings":
+                    response["result"]["_meta"] = {"local-translation/settings": settings_prefill()}
             except (TranslationError, settings.SettingsError) as exc:
-                response["result"] = {"content": [{"type": "text", "text": str(exc)}], "isError": True}
+                response["result"] = {"content": [{"type": "text", "text": str(exc)}],
+                                      "structuredContent": {"error": str(exc), "code": getattr(exc, "code", "invalid_input")}, "isError": True}
             except Exception:
                 # A failed tool call must not terminate the stdio session or
                 # expose arbitrary dependency/runner exception details.
-                response["result"] = {"content": [{"type": "text", "text": "Translation operation failed; check local configuration and artifact permissions"}], "isError": True}
+                safe_error = "Translation operation failed; check local configuration and artifact permissions"
+                response["result"] = {"content": [{"type": "text", "text": safe_error}],
+                                      "structuredContent": {"error": safe_error, "code": "operation_failed"}, "isError": True}
     else:
         response["error"] = {"code": -32601, "message": "Method not found"}
     return response
@@ -917,28 +1065,31 @@ def main():
     parser.add_argument("--self-test", action="store_true")
     args = parser.parse_args()
     if args.self_test:
-        assert len(TOOLS) == 10
+        assert len(TOOLS) == 14
         assert dispatch({"jsonrpc": "2.0", "id": 1, "method": "ping"})["result"] == {}
         invariants("Count %1$d of {total}: 12", "{total}: 12; %1$d", [], "printf")
         print("local-translation self-test passed (protocol and invariants; no inference)")
         return
-    while True:
-        line = sys.stdin.buffer.readline(MAX_FRAME + 1)
-        if not line:
-            break
-        if len(line) > MAX_FRAME:
-            # Drain oversized input without buffering an unbounded message.
-            while line and not line.endswith(b"\n"):
-                line = sys.stdin.buffer.readline(MAX_FRAME + 1)
-            result = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Message exceeds size limit"}}
-        else:
-            try:
-                result = dispatch(load_json(line))
-            except TranslationError:
-                result = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
-        if result is not None:
-            sys.stdout.buffer.write(encoded(result) + b"\n")
-            sys.stdout.buffer.flush()
+    try:
+        while True:
+            line = sys.stdin.buffer.readline(MAX_FRAME + 1)
+            if not line:
+                break
+            if len(line) > MAX_FRAME:
+                # Drain oversized input without buffering an unbounded message.
+                while line and not line.endswith(b"\n"):
+                    line = sys.stdin.buffer.readline(MAX_FRAME + 1)
+                result = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Message exceeds size limit"}}
+            else:
+                try:
+                    result = dispatch(load_json(line))
+                except TranslationError:
+                    result = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "Parse error"}}
+            if result is not None:
+                sys.stdout.buffer.write(encoded(result) + b"\n")
+                sys.stdout.buffer.flush()
+    finally:
+        close_session()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,19 @@
+{
+  "name": "local-translation-settings-ui",
+  "version": "0.4.0",
+  "private": true,
+  "type": "module",
+  "description": "Rebuildable, self-contained MCP App settings popup",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/ext-apps": "2.0.4"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}
