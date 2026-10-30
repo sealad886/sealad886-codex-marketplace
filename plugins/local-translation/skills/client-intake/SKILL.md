@@ -27,6 +27,13 @@ run this skill directly; a coordinator-supplied brief is not a prerequisite.
 
 ## Workflow
 
+When local Index-family drafting is planned, read the
+[common model-input guide](../.shared/references/index-inputs.md) before handing off
+the brief. Separate approved mandatory requirements, preferences, translation
+treatment, genre/domain and contextual background; label proposals and unresolved
+owner decisions. Record syllable or whole-document requirements as commissioned
+scope for the coordinator's profile choice, not extra connection settings.
+
 1. Translate the request into a purpose statement: who will use which product to
    do what. Distinguish a reference translation from material intended for
    publication or consequential decisions; explain the resulting review needs.

@@ -50,6 +50,16 @@ workbench review or delivery status. Cover masked key retention
 through validation errors, authentication/save retries and tool responses,
 clearing on screen refresh/close, and absence of unsaved-key persistence across
 reloads.
+For Index-family guidance, preserve progressive disclosure: role skills own
+preparation/handoff obligations, the [common input guide](plugins/local-translation/skills/.shared/references/index-inputs.md)
+routes to the selected profile, and profile references own formats/examples and
+actual API limits. Keep full language names in caller prompts distinct from job
+locale codes. Validate the caller-request JSON examples against public arguments
+and actual tokenizer/completion payloads. Cover the narrow
+`chat_template_kwargs.enable_thinking` passthrough and rejection of unsupported
+keys. Do not claim new conditioning fields, automatic context/query injection or
+specialized execution from instructions alone; retain NativeLong's full-profile
+transport limitation and separate semantic/constraint review evidence.
 The settings suite also covers the native settings/resource and app-only
 submission contract. Verify the
 actual in-app modal separately from metadata discovery or mocked UI transport.

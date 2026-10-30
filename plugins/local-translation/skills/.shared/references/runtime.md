@@ -217,6 +217,20 @@ active configured endpoint, model and credential. It does not wrap the messages 
 workbench's per-segment translation prompt. The same local transport, tokenizer
 and context/output budgets apply.
 
+For Index-family native input, **read the [common model-input guide](index-inputs.md)
+and its selected profile recipe before constructing messages**. The caller
+prepares glossary pairs, hard/soft guidance, genre/domain, approved treatment and
+context in that profile's supported prompt form; these are not extra raw-tool
+fields. The existing workbench still accepts brief/glossary guidance and locale
+codes, without separate conditioning fields, full-language-name resolution or
+automatic neighboring/query context.
+
+`translation_request` also accepts optional `chat_template_kwargs` with the sole
+supported key `enable_thinking`, a boolean. The same object reaches tokenization
+and completion; omission leaves it omitted. Both standard Translate and Homura
+examples explicitly set it to `false`, matching their reference clients. Other
+keys and nonboolean values are rejected.
+
 For this route, `generation_options` also accepts a `response_format` object.
 The tool forwards that object unchanged to the provider, including a caller's
 JSON/schema definition. Whether the engine/model supports it is provider-dependent;
@@ -229,6 +243,13 @@ contains the actual provider envelope under `response`, effective
 `generation_options`, `unreviewed: true` and `caller_managed: true`. The caller
 validates/parses that response and owns any retention, review or acceptance.
 No job, translator/reviser receipt or delivery candidate is created by this call.
+The [Translate example](../../../examples/index-translate-request.json) and
+[Homura example](../../../examples/index-homura-request.json) are complete native
+caller-request argument objects. Their selected profile guides explain required
+approval, decoding choices and independent semantic/constraint checks. NativeLong
+has fixed complete-document templates, but this bounded non-streaming route
+cannot express its full official streaming/token-ID-stop profile; see its
+[execution boundary](index-nativelong.md#execution-boundary-in-this-plugin).
 
 Use `translation_run` for the workbench's text-candidate/revision/delivery route.
 It rejects `response_format`, because a caller-defined JSON wrapper is not a
@@ -248,6 +269,11 @@ does not inspect saved settings, and does not probe the engine. It describes the
 client contract, not proof that a particular server/model implements every
 sampling extension or structured-output mode. Model IDs are fetched separately
 by the settings form's app-only `translation_list_models` operation.
+Its native-input metadata identifies the caller as formatting owner and links
+to the common/profile references. It does not advertise a native input-builder
+tool, automatic profile executor or new conditioning API. The server still
+advertises sixteen tools, including the five app-only settings operations, and
+two resources.
 
 ## Temporary session lifecycle
 
@@ -349,7 +375,7 @@ MCP names; a host may display them with a server namespace.
 | `translation_open_settings` | No arguments. Present the bundled MCP App inside the host. The native plugin settings action opens it as a modal. Keys are entered in its masked field and submitted only through the app-only save operation, outside model turns. Does not install or start inference. |
 | `translation_health` | No arguments. Check the exact model and synthetic chat tokenization before job creation/runs. An unconfigured response points to setup. It cannot prove that the runner itself has no remote upstream. |
 | `translation_create_job` | Exactly one of `source_text` or `segments`, plus `source_locale`, `target_locales`, `brief`, optional `glossary`. Freezes inline source, configuration and resources in temporary session storage; returns a job ID. |
-| `translation_request` | `messages`, optional `generation_options` including caller-defined `response_format`. Returns the provider envelope as unreviewed, caller-managed output without a job or delivery record. |
+| `translation_request` | `messages`, optional `generation_options` including caller-defined `response_format`, and optional `chat_template_kwargs` with boolean `enable_thinking`. Returns the provider envelope as unreviewed, caller-managed output without a job or delivery record. |
 | `translation_run` | `job_id`, `target_locale`, `translator_id`, optional `generation_options` for sampling and per-segment output limits. Drafts one target with the configured local deployment, validates completion and structural invariants, and returns candidate content/segments/digest or a visible failure. |
 | `translation_status` | `job_id`, optional `include_segments`. Default metadata omits segment bodies and free-text context. `include_segments=true` discloses source/target text, brief, glossary, query questions/answers and review/revision notes to the caller/host. |
 | `translation_query` | `job_id`, `actor_id`, and `question` for a new query; use returned `query_id` and an attributed `answer` to resolve it according to the discovered schema. Runtime attribution is not proof of client authorization. |
@@ -365,6 +391,11 @@ revision. Read full review context with `include_segments=true` and submit the
 revision you actually inspected; the server rejects a delayed review from an
 older context even when target text has not changed. Revisit the answer's impact
 and obtain current review evidence before delivery.
+Query recording/answering does not forward those answers into the inference
+prompt or regenerate an existing draft. Explicitly reconcile the answer into
+the next caller-owned message, commission a bounded correction with current
+review, or create a replacement job with approved brief/glossary changes before
+new local generation.
 Old jobs remain temporary session evidence; identify successors in the project
 record and retain returned evidence through the caller when required. Do not
 mutate stored JSON manually or reinterpret a failed language as completed.

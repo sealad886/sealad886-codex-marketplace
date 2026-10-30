@@ -3,6 +3,31 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Local Translation 0.6.0 - 2026-10-30
+
+### Added
+
+- Centrally maintained Index-Translate input guidance with progressive disclosure:
+  role-specific preparation and routing in skills, common input concepts in a
+  shared guide, and selected-profile formats, worked MCP calls and language
+  lookup in deeper references.
+- Explicit caller workflows for native glossary mappings, hard requirements,
+  soft preferences, genre/domain, context and approved owner clarifications.
+- Shared Translate, Homura and NativeLong references describing their different
+  input formats and current transport/decoding limits. No silent claim of full
+  NativeLong execution support.
+- Optional non-thinking chat-template passthrough for executable caller-prepared
+  native requests, without adding a formatter tool or new connection settings.
+
+### Changed
+
+- Teach callers to incorporate approved context and owner answers explicitly,
+  rather than assuming workflow query tracking injects them into generation.
+- Keep prompt formats and examples in one shared reference tree instead of
+  duplicating them across the twenty role skills.
+- Preserve the endpoint/key/model configuration, existing job/review gates and
+  caller ownership of request contents and output constraints.
+
 ## Local Translation 0.5.0 - 2026-10-30
 
 ### Added

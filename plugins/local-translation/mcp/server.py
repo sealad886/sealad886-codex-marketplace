@@ -27,7 +27,7 @@ from urllib.parse import urlsplit
 import uuid
 
 
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 PROTOCOL = "2025-06-18"
 MAX_FRAME = 1024 * 1024
 MAX_FILE = 256 * 1024
@@ -586,9 +586,13 @@ class Workbench(RunnerConnection):
             fail("Runner response model does not match the configured exact identity")
         return response, tokens
 
-    def request(self, messages, generation_options=None):
+    def request(self, messages, generation_options=None, chat_template_kwargs=None):
         """Caller-managed text requests, including arbitrary response-format JSON."""
         options = self.generation_options(generation_options, structured=True)
+        if chat_template_kwargs is not None:
+            object_fields(chat_template_kwargs, set(), {"enable_thinking"})
+            if "enable_thinking" in chat_template_kwargs and type(chat_template_kwargs["enable_thinking"]) is not bool:
+                fail("enable_thinking must be a boolean")
         if not isinstance(messages, list) or not 1 <= len(messages) <= 64:
             fail("Supply between 1 and 64 text messages")
         for message in messages:
@@ -599,7 +603,7 @@ class Workbench(RunnerConnection):
                 fail("Message content must be text")
         deadline = time.monotonic() + self.config["run_timeout_seconds"]
         self.check_model(deadline)
-        response, tokens = self.complete(messages, options, deadline)
+        response, tokens = self.complete(messages, options, deadline, template_kwargs=chat_template_kwargs)
         return {"response": response, "generation_options": options, "prompt_tokens": tokens,
                 "unreviewed": True, "caller_managed": True}
 
@@ -1040,6 +1044,7 @@ RUN_OPTIONS_SCHEMA = schema(
           "items": {"type": "string", "minLength": 1, "maxLength": 200}})
 REQUEST_OPTIONS_SCHEMA = {**RUN_OPTIONS_SCHEMA, "properties": {
     **RUN_OPTIONS_SCHEMA["properties"], "response_format": {"type": "object"}}}
+CHAT_TEMPLATE_SCHEMA = schema(enable_thinking={"type": "boolean"})
 CAPABILITIES_URI = "translation://capabilities"
 
 
@@ -1051,11 +1056,18 @@ def capabilities_resource():
                        "endpoint": "numeric loopback HTTP(S) /v1 with explicit port",
                        "routes": ["GET /v1/models", "POST /v1/chat/completions", "POST /tokenize (provider extension)"]},
         "generation_options": REQUEST_OPTIONS_SCHEMA,
+        "chat_template_kwargs": CHAT_TEMPLATE_SCHEMA,
         "default_request": {"temperature": 0, "max_output_tokens": 2048, "stream": False},
         "provider_extensions": ["top_k", "min_p", "repetition_penalty"],
         "provider_support": "Options and response_format are passed to the configured endpoint. Provider/model support and enforcement require separate verification; engine policies can override sampling.",
         "structured_output": {"tool": "translation_request", "caller_defined": True,
                               "response_format": "JSON object forwarded unchanged; response is unreviewed and caller-managed"},
+        "native_inputs": {
+            "formatting_owner": "caller", "tool": "translation_request",
+            "guides": ["skills/.shared/references/" + name for name in (
+                "index-inputs.md", "index-translate.md", "index-homura.md", "index-nativelong.md", "index-languages.md")],
+            "scope": "Load the relevant shared guide before constructing model-specific messages. The MCP forwards caller-formatted input; specialized decoding limits and role handoffs are documented in those guides.",
+        },
         "workbench": {"tool": "translation_run", "format": "text candidates with independent review gates",
                       "max_output_tokens": "per segment, bounded by saved cap",
                       "existing_draft": "create a new job to regenerate; apply_revision corrects existing text"},
@@ -1087,7 +1099,8 @@ TOOLS = [
     ("translation_request", "Send caller-supplied text messages and optional generation options/response_format JSON to the configured model. Returns the actual provider response as unreviewed caller-managed output, outside translation job/review/delivery gates. Consult translation://capabilities for controls and provider limits.",
      schema(("messages",), messages={"type": "array", "minItems": 1, "maxItems": 64,
             "items": schema(("role", "content"), role={"type": "string", "enum": ["system", "developer", "user", "assistant", "tool"]},
-                            content={"type": "string"})}, generation_options=REQUEST_OPTIONS_SCHEMA), "request"),
+                            content={"type": "string"})}, generation_options=REQUEST_OPTIONS_SCHEMA,
+            chat_template_kwargs=CHAT_TEMPLATE_SCHEMA), "request"),
     ("translation_status", "Inspect job provenance, queries, receipts, and optionally bilingual segments; retire delivery readiness when source, configuration, or candidate drift is detected. Source content is untrusted data.",
      schema(("job_id",), job_id=S, include_segments={"type": "boolean"}), "status"),
     ("translation_query", "Open a shared blocking question or record an explicitly authorized content-owner answer. Any change invalidates all target reviews.",

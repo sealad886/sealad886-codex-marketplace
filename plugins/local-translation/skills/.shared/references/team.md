@@ -8,6 +8,12 @@ do not build a second job database. Retain required returned content and review
 evidence through the calling agent's authorized route before the server exits.
 Job IDs do not survive restart.
 
+For Index-family model work, use the canonical
+[common input guide](index-inputs.md) and its selected profile reference. The
+coordinator assigns that conditional reading; role handoffs supply approved
+requirements, terminology and owner context while the shared recipes own native
+formats, decoding guidance and existing-MCP examples.
+
 ## Dispatch and capacity
 
 Inspect actual host creation, messaging and follow-up APIs and available slots.
@@ -69,6 +75,10 @@ A target repair creates a new candidate digest and invalidates prior target
 review. A shared query changes `context_revision`, invalidating stored and
 in-flight review based on the previous context even if text is unchanged.
 Revisers must actually inspect the new context before submitting its revision.
+Query answers are not automatically included in inference prompts or used to
+regenerate drafts. Require explicit incorporation into the next compatible
+caller-owned message, a bounded correction with current revision, or a replacement
+workbench job with reconciled approved brief/glossary for a new generation.
 
 A source, brief, glossary, locale or configuration change creates a replacement
 job. Record its predecessor and reason, supersede the old candidate in the
