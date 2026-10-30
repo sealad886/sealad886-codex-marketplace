@@ -25,8 +25,10 @@ reviser discovers omissions that may originate in a shared source or filter.
 - Existing extraction/segment map, protected tokens and known source defects.
 
 Read the [runtime guide](../.shared/references/runtime.md) before preparing its
-UTF-8 prose or explicit JSON segments. A supplied PDF is evidence to inspect;
-it is not evidence that the runtime can extract or reconstruct that format.
+inline UTF-8 prose or explicit segments. Supply the prepared content through
+MCP, not a source path, and keep any caller-managed source map separate from the
+server's temporary session. A supplied PDF is evidence to inspect; it is not
+evidence that the runtime can extract or reconstruct that format.
 
 ## Workflow
 

@@ -45,8 +45,10 @@ liaison; do not record your preferred interpretation as the client's answer.
 For the local-tool route, require a successful health check and an existing frozen
 job. Call `translation_run` for your assigned locale and observed actor identity
 only in the coordinator's serialized writing slot. Keep its candidate digest,
-context revision, model/configuration provenance and visible failures. Do not
-substitute an invented completion if the configured runner cannot produce a draft.
+context revision, model/configuration provenance and visible failures. Inspect
+the `content` and `segments` returned through MCP; a temporary path is not the
+candidate handoff. Do not substitute an invented completion if the configured
+runner cannot produce a draft.
 
 When directly assigned an existing candidate, identify it as supplied and work
 within that remit. A different drafting route needs explicit commissioning.

@@ -26,7 +26,9 @@ profile are supplied; text inspection cannot replace synchronized playback.
 Read [format boundaries](../.shared/references/formats.md) before claiming support.
 If only working text is available for a commissioned PDF or media product, report
 that final-format proofreading is blocked and identify the checks you can perform.
-For a text-only delivery, inspect the actual UTF-8 file in a suitable viewer;
+For a text-only MCP delivery, inspect the returned UTF-8 content and its digest;
+if the calling agent creates a final file, inspect that exact file in a suitable
+viewer;
 do not invent layout or media checks outside that commissioned format.
 
 ## Workflow

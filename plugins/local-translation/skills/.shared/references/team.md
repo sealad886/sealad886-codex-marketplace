@@ -3,7 +3,10 @@
 Use role-specific working methods from the [role directory](roles.md) and the
 common [expert contract](expert-contract.md). The coordinator retains one brief,
 assignment map, decision log and release record. The runtime owns its immutable
-inputs and supported job/query/review state; do not build a second job database.
+inputs and supported job/query/review state for its temporary MCP session;
+do not build a second job database. Retain required returned content and review
+evidence through the calling agent's authorized route before the server exits.
+Job IDs do not survive restart.
 
 ## Dispatch and capacity
 
@@ -72,4 +75,5 @@ job. Record its predecessor and reason, supersede the old candidate in the
 project record, identify every dependent occurrence/locale/product and repeat
 affected work. Never transplant approval to different bytes or contexts.
 Diagnose upstream source defects at the shared input, not as repeated translator
-errors. Retain prior artifacts and decision evidence for investigation.
+errors. Retain returned prior artifacts and decision evidence through the
+caller's authorized route when they are needed beyond the temporary session.

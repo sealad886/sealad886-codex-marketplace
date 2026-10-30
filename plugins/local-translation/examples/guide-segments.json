@@ -1,4 +1,10 @@
 {
+  "source_locale": "en-US",
+  "target_locales": [
+    "fr-FR",
+    "de-DE"
+  ],
+  "brief": "Translate these application messages. Preserve placeholders, numbers and printf arguments.",
   "segments": [
     {
       "id": "welcome",
