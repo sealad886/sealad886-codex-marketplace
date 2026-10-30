@@ -32,18 +32,18 @@ host opens the bundled MCP App as a modal above settings, even before the engine
 is configured. The coordinator can also invoke `translation_open_settings` when
 you ask **“Open Local Translation settings.”** A model-invoked view uses the
 host's in-app MCP App presentation; the native settings action supplies the modal.
-Enter the engine URL, exact model alias, verified
-artifact revision and runner version, and locale registry. There is no translation
-workspace or source-directory setting. Advanced fields control context and time
-budgets.
-Enter an optional runner API key directly in the form; never send it in chat.
+Enter the engine endpoint URL and model name/ID. These are the only required
+connection fields. Enter an optional runner API key directly in the masked form
+field; never send it in chat. There is no pinned revision, runner-version,
+language-registry, translation-workspace or source-directory setting. Advanced
+fields have defaults and let you adjust context and time budgets when needed.
 
 Choose **Test and save**. The server validates the fields, checks `/v1/models`
 for the exact alias and probes `/tokenize` with synthetic chat messages and the
 same template options used during translation. It checks the token count against
 the output/context budget. No source file, completion request or translation job
 is involved. A failed check preserves the previous settings. This check does not
-prove model provenance, completion behavior or linguistic quality; run the
+prove completion behavior or linguistic quality; run the
 representative translation pilot separately.
 
 Settings are saved outside the installed package at
@@ -53,7 +53,10 @@ The directory uses mode 0700 and atomic settings writes use mode 0600 on POSIX.
 The optional API key is stored in this private local file without encryption;
 it is omitted from tool responses, job metadata and form prefills. Keep the
 settings directory outside shared/version-controlled storage. Reopening the form
-lets the user keep, replace or remove the stored key.
+lets the user keep, replace or remove the stored key. A new key remains masked
+in the current input until the screen refreshes or closes. Input errors, save
+retries and tool responses do not clear it. The form does not persist that
+unsaved input in browser or widget state, so it does not survive a reload.
 
 Both Codex and Copilot use the same saved settings. They survive plugin updates
 and apply on the next tool call without restarting either client.
@@ -86,7 +89,7 @@ agent to collect or submit a key.
 
 For managed/CLI deployments, `LOCAL_TRANSLATION_CONFIG` points to an engine
 deployment JSON and overrides saved settings. It does not grant source-file or
-output-directory access. The settings page reports an active environment
+output-directory access. The settings form reports an active environment
 override instead of changing an inactive file. No translation-root environment
 variable is used.
 
@@ -99,15 +102,13 @@ other clients control their explicit environment. See the official
 Restart a client only when changing this explicit launch environment. The normal
 desktop saved-settings flow needs none of these variables.
 
-The deployment config declares:
+A deployment config requires only `base_url` and `model`. The remaining fields
+are optional; numeric values use the defaults below.
 
 | Field | Meaning |
 | --- | --- |
 | `base_url` | Numeric loopback HTTP origin with `/v1`, for example `http://127.0.0.1:8080/v1` |
-| `model` | Exact served alias, independently mapped to the intended Index artifact |
-| `artifact_revision` | Actual pinned model artifact/revision, including quantization identity where applicable |
-| `runner_version` | Actual runner version/build |
-| `locales` | Allowed exact locale tags mapped to prompt labels; source and every target must be registered |
+| `model` | Exact model name/ID served by that endpoint |
 | `max_input_chars` | Per-unit source limit |
 | `max_prompt_bytes` | Rendered prompt byte limit |
 | `max_output_tokens` | Planned generation budget |
@@ -119,9 +120,9 @@ The deployment config declares:
 Numeric defaults are 8,000 input characters per unit, 32,000 rendered prompt bytes,
 2,048 output tokens, a 16,384-token context window, a 30-second request timeout,
 and a 120-second per-locale run budget.
-Set the context window to the real deployment limit. The tool also limits a job
-to 32 source segments and eight distinct target locales. Plain-text input is split
-at blank paragraphs while preserving the separators; `segments` gives you
+Adjust the optional context budget if the server uses a different limit. The tool
+also limits a job to 32 source segments and eight distinct target locales.
+Plain-text input is split at blank paragraphs while preserving the separators; `segments` gives you
 explicit IDs.
 
 Choose `run_timeout_seconds` for the whole locale before creating the job. A
@@ -134,10 +135,10 @@ and response reads, while a blocked socket read remains subject to its request
 timeout. A timeout stays a visible failed locale and cannot produce a complete
 candidate. Changing either configuration value requires a replacement job.
 
-The shipped [example config](../../../examples/config.json) contains illustrative
-deployment metadata. Replace it with verified values in a private engine
-configuration file if using the environment route. Its presence is not evidence
-that any model is installed or any language pair passed.
+The shipped [example config](../../../examples/config.json) shows the minimal
+endpoint/model configuration. Use your running endpoint and served model ID in a
+private file for the environment route. Its presence is not evidence that any
+model is installed or any language pair passed.
 
 ## Temporary session lifecycle
 
@@ -219,6 +220,10 @@ Use explicit segments for format-bearing strings; `source_text` is plain prose.
 Prepare stable unique IDs for review/query linkage. `protected` lists literal
 strings that must survive in that unit; it is not a native-resource grammar.
 Supply enough context in the brief and source units for meaningful translation.
+Supply source and target locale codes in each job, such as `en-US` and `fr-FR`.
+The prompt uses those codes directly; engine setup does not register or restrict
+a language list. The model must still handle the requested language pair.
+
 The locale glossary is a map of locale to source/target term pairs, for example
 `{"fr-FR":{"Settings":"Paramètres"}}`. Terminology checks cannot prove conceptual
 accuracy, inflection suitability or correspondence with the actual app.
@@ -256,10 +261,11 @@ mutate stored JSON manually or reinterpret a failed language as completed.
 
 ## Migrate previous settings
 
-This version replaces the workspace-based tool/configuration contract. It does
-not automatically load old job directories, convert legacy saved settings or
-accept the previous `source_path` API. Restarting on this version begins a new
-temporary job session.
+This version removes deployment revision, runner-version and language-registry
+fields from saved settings. Earlier saved schemas require an explicit upgrade.
+The server does not automatically convert saved settings or load old job
+directories. It also does not accept the retired `source_path` API. Restarting
+begins a new temporary job session.
 
 If saved settings use the retired format, open the configuration modal and
 select **Back up and upgrade saved settings**. The app-only migration operation
@@ -279,13 +285,14 @@ and run it with Python 3.11+. The default target is the normal per-user settings
 file. To select another authorized settings file, pass
 `--settings /absolute/path/settings.json`.
 
-The converter acquires the settings lock, validates the legacy settings, writes
-an owner-only exact-byte backup beside the file as
-`settings.json.pre-temporary-jobs.bak`, and atomically replaces the original with
-schema version 2 engine-only settings. Deployment values and an optional
-credential are preserved without printing them. An already-converted file is a
-no-op. A conflicting backup is not overwritten; an identical backup can be
-reused after a failed replacement. A validation, lock, backup or replacement
+The converter accepts the earlier workspace schema and schema version 2. It
+acquires the settings lock, validates the old settings, writes an owner-only
+exact-byte backup beside the file as `settings.json.pre-simple-connection.bak`,
+and atomically replaces the original with schema version 3 connection settings.
+It preserves the endpoint, model, supported optional budgets and any credential
+without printing them. It removes retired revision, runner-version, language-list
+and workspace fields. An already-converted file is a no-op. A conflicting backup
+is not overwritten; an identical backup can be reused after a failed replacement. A validation, lock, backup or replacement
 failure leaves the original settings unchanged. Protect the backup because it
 can contain the credential. Reopen setup and verify `translation_health` after
 migration.

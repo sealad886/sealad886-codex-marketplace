@@ -97,8 +97,7 @@ class TranslationTests(unittest.TestCase):
         self.source.write_text("Hello {user}: 12", encoding="utf-8")
 
     def workbench(self, state):
-        config = {"base_url": state["url"], "model": "index-test", "artifact_revision": "abc123",
-                  "runner_version": "test-only", "locales": {"en-US": "English", "fr-FR": "French", "de-DE": "German"}}
+        config = {"base_url": state["url"], "model": "index-test"}
         self.config = self.root / "config.json"
         self.config.write_text(json.dumps(config), encoding="utf-8")
         return runtime.Workbench(self.config)
@@ -268,10 +267,10 @@ class TranslationTests(unittest.TestCase):
     def test_engine_configuration_override_takes_precedence_without_a_workspace(self):
         with runner() as state, mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": str(self.root / "preferences")}, clear=True):
             original = self.workbench(state).config
-            saved = {**original, "artifact_revision": "saved-revision"}
+            saved = {**original, "max_output_tokens": 1024}
             runtime.settings.save_settings(saved, validate=runtime.validate_config, verify=runtime.verify_deployment)
             with mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_CONFIG": str(self.config)}):
-                self.assertEqual(runtime.Workbench().config["artifact_revision"], "abc123")
+                self.assertEqual(runtime.Workbench().config["max_output_tokens"], 2048)
                 info = runtime.translation_settings()
                 self.assertEqual(info["configuration_source"], "environment")
                 self.assertTrue(info["environment_override"])
@@ -279,7 +278,7 @@ class TranslationTests(unittest.TestCase):
                 self.assertEqual(runtime.translation_open_settings()["settings_ui"], "in_app")
                 with self.assertRaisesRegex(runtime.settings.SettingsError, "Environment configuration is active"):
                     runtime.translation_save_settings(saved, "keep", runtime.settings.settings_revision())
-            self.assertEqual(runtime.Workbench().config["artifact_revision"], "saved-revision")
+            self.assertEqual(runtime.Workbench().config["max_output_tokens"], 1024)
             with mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_CONFIG": ""}):
                 self.assertFalse(runtime.translation_settings()["configured"])
 
@@ -297,7 +296,7 @@ class TranslationTests(unittest.TestCase):
             workbench.prepare_delivery(job)
             self.assertNotIn(secret, json.dumps(workbench.status(job, include_segments=True)))
             self.assertNotIn(secret, (workbench.jobdir(job) / "job.json").read_text())
-            changed = {**deployment, "artifact_revision": "new-revision"}
+            changed = {**deployment, "max_output_tokens": 1024}
             runtime.settings.save_settings(changed, validate=runtime.validate_config, verify=runtime.verify_deployment)
             current = runtime.Workbench()
             status = current.status(job)
@@ -408,9 +407,7 @@ class TranslationTests(unittest.TestCase):
                         self.assertNotIn("artifact", candidate)
 
     def test_total_run_budget_validation_and_request_timeout_remain_separate(self):
-        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "index-test",
-                  "artifact_revision": "verified-revision", "runner_version": "verified-runner",
-                  "locales": {"en-US": "English", "fr-FR": "French"}}
+        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "index-test"}
         self.assertEqual(runtime.validate_config(config)["run_timeout_seconds"], 120)
         for value in (1, 540):
             self.assertEqual(runtime.validate_config({**config, "run_timeout_seconds": value})["run_timeout_seconds"], value)
@@ -526,7 +523,7 @@ class TranslationTests(unittest.TestCase):
             self.assertTrue(workbench.status(job)["source_current"])
             self.assertEqual(workbench.status(job, include_segments=True)["segments"][0]["text"], "Hello {user}: 12")
             config = json.loads(self.config.read_text())
-            config["artifact_revision"] = "new-artifact"
+            config["max_output_tokens"] = 1024
             self.config.write_text(json.dumps(config))
             with self.assertRaisesRegex(runtime.TranslationError, "configuration changed"):
                 runtime.Workbench(self.config).run(job, "fr-FR", "translator")
@@ -688,7 +685,7 @@ class TranslationTests(unittest.TestCase):
                         artifact.unlink()
                     elif drift == "config":
                         config = json.loads(self.config.read_text())
-                        config["artifact_revision"] = "changed-model-artifact"
+                        config["max_output_tokens"] = 1024
                         self.config.write_text(json.dumps(config))
                         workbench = runtime.Workbench(self.config)
                     else:
@@ -727,7 +724,7 @@ class TranslationTests(unittest.TestCase):
                         (workbench.jobdir(job) / candidate["artifact"]).unlink()
                     elif drift == "config":
                         config = json.loads(self.config.read_text())
-                        config["artifact_revision"] = "changed-model-artifact"
+                        config["max_output_tokens"] = 1024
                         self.config.write_text(json.dumps(config))
                         workbench = runtime.Workbench(self.config)
                     else:
@@ -796,25 +793,44 @@ class TranslationTests(unittest.TestCase):
         path.write_bytes(b" " * (runtime.MAX_FILE + 1))
         with self.assertRaisesRegex(runtime.TranslationError, "size limit"):
             runtime.Workbench(path)
-        for content in ([], {"base_url": 42}, {"base_url": "http://127.0.0.1:8080/v1", "model": "index", "artifact_revision": "x", "runner_version": "x", "locales": []}):
+        for content in ([], {"base_url": 42}, {"base_url": "http://127.0.0.1:8080/v1", "model": 1}):
             path.write_text(json.dumps(content))
             with self.subTest(content=content), self.assertRaises(runtime.TranslationError):
                 runtime.Workbench(path)
 
-    def test_example_provenance_placeholders_are_rejected_before_network_access(self):
-        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "REPLACE_WITH_CUSTOM_ALIAS",
-                  "artifact_revision": "verified-revision", "runner_version": "verified-runner",
-                  "locales": {"en-US": "English", "fr-FR": "French"}}
-        self.assertEqual(runtime.validate_config(config)["model"], "REPLACE_WITH_CUSTOM_ALIAS")
-        path = self.root / "config.json"
-        for field in ("artifact_revision", "runner_version"):
-            with self.subTest(field=field):
-                invalid = {**config, field: "REPLACE_WITH_VERIFIED_DEPLOYMENT_VALUE"}
-                path.write_text(json.dumps(invalid))
-                with mock.patch.object(runtime.Workbench, "http") as network:
-                    with self.assertRaisesRegex(runtime.TranslationError, "Replace the example placeholder"):
-                        runtime.Workbench(path).health()
-                    network.assert_not_called()
+    def test_minimal_connection_runs_job_locales_without_a_registry_or_manual_provenance(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            self.assertTrue(workbench.health()["runner_model_available"])
+            job = workbench.create_job(source_locale="ja-JP", target_locales=["ga-IE"],
+                                       brief="Keep the source meaning", source_text=self.source.read_text())["id"]
+            candidate = workbench.run(job, "ga-IE", "translator")
+            self.assertEqual(candidate["state"], "draft")
+            prompt = next(payload["messages"][0]["content"] for path, payload in state["requests"]
+                          if path == "/v1/chat/completions")
+            self.assertIn("from ja-JP into ga-IE", prompt)
+            self.assertEqual(candidate["content"], state["content"])
+            stored = json.loads((workbench.jobdir(job) / "job.json").read_text())
+            for retired in ("artifact_revision", "runner_version", "locales"):
+                self.assertNotIn(retired, stored)
+                self.assertNotIn(retired, workbench.health())
+
+    def test_retired_connection_metadata_is_rejected_before_network_access(self):
+        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "index-test"}
+        for field in ("artifact_revision", "runner_version", "locales"):
+            with self.subTest(field=field), mock.patch.object(runtime.Workbench, "http") as network:
+                with self.assertRaises(runtime.TranslationError):
+                    runtime.Workbench(deployment={**config, field: "retired"}).health()
+                network.assert_not_called()
+
+    def test_job_locale_tags_are_valid_distinct_and_different_from_source(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            for source, targets in ((None, ["fr-FR"]), ("English", ["fr-FR"]),
+                                    ("en-US", [1]), ("en-US", ["en-us"]),
+                                    ("en-US", ["fr-FR", "fr-fr"]), ("en-US", ["invalid locale"])):
+                with self.subTest(source=source, targets=targets), self.assertRaises(runtime.TranslationError):
+                    workbench.create_job(source_locale=source, target_locales=targets, brief="Brief", source_text="Hello")
 
     def test_shared_queries_invalidate_all_locales_and_new_authors_cannot_self_review(self):
         with runner() as state:
@@ -878,11 +894,7 @@ class TranslationTests(unittest.TestCase):
             self.source.write_text("First paragraph.\n\nSecond paragraph.")
             state["content"] = "é" * 110000
             workbench = self.workbench(state)
-            config = json.loads(self.config.read_text())
             locales = ["fr-FR", "de-DE", "es-ES", "it-IT", "pt-PT"]
-            config["locales"].update({locale: locale for locale in locales})
-            self.config.write_text(json.dumps(config))
-            workbench = runtime.Workbench(self.config)
             job = workbench.create_job(source_locale="en-US", target_locales=locales, brief="Brief", source_text=self.source.read_text())["id"]
             for locale in locales:
                 candidate = workbench.run(job, locale, "translator-" + locale)

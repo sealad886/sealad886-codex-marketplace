@@ -1,4 +1,4 @@
-"""Explicitly back up and convert retired workspace settings to engine-only settings.
+"""Explicitly back up and convert earlier settings to endpoint/model connection settings.
 
 This command never reads or deletes translation jobs. It does not contact the
 engine. The runtime does not automatically accept the retired settings format.
@@ -26,7 +26,8 @@ def _settings_module():
 settings = _settings_module()
 
 
-BACKUP_SUFFIX = ".pre-temporary-jobs.bak"
+BACKUP_SUFFIX = ".pre-simple-connection.bak"
+RETIRED_DEPLOYMENT_FIELDS = {"artifact_revision", "runner_version", "locales"}
 
 
 class MigrationError(RuntimeError):
@@ -79,12 +80,21 @@ def migrate(path=None, *, validate):
             if isinstance(value, dict) and value.get("schema_version") == settings.SCHEMA_VERSION:
                 settings._validate_saved(value)
                 return {"migrated": False, "settings_path": str(path), "schema_version": settings.SCHEMA_VERSION}
-            if (not isinstance(value, dict) or set(value) - {"root", "deployment", "api_key"}
-                    or not {"root", "deployment"} <= set(value)
-                    or not isinstance(value["root"], str) or not Path(value["root"]).is_absolute()
-                    or not isinstance(value["deployment"], dict) or "api_key_env" in value["deployment"]):
+            if not isinstance(value, dict):
                 raise ValueError()
-            deployment = validate(value["deployment"])
+            if "schema_version" not in value:
+                if (set(value) - {"root", "deployment", "api_key"}
+                        or not {"root", "deployment"} <= set(value)
+                        or not isinstance(value["root"], str) or not Path(value["root"]).is_absolute()):
+                    raise ValueError()
+            elif (type(value["schema_version"]) is not int or value["schema_version"] != 2
+                    or set(value) - {"schema_version", "deployment", "api_key"}
+                    or "deployment" not in value):
+                raise ValueError()
+            if not isinstance(value["deployment"], dict) or "api_key_env" in value["deployment"]:
+                raise ValueError()
+            deployment = validate({key: item for key, item in value["deployment"].items()
+                                   if key not in RETIRED_DEPLOYMENT_FIELDS})
             if not isinstance(deployment, dict):
                 raise ValueError()
             candidate = {"schema_version": settings.SCHEMA_VERSION, "deployment": deployment}

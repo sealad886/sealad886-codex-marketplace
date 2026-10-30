@@ -21,10 +21,10 @@ else:
 
 
 MAX_SETTINGS_BYTES = 65536
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 _UNSET = object()
 PUBLIC_DEPLOYMENT_FIELDS = {
-    "base_url", "model", "artifact_revision", "runner_version", "locales",
+    "base_url", "model",
     "max_input_chars", "max_prompt_bytes", "max_output_tokens",
     "context_window_tokens", "timeout_seconds", "run_timeout_seconds",
 }
@@ -35,7 +35,7 @@ class SettingsError(RuntimeError):
 
     MESSAGES = {
         "invalid_input": "Enter valid engine settings. Nothing was saved.",
-        "migration_required": "These settings use the retired workspace format. Choose Back up and upgrade saved settings in the in-app form to preserve the original and convert them to engine-only settings.",
+        "migration_required": "These settings use an earlier format. Choose Back up and upgrade saved settings in the in-app form to preserve the original and keep only the engine connection settings.",
         "invalid_credential": "Enter a nonempty API key without line breaks, or choose Keep or Clear. Nothing was saved.",
         "local_settings_failed": "Could not read or lock private Local Translation settings. Check local file permissions and close other setup pages, then try again.",
         "settings_busy": "Another settings save is active. Nothing was saved. Wait for it to finish, then try again.",
@@ -107,7 +107,9 @@ def _validate_saved(value):
     if (not isinstance(value, dict) or set(value) - {"schema_version", "deployment", "api_key"}
             or not {"schema_version", "deployment"} <= set(value)
             or type(value["schema_version"]) is not int or value["schema_version"] != SCHEMA_VERSION
-            or not isinstance(value["deployment"], dict)):
+            or not isinstance(value["deployment"], dict)
+            or not {"base_url", "model"} <= set(value["deployment"])
+            or set(value["deployment"]) - PUBLIC_DEPLOYMENT_FIELDS):
         raise ValueError()
     if "api_key" in value:
         _secret(value["api_key"])
@@ -120,7 +122,8 @@ def _read_snapshot():
         return None, None
     try:
         value = _decode(raw)
-        if isinstance(value, dict) and "root" in value and "schema_version" not in value:
+        if isinstance(value, dict) and (("root" in value and "schema_version" not in value)
+                or (type(value.get("schema_version")) is int and value["schema_version"] == 2)):
             raise SettingsError("migration_required")
         _validate_saved(value)
         return value, hashlib.sha256(raw).hexdigest()

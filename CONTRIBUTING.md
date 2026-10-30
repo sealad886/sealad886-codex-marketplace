@@ -39,8 +39,12 @@ Index-Translate runner. Run
 and `python3 -m unittest discover -s tests -p 'test_local_translation_settings.py' -v`
 for behavioral checks. Include inline source transport, temporary-session
 lifetime/cleanup, returned content identities, the no-environment settings form,
-persistent engine-only configuration, explicit legacy-settings backup migration,
-synthetic model/tokenization checks and secret redaction when changing setup.
+persistent endpoint/model configuration with no required provenance or locale
+registry, explicit earlier-settings backup migration, synthetic model/tokenization
+checks and secret redaction when changing setup. Cover masked key retention
+through validation errors, authentication/save retries and tool responses,
+clearing on screen refresh/close, and absence of unsaved-key persistence across
+reloads.
 The settings suite also covers the native settings/resource and app-only
 submission contract. Verify the
 actual in-app modal separately from metadata discovery or mocked UI transport.

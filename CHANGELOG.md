@@ -3,6 +3,27 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Local Translation 0.5.0 - 2026-10-30
+
+### Changed
+
+- Require only an endpoint and model ID for inference setup, with an optional
+  API key. Remove model-revision, runner-version and language-registry fields;
+  source and target locales come from each translation request.
+- Keep the API key masked in the form for the screen's lifetime, including
+  validation errors and failed saves. It is not persisted across screen refresh
+  or close. Successful save requests that the host close the configuration form.
+- Remove manually declared revision/version metadata from runtime configuration,
+  health and job records while retaining model identity and content/configuration
+  digests.
+
+### Migration
+
+- Explicitly upgrade older saved settings to the simpler connection schema with
+  a private, non-overwriting backup. Preserve the endpoint, model, optional key
+  and generation limits; discard retired setup metadata. Existing job storage
+  and independent revision/delivery gates are unchanged.
+
 ## Local Translation 0.4.0 - 2026-10-30
 
 ### Added

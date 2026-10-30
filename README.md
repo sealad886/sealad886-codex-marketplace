@@ -108,7 +108,7 @@ MCP tools accept inline text, keep session job files temporary, and return
 reviewed candidates to the caller. Native plugin settings open a bundled
 configuration modal for connecting an existing Index-Translate runner.
 
-**Version:** `0.4.0` · [Role directory and setup](plugins/local-translation/README.md)
+**Version:** `0.5.0` · [Role directory and setup](plugins/local-translation/README.md)
 
 ## Install
 

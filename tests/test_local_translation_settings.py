@@ -80,8 +80,7 @@ class SettingsTests(unittest.TestCase):
         self.addCleanup(self.environment.stop)
 
     def deployment(self, url="http://127.0.0.1:8080/v1"):
-        return {"base_url": url, "model": "index-setup-test", "artifact_revision": "test-revision",
-                "runner_version": "test-only", "locales": {"en-US": "English", "fr-FR": "French"}}
+        return {"base_url": url, "model": "index-setup-test"}
 
     def save(self, deployment=None, **kwargs):
         return settings.save_settings(deployment or self.deployment(),
@@ -292,7 +291,7 @@ class SettingsTests(unittest.TestCase):
         self.save(api_key_action="replace", api_key="unchanged-key")
         before = settings.settings_path().read_bytes()
         invalid = [dict(self.deployment(), base_url="http://example.com:8080/v1"),
-                   dict(self.deployment(), artifact_revision="REPLACE_WITH_REVISION"),
+                   dict(self.deployment(), artifact_revision="retired"),
                    dict(self.deployment(), api_key_env="SOME_VARIABLE"),
                    dict(self.deployment(), locales=[]), dict(self.deployment(), timeout_seconds=999)]
         for candidate in invalid:
@@ -313,7 +312,7 @@ class SettingsTests(unittest.TestCase):
         before = settings.settings_path().read_bytes()
         with mock.patch.object(settings.os, "replace", side_effect=OSError("PRIVATE_WRITE_ERROR")):
             with self.assertRaises(settings.SettingsError) as result:
-                self.save(dict(self.deployment(), artifact_revision="updated"))
+                self.save(dict(self.deployment(), max_output_tokens=1024))
         self.assertEqual(result.exception.code, "save_failed")
         self.assertEqual(settings.settings_path().read_bytes(), before)
         self.assertEqual(list(settings.settings_path().parent.glob(".settings-*")), [])
@@ -341,15 +340,15 @@ with settings._locked(settings.settings_path()):
             reader.start()
             self.assertEqual(ready.get(timeout=5), "LOCKED\n")
             with self.assertRaises(settings.SettingsError) as result:
-                self.save(dict(self.deployment(), artifact_revision="after-interruption"))
+                self.save(dict(self.deployment(), max_output_tokens=1024))
             self.assertEqual(result.exception.code, "settings_busy")
             self.assertEqual(settings.settings_path().read_bytes(), before)
             child.terminate()
             child.wait(timeout=5)
             # Termination bypassed the child's context-manager cleanup. A new
             # save must succeed without deleting or editing hidden lock files.
-            self.save(dict(self.deployment(), artifact_revision="after-interruption"))
-            self.assertEqual(settings.load_settings()["deployment"]["artifact_revision"], "after-interruption")
+            self.save(dict(self.deployment(), max_output_tokens=1024))
+            self.assertEqual(settings.load_settings()["deployment"]["max_output_tokens"], 1024)
         finally:
             if child.poll() is None:
                 child.kill()
@@ -380,7 +379,7 @@ with settings._locked(settings.settings_path()):
     def test_stale_edits_rejected_before_and_after_engine_probe(self):
         self.save()
         old_revision = settings.settings_revision()
-        self.save(dict(self.deployment(), artifact_revision="second"))
+        self.save(dict(self.deployment(), max_output_tokens=1024))
         probe = mock.Mock()
         with self.assertRaises(settings.SettingsError) as result:
             self.save(expected_revision=old_revision, verify=probe)
@@ -388,11 +387,11 @@ with settings._locked(settings.settings_path()):
         probe.assert_not_called()
         latest_revision = settings.settings_revision()
         def concurrent_change(*_):
-            self.save(dict(self.deployment(), artifact_revision="third"))
+            self.save(dict(self.deployment(), max_output_tokens=512))
         with self.assertRaises(settings.SettingsError) as result:
             self.save(expected_revision=latest_revision, verify=concurrent_change)
         self.assertEqual(result.exception.code, "stale_configuration")
-        self.assertEqual(settings.load_settings()["deployment"]["artifact_revision"], "third")
+        self.assertEqual(settings.load_settings()["deployment"]["max_output_tokens"], 512)
 
     def test_corrupt_or_symlink_settings_are_not_overwritten(self):
         path = settings.settings_path()
@@ -420,11 +419,16 @@ with settings._locked(settings.settings_path()):
 
 
 
-    def legacy_settings(self):
+    def legacy_settings(self, version=None):
         path = settings.settings_path()
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
-        value = {"root": str(self.directory / "former-workspace"),
-                 "deployment": core.validate_config(self.deployment()), "api_key": "legacy-test-secret"}
+        deployment = {**core.validate_config(self.deployment()), "artifact_revision": "old-artifact",
+                      "runner_version": "old-runner", "locales": {"en-US": "English", "fr-FR": "French"}}
+        value = {"deployment": deployment, "api_key": "legacy-test-secret"}
+        if version is None:
+            value["root"] = str(self.directory / "former-workspace")
+        else:
+            value["schema_version"] = version
         raw = json.dumps(value).encode()
         path.write_bytes(raw)
         path.chmod(0o600)
@@ -448,7 +452,7 @@ with settings._locked(settings.settings_path()):
         self.assertEqual(backup.read_bytes(), before)
         converted = settings.load_settings()
         self.assertEqual(set(converted), {"schema_version", "deployment", "api_key"})
-        self.assertEqual(converted["deployment"], json.loads(before)["deployment"])
+        self.assertEqual(converted["deployment"], core.validate_config(self.deployment()))
         self.assertEqual(converted["api_key"], "legacy-test-secret")
         self.assertNotIn("legacy-test-secret", json.dumps(result))
         self.assertFalse((self.directory / "former-workspace").exists())
@@ -459,6 +463,27 @@ with settings._locked(settings.settings_path()):
         self.assertFalse(migration.migrate(validate=core.validate_config)["migrated"])
         self.assertEqual(path.read_bytes(), after)
         self.assertEqual(backup.read_bytes(), before)
+
+    def test_schema_two_settings_upgrade_preserves_connection_key_and_earlier_backups(self):
+        path, before = self.legacy_settings(version=2)
+        earlier_backup = path.with_name(path.name + ".pre-temporary-jobs.bak")
+        earlier_backup.write_bytes(b"earlier-workspace-settings-backup")
+        earlier_backup.chmod(0o600)
+        with self.assertRaises(settings.SettingsError) as result:
+            settings.load_settings()
+        self.assertEqual(result.exception.code, "migration_required")
+        self.assertEqual(path.read_bytes(), before)
+        with mock.patch.object(core.Workbench, "http", side_effect=AssertionError("No engine during upgrade")):
+            receipt = self.call("translation_migrate_settings")
+        self.assertFalse(receipt["isError"], receipt)
+        converted = settings.load_settings()
+        self.assertEqual(converted["schema_version"], 3)
+        self.assertEqual(converted["deployment"], core.validate_config(self.deployment()))
+        self.assertEqual(converted["api_key"], "legacy-test-secret")
+        self.assertEqual(Path(receipt["structuredContent"]["backup_path"]).read_bytes(), before)
+        self.assertEqual(earlier_backup.read_bytes(), b"earlier-workspace-settings-backup")
+        self.assertNotIn("legacy-test-secret", json.dumps(receipt))
+        self.assertFalse(self.call("translation_migrate_settings")["structuredContent"]["migrated"])
 
     def test_migration_write_failure_preserves_original_and_retry_uses_exact_backup(self):
         path, before = self.legacy_settings()

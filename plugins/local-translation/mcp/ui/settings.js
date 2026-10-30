@@ -10,12 +10,13 @@ const cancel = element("cancel");
 const reload = element("reload");
 const migrate = element("migrate");
 const status = element("status");
-const textFields = ["base_url", "model", "artifact_revision", "runner_version"];
+const textFields = ["base_url", "model"];
 const numericFields = ["max_input_chars", "max_prompt_bytes", "max_output_tokens", "context_window_tokens", "timeout_seconds", "run_timeout_seconds"];
 
-// Keep the key only in the password input and the in-flight private tool call.
+// Keep the key in the masked input for this screen’s lifetime.
+// Only the in-flight private tool call receives a transient copy.
 // Never send settings through messages, model context, logs, or persistent UI state.
-const app = new App({ name: "Local Translation settings", version: "0.4.0" }, {}, { autoResize: true, strict: true });
+const app = new App({ name: "Local Translation settings", version: "0.5.0" }, {}, { autoResize: true, strict: true });
 let expectedRevision = null;
 let connected = false;
 let busy = false;
@@ -100,9 +101,6 @@ async function loadSettings() {
       for (const name of [...textFields, ...numericFields]) {
         if (typeof deployment[name] === "string" || typeof deployment[name] === "number") element(name).value = deployment[name];
       }
-      if (deployment.locales && typeof deployment.locales === "object") {
-        element("locales").value = Object.entries(deployment.locales).map(([locale, label]) => `${locale}=${label}`).join("\n");
-      }
     }
     if (settings.environment_override === true) {
       showStatus(safeErrors.environment_override);
@@ -115,7 +113,7 @@ async function loadSettings() {
     editable = true;
     showStatus(settings.configured
       ? (settings.credential_configured ? "Saved settings loaded. A saved API key is present; its value is hidden." : "Saved settings loaded. No API key is saved.")
-      : "Enter the running engine’s verified settings.");
+      : "Enter your endpoint and model name or ID.");
   } catch {
     if (!ended) {
       reload.hidden = false;
@@ -128,21 +126,32 @@ async function loadSettings() {
   }
 }
 
-credentialAction.addEventListener("change", () => {
-  clearKey();
-  updateControls();
-});
+credentialAction.addEventListener("change", updateControls);
 reload.addEventListener("click", loadSettings);
-cancel.addEventListener("click", () => {
-  clearKey();
+async function closeScreen(message) {
   ended = true;
   updateControls();
-  showStatus("Cancelled. Nothing was saved. You can close this popup.");
-});
+  showStatus(message + " Closing configuration… If it remains open, use the popup’s close button.");
+  // Use the host’s documented close API when injected. Other MCP Apps hosts
+  // receive the standard teardown request. Neither path clears a visible input.
+  if (typeof window.openai?.requestClose === "function") {
+    try {
+      await window.openai.requestClose();
+      return;
+    } catch {
+      // A host may expose this optional API without supporting this view.
+    }
+  }
+  try {
+    await app.requestTeardown();
+  } catch {
+    showStatus(message + " Close this popup using its close button.");
+  }
+}
+cancel.addEventListener("click", () => { closeScreen("Cancelled. Nothing was saved."); });
 migrate.addEventListener("click", async () => {
   if (!needsMigration || busy || ended) return;
   busy = true;
-  clearKey();
   updateControls();
   showStatus("Backing up and upgrading saved settings…");
   try {
@@ -158,7 +167,6 @@ migrate.addEventListener("click", async () => {
   } catch {
     if (!ended) showStatus("The upgrade response was interrupted. Reload saved settings to check their current state before trying again.", "error");
   } finally {
-    clearKey();
     busy = false;
     updateControls();
   }
@@ -166,42 +174,23 @@ migrate.addEventListener("click", async () => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!editable || busy || ended) { clearKey(); return; }
-  const invalid = form.querySelector("input:invalid, textarea:invalid, select:invalid");
+  if (!editable || busy || ended) return;
+  const invalid = form.querySelector("input:invalid, select:invalid");
   if (invalid) {
-    clearKey();
     if (invalid.closest("details")) invalid.closest("details").open = true;
     invalid.reportValidity();
     invalid.focus();
-    showStatus("Complete the required fields within their allowed limits. Re-enter a new API key if you chose Use a new key.", "error");
+    showStatus("Complete the required fields within their allowed limits. Your key remains in the masked field.", "error");
     return;
   }
   const payload = { deployment: {}, credential_action: credentialAction.value, expected_revision: expectedRevision };
   if (payload.credential_action === "replace") payload.api_key = key.value;
-  clearKey();
   try {
     const deployment = payload.deployment;
     for (const name of textFields) deployment[name] = element(name).value.trim();
-    for (const name of numericFields) deployment[name] = Number(element(name).value);
-    const locales = {};
-    for (const line of element("locales").value.split(/\r?\n/)) {
-      if (!line.trim()) continue;
-      const separator = line.indexOf("=");
-      const locale = line.slice(0, separator).trim();
-      const label = line.slice(separator + 1).trim();
-      if (separator < 1 || !locale || !label || Object.hasOwn(locales, locale)) {
-        showStatus("Use one unique locale=language label per line. Re-enter a new API key if needed.", "error");
-        element("locales").focus();
-        return;
-      }
-      Object.defineProperty(locales, locale, { value: label, enumerable: true });
+    for (const name of numericFields) {
+      if (element(name).value.trim() !== "") deployment[name] = Number(element(name).value);
     }
-    if (Object.keys(locales).length === 0) {
-      showStatus("Enter at least one allowed locale and language label.", "error");
-      element("locales").focus();
-      return;
-    }
-    deployment.locales = locales;
     busy = true;
     updateControls();
     showStatus("Checking the exact model and chat tokenizer…");
@@ -210,16 +199,14 @@ form.addEventListener("submit", async (event) => {
     const result = response.structuredContent;
     if (!response.isError && result?.saved === true) {
       expectedRevision = result.settings_revision;
-      ended = true;
-      credentialAction.value = "keep";
-      showStatus("Settings saved. Model and tokenizer checks passed. Run translation_health and a representative pilot before starting production work. You can close this popup.", "success");
+      await closeScreen("Settings saved. Model and tokenizer checks passed.");
     } else {
       if (["stale_configuration", "environment_override", "local_settings_failed", "migration_required"].includes(result?.code)) editable = false;
       if (result?.code === "migration_required") {
         needsMigration = true;
         element("migration").hidden = false;
       }
-      showStatus(safeError(result, "The compatibility check or save failed. Saved settings were preserved. Reload settings before trying again.") + (payload.credential_action === "replace" ? " Re-enter the new key before retrying." : ""), "error");
+      showStatus(safeError(result, "The compatibility check or save failed. Saved settings were preserved. Your key remains in the masked field. Reload settings before trying again."), "error");
     }
   } catch {
     if (!ended) {
@@ -228,7 +215,6 @@ form.addEventListener("submit", async (event) => {
     }
   } finally {
     delete payload.api_key;
-    clearKey();
     busy = false;
     updateControls();
   }
@@ -237,7 +223,7 @@ form.addEventListener("submit", async (event) => {
 app.onhostcontextchanged = applyHostContext;
 app.ontoolinput = () => {};
 app.ontoolresult = () => {};
-app.ontoolcancelled = () => { clearKey(); };
+app.ontoolcancelled = () => { closeScreen("Cancelled."); };
 app.onteardown = async () => {
   clearKey();
   ended = true;

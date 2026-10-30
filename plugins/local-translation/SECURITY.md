@@ -52,8 +52,10 @@ Avoid placing sensitive information in actor IDs or brief metadata.
 The configuration screen is a local MCP App resource opened by the native plugin
 settings action as a modal. It has no external scripts, network resources,
 browser-launch helper or HTTP setup listener. Its password field is never
-prefilled and is cleared after submission or cancellation. Settings and keys
-are not sent through `ui/message`, `ui/update-model-context` or saved widget state.
+prefilled. A new key remains masked in the current input until the screen
+refreshes or closes. Input errors, retries and tool responses do not clear it.
+Unsaved keys are not persisted across reloads. Settings and keys are not sent
+through `ui/message`, `ui/update-model-context` or saved widget state.
 Only an explicit Test and save action validates and replaces settings. It checks
 model listing and tokenization with synthetic text before saving; failed checks
 leave the previous file unchanged. An existing launch-environment override is
@@ -61,11 +63,13 @@ reported instead of changing the inactive saved configuration. Setup does not
 launch an engine, install models or grant access to a caller workspace. Engine
 settings and an optional credential persist separately from temporary jobs.
 
-Previous workspace-based settings are rejected until the operator runs the
+Earlier saved-settings schemas are rejected until the operator runs the
 explicit settings migration. That conversion locks the file, creates a private,
-non-overwriting backup of its exact bytes, then atomically writes engine-only
-settings. Backups can contain the optional credential and need the same private
-handling. Migration does not inspect, move or delete old job directories.
+non-overwriting backup of its exact bytes, then atomically writes the current
+endpoint/model configuration. It removes retired model-revision, runner-version
+and locale-registry fields, preserves supported budgets and the optional key,
+and removes the workspace setting when present. Backups can contain the optional
+credential and need the same private handling. Migration does not inspect, move or delete old job directories.
 
 ## Trust and authority
 
