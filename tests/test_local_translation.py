@@ -72,8 +72,8 @@ def runner():
                 state["on_completion"]()
             message = {"role": "assistant", "content": state["content"]}
             message.update(state.get("message_extra", {}))
-            self.send({"model": state["response_model"], "choices": [
-                {"finish_reason": state["finish_reason"], "message": message}]})
+            self.send(state.get("response", {"model": state["response_model"], "choices": [
+                {"finish_reason": state["finish_reason"], "message": message}]}))
 
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -97,8 +97,7 @@ class TranslationTests(unittest.TestCase):
         self.source.write_text("Hello {user}: 12", encoding="utf-8")
 
     def workbench(self, state):
-        config = {"base_url": state["url"], "model": "index-test", "artifact_revision": "abc123",
-                  "runner_version": "test-only", "locales": {"en-US": "English", "fr-FR": "French", "de-DE": "German"}}
+        config = {"base_url": state["url"], "model": "index-test"}
         self.config = self.root / "config.json"
         self.config.write_text(json.dumps(config), encoding="utf-8")
         return runtime.Workbench(self.config)
@@ -131,6 +130,32 @@ class TranslationTests(unittest.TestCase):
         response = json.loads(process.stdout.readline())["result"]
         self.assertFalse(response["isError"], response)
         return json.loads(response["content"][0]["text"])
+
+    def test_malformed_resource_uris_return_errors_without_losing_stdio_jobs(self):
+        self.workbench({"url": "http://127.0.0.1:8080/v1"})
+        process = self.start_server()
+        job = self.call_server(process, "translation_create_job", {
+            "source_text": "Retain this temporary source", "source_locale": "en-US",
+            "target_locales": ["fr-FR"], "brief": "Brief"})
+        for params in ({"uri": []}, {"uri": {}}, {"uri": None}, {"uri": 7}, {"uri": True}, {}, []):
+            with self.subTest(params=params):
+                process.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 2,
+                                               "method": "resources/read", "params": params}) + "\n")
+                process.stdin.flush()
+                line = process.stdout.readline()
+                self.assertTrue(line, "Malformed resource input must not terminate the MCP session")
+                response = json.loads(line)
+                self.assertEqual(response["error"]["code"], -32602)
+                process.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 3, "method": "ping"}) + "\n")
+                process.stdin.flush()
+                self.assertEqual(json.loads(process.stdout.readline())["result"], {})
+                self.assertIsNone(process.poll())
+        status = self.call_server(process, "translation_status", {"job_id": job["id"]})
+        self.assertEqual(status["id"], job["id"])
+        self.assertEqual(status["source_sha256"], job["source_sha256"])
+        process.stdin.close()
+        self.assertEqual(process.wait(timeout=10), 0)
+        self.assertEqual(process.stderr.read(), "")
 
     def test_temporary_session_returns_exact_multiline_drafts_and_delivery_over_stdio(self):
         with runner() as state:
@@ -268,10 +293,10 @@ class TranslationTests(unittest.TestCase):
     def test_engine_configuration_override_takes_precedence_without_a_workspace(self):
         with runner() as state, mock.patch.dict(os.environ, {"XDG_CONFIG_HOME": str(self.root / "preferences")}, clear=True):
             original = self.workbench(state).config
-            saved = {**original, "artifact_revision": "saved-revision"}
+            saved = {**original, "max_output_tokens": 1024}
             runtime.settings.save_settings(saved, validate=runtime.validate_config, verify=runtime.verify_deployment)
             with mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_CONFIG": str(self.config)}):
-                self.assertEqual(runtime.Workbench().config["artifact_revision"], "abc123")
+                self.assertEqual(runtime.Workbench().config["max_output_tokens"], 2048)
                 info = runtime.translation_settings()
                 self.assertEqual(info["configuration_source"], "environment")
                 self.assertTrue(info["environment_override"])
@@ -279,7 +304,7 @@ class TranslationTests(unittest.TestCase):
                 self.assertEqual(runtime.translation_open_settings()["settings_ui"], "in_app")
                 with self.assertRaisesRegex(runtime.settings.SettingsError, "Environment configuration is active"):
                     runtime.translation_save_settings(saved, "keep", runtime.settings.settings_revision())
-            self.assertEqual(runtime.Workbench().config["artifact_revision"], "saved-revision")
+            self.assertEqual(runtime.Workbench().config["max_output_tokens"], 1024)
             with mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_CONFIG": ""}):
                 self.assertFalse(runtime.translation_settings()["configured"])
 
@@ -297,7 +322,7 @@ class TranslationTests(unittest.TestCase):
             workbench.prepare_delivery(job)
             self.assertNotIn(secret, json.dumps(workbench.status(job, include_segments=True)))
             self.assertNotIn(secret, (workbench.jobdir(job) / "job.json").read_text())
-            changed = {**deployment, "artifact_revision": "new-revision"}
+            changed = {**deployment, "max_output_tokens": 1024}
             runtime.settings.save_settings(changed, validate=runtime.validate_config, verify=runtime.verify_deployment)
             current = runtime.Workbench()
             status = current.status(job)
@@ -377,6 +402,106 @@ class TranslationTests(unittest.TestCase):
             self.assertEqual(wire["messages"][0]["role"], "user")
             self.assertEqual(state["requests"][-2][1]["messages"], wire["messages"])
 
+    def test_optional_sampling_and_per_run_limits_reach_provider_and_delivery_evidence(self):
+        with runner() as state:
+            self.workbench(state)
+            config = json.loads(self.config.read_text())
+            config.update(temperature=0.8, top_p=0.9, top_k=40, seed=42,
+                          min_p=0.1, presence_penalty=0.2, frequency_penalty=-0.2, repetition_penalty=1.1)
+            self.config.write_text(json.dumps(config))
+            workbench = runtime.Workbench(self.config)
+            job = self.create(workbench)
+            supplied = {"temperature": 0.3, "max_output_tokens": 128, "stop": ["\n\n", "END"]}
+            candidate = workbench.run(job, "fr-FR", "translator", generation_options=supplied)
+            self.assertEqual(candidate["state"], "draft")
+            wire = state["requests"][-1][1]
+            self.assertEqual(wire["temperature"], 0.3)
+            for key in runtime.SAMPLING_SCHEMAS.keys() - {"temperature"}:
+                self.assertEqual(wire[key], config[key])
+            self.assertEqual(wire["max_tokens"], 128)
+            self.assertEqual(wire["stop"], supplied["stop"])
+            self.assertNotIn("max_output_tokens", wire)
+            self.assertNotIn("context_window_tokens", wire)
+            self.assertNotIn("response_format", wire)
+            self.assertEqual(workbench.status(job)["targets"]["fr-FR"]["generation_options"], candidate["generation_options"])
+            self.approve(workbench, job, candidate)
+            delivery = workbench.prepare_delivery(job)
+            self.assertEqual(delivery["artifacts"][0]["generation_options"], candidate["generation_options"])
+            before = workbench.status(job)
+            with self.assertRaisesRegex(runtime.TranslationError, "candidate already exists"):
+                workbench.run(job, "fr-FR", "translator", generation_options={"temperature": 1})
+            self.assertEqual(workbench.status(job), before)
+
+    def test_sampling_and_run_restrictions_are_bounded_before_network_or_job_mutation(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            job = self.create(workbench)
+            bad = [{"temperature": True}, {"temperature": float("nan")}, {"temperature": 2.01},
+                   {"top_p": -0.1}, {"top_k": 1.5}, {"top_k": 100001}, {"seed": -1},
+                   {"min_p": 1.1}, {"presence_penalty": -3}, {"frequency_penalty": 3},
+                   {"repetition_penalty": 0}, {"max_output_tokens": 0}, {"max_output_tokens": 2049},
+                   {"stop": []}, {"stop": [""]}, {"stop": ["x"] * 5}, {"stop": ["x" * 201]},
+                   {"stop": [1]}, {"stop": ["\ud800"]}, {"stream": True},
+                   {"response_format": {"type": "json_object"}}]
+            for options in bad:
+                with self.subTest(options=options), self.assertRaises(runtime.TranslationError):
+                    workbench.run(job, "fr-FR", "translator", generation_options=options)
+            self.assertEqual(state["requests"], [])
+            self.assertEqual(workbench.status(job)["targets"], {})
+
+    def test_lower_run_output_cap_is_used_by_context_guard_and_truncation_still_fails(self):
+        with runner() as state:
+            self.workbench(state)
+            config = json.loads(self.config.read_text())
+            config["context_window_tokens"] = 256
+            self.config.write_text(json.dumps(config))
+            workbench = runtime.Workbench(self.config)
+            candidate = workbench.run(self.create(workbench), "fr-FR", "translator", generation_options={"max_output_tokens": 64})
+            self.assertEqual(candidate["state"], "draft")
+            state["finish_reason"] = "length"
+            failed = workbench.run(self.create(workbench), "fr-FR", "translator", generation_options={"max_output_tokens": 64, "stop": ["END"]})
+            self.assertEqual(failed["state"], "failed")
+            self.assertNotIn("artifact", failed)
+
+    def test_caller_structured_request_preserves_messages_format_and_provider_response(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            messages = [{"role": "system", "content": "Return the requested JSON."},
+                        {"role": "user", "content": "Translate hello to French."}]
+            response_format = {"type": "json_schema", "json_schema": {"name": "caller_translation", "strict": True,
+                               "schema": {"type": "object", "properties": {"translation": {"type": "string"}},
+                                          "required": ["translation"], "additionalProperties": False},
+                               "caller_extension": {"preserve": True}}}
+            actual = {"id": "fixture-response", "model": "index-test", "choices": [
+                {"finish_reason": "stop", "message": {"role": "assistant", "content": '{"translation":"bonjour"}'}}],
+                "usage": {"completion_tokens": 8}, "provider_extension": {"actual": True}}
+            state["response"] = actual
+            reply = workbench.request(messages, {"response_format": response_format, "max_output_tokens": 64})
+            self.assertEqual(reply["response"], actual)
+            self.assertTrue(reply["unreviewed"])
+            self.assertTrue(reply["caller_managed"])
+            wire = state["requests"][-1][1]
+            self.assertEqual(wire["messages"], messages)
+            self.assertEqual(wire["response_format"], response_format)
+            self.assertNotIn("chat_template_kwargs", wire)
+            self.assertEqual(state["requests"][-2][1]["messages"], messages)
+            self.assertIsNone(runtime._session_directory)
+            self.assertNotIn("job_id", reply)
+
+    def test_caller_request_rejects_invalid_shapes_and_budgets_without_completions(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            for messages, options in (([], {}), ([{"role": "user", "content": 1}], {}),
+                                      ([{"role": [], "content": "Hello"}], {}),
+                                      ([{"role": "user", "content": "Hello", "model": "other"}], {}),
+                                      ([{"role": "user", "content": "Hello"}], {"response_format": []}),
+                                      ([{"role": "user", "content": "Hello"}], {"base_url": "http://other"})):
+                with self.subTest(messages=messages, options=options), self.assertRaises(runtime.TranslationError):
+                    workbench.request(messages, options)
+            with self.assertRaisesRegex(runtime.TranslationError, "byte budget"):
+                workbench.request([{"role": "user", "content": "x" * 33000}])
+            self.assertFalse(any(path == "/v1/chat/completions" for path, _ in state["requests"]))
+
     def test_configured_total_budget_allows_a_longer_multisegment_locale(self):
         with runner() as state:
             self.source.write_text("Hello {user}: 12\n\nHello {user}: 12\n\nHello {user}: 12")
@@ -408,9 +533,7 @@ class TranslationTests(unittest.TestCase):
                         self.assertNotIn("artifact", candidate)
 
     def test_total_run_budget_validation_and_request_timeout_remain_separate(self):
-        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "index-test",
-                  "artifact_revision": "verified-revision", "runner_version": "verified-runner",
-                  "locales": {"en-US": "English", "fr-FR": "French"}}
+        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "index-test"}
         self.assertEqual(runtime.validate_config(config)["run_timeout_seconds"], 120)
         for value in (1, 540):
             self.assertEqual(runtime.validate_config({**config, "run_timeout_seconds": value})["run_timeout_seconds"], value)
@@ -526,7 +649,7 @@ class TranslationTests(unittest.TestCase):
             self.assertTrue(workbench.status(job)["source_current"])
             self.assertEqual(workbench.status(job, include_segments=True)["segments"][0]["text"], "Hello {user}: 12")
             config = json.loads(self.config.read_text())
-            config["artifact_revision"] = "new-artifact"
+            config["max_output_tokens"] = 1024
             self.config.write_text(json.dumps(config))
             with self.assertRaisesRegex(runtime.TranslationError, "configuration changed"):
                 runtime.Workbench(self.config).run(job, "fr-FR", "translator")
@@ -688,7 +811,7 @@ class TranslationTests(unittest.TestCase):
                         artifact.unlink()
                     elif drift == "config":
                         config = json.loads(self.config.read_text())
-                        config["artifact_revision"] = "changed-model-artifact"
+                        config["max_output_tokens"] = 1024
                         self.config.write_text(json.dumps(config))
                         workbench = runtime.Workbench(self.config)
                     else:
@@ -727,7 +850,7 @@ class TranslationTests(unittest.TestCase):
                         (workbench.jobdir(job) / candidate["artifact"]).unlink()
                     elif drift == "config":
                         config = json.loads(self.config.read_text())
-                        config["artifact_revision"] = "changed-model-artifact"
+                        config["max_output_tokens"] = 1024
                         self.config.write_text(json.dumps(config))
                         workbench = runtime.Workbench(self.config)
                     else:
@@ -796,25 +919,44 @@ class TranslationTests(unittest.TestCase):
         path.write_bytes(b" " * (runtime.MAX_FILE + 1))
         with self.assertRaisesRegex(runtime.TranslationError, "size limit"):
             runtime.Workbench(path)
-        for content in ([], {"base_url": 42}, {"base_url": "http://127.0.0.1:8080/v1", "model": "index", "artifact_revision": "x", "runner_version": "x", "locales": []}):
+        for content in ([], {"base_url": 42}, {"base_url": "http://127.0.0.1:8080/v1", "model": 1}):
             path.write_text(json.dumps(content))
             with self.subTest(content=content), self.assertRaises(runtime.TranslationError):
                 runtime.Workbench(path)
 
-    def test_example_provenance_placeholders_are_rejected_before_network_access(self):
-        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "REPLACE_WITH_CUSTOM_ALIAS",
-                  "artifact_revision": "verified-revision", "runner_version": "verified-runner",
-                  "locales": {"en-US": "English", "fr-FR": "French"}}
-        self.assertEqual(runtime.validate_config(config)["model"], "REPLACE_WITH_CUSTOM_ALIAS")
-        path = self.root / "config.json"
-        for field in ("artifact_revision", "runner_version"):
-            with self.subTest(field=field):
-                invalid = {**config, field: "REPLACE_WITH_VERIFIED_DEPLOYMENT_VALUE"}
-                path.write_text(json.dumps(invalid))
-                with mock.patch.object(runtime.Workbench, "http") as network:
-                    with self.assertRaisesRegex(runtime.TranslationError, "Replace the example placeholder"):
-                        runtime.Workbench(path).health()
-                    network.assert_not_called()
+    def test_minimal_connection_runs_job_locales_without_a_registry_or_manual_provenance(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            self.assertTrue(workbench.health()["runner_model_available"])
+            job = workbench.create_job(source_locale="ja-JP", target_locales=["ga-IE"],
+                                       brief="Keep the source meaning", source_text=self.source.read_text())["id"]
+            candidate = workbench.run(job, "ga-IE", "translator")
+            self.assertEqual(candidate["state"], "draft")
+            prompt = next(payload["messages"][0]["content"] for path, payload in state["requests"]
+                          if path == "/v1/chat/completions")
+            self.assertIn("from ja-JP into ga-IE", prompt)
+            self.assertEqual(candidate["content"], state["content"])
+            stored = json.loads((workbench.jobdir(job) / "job.json").read_text())
+            for retired in ("artifact_revision", "runner_version", "locales"):
+                self.assertNotIn(retired, stored)
+                self.assertNotIn(retired, workbench.health())
+
+    def test_retired_connection_metadata_is_rejected_before_network_access(self):
+        config = {"base_url": "http://127.0.0.1:8080/v1", "model": "index-test"}
+        for field in ("artifact_revision", "runner_version", "locales"):
+            with self.subTest(field=field), mock.patch.object(runtime.Workbench, "http") as network:
+                with self.assertRaises(runtime.TranslationError):
+                    runtime.Workbench(deployment={**config, field: "retired"}).health()
+                network.assert_not_called()
+
+    def test_job_locale_tags_are_valid_distinct_and_different_from_source(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            for source, targets in ((None, ["fr-FR"]), ("English", ["fr-FR"]),
+                                    ("en-US", [1]), ("en-US", ["en-us"]),
+                                    ("en-US", ["fr-FR", "fr-fr"]), ("en-US", ["invalid locale"])):
+                with self.subTest(source=source, targets=targets), self.assertRaises(runtime.TranslationError):
+                    workbench.create_job(source_locale=source, target_locales=targets, brief="Brief", source_text="Hello")
 
     def test_shared_queries_invalidate_all_locales_and_new_authors_cannot_self_review(self):
         with runner() as state:
@@ -878,11 +1020,7 @@ class TranslationTests(unittest.TestCase):
             self.source.write_text("First paragraph.\n\nSecond paragraph.")
             state["content"] = "é" * 110000
             workbench = self.workbench(state)
-            config = json.loads(self.config.read_text())
             locales = ["fr-FR", "de-DE", "es-ES", "it-IT", "pt-PT"]
-            config["locales"].update({locale: locale for locale in locales})
-            self.config.write_text(json.dumps(config))
-            workbench = runtime.Workbench(self.config)
             job = workbench.create_job(source_locale="en-US", target_locales=locales, brief="Brief", source_text=self.source.read_text())["id"]
             for locale in locales:
                 candidate = workbench.run(job, locale, "translator-" + locale)
@@ -954,8 +1092,8 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(responses[0]["error"]["code"], -32700)
         self.assertEqual(responses[1]["result"]["protocolVersion"], runtime.PROTOCOL)
         tools = responses[2]["result"]["tools"]
-        self.assertEqual(len(tools), 14)
-        self.assertEqual(len([t for t in tools if "app" not in t.get("_meta", {}).get("ui", {}).get("visibility", [])]), 10)
+        self.assertEqual(len(tools), 16)
+        self.assertEqual(len([t for t in tools if "app" not in t.get("_meta", {}).get("ui", {}).get("visibility", [])]), 11)
         status_tool = next(tool for tool in responses[2]["result"]["tools"] if tool["name"] == "translation_status")
         self.assertFalse(status_tool["annotations"]["readOnlyHint"])
         for name in ("translation_settings", "translation_health"):

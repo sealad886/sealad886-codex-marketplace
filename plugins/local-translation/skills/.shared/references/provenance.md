@@ -49,8 +49,10 @@ authentication or distribution architecture has been built.
 
 ## Current upstream integration references
 
-Use the deployment's actual pinned revisions and confirm API behavior before
-production. These primary sources define upstream identities and interfaces:
+Confirm the configured endpoint's behavior before production. Connection setup
+requires only its endpoint and model name/ID, with an optional API key; upstream
+software or artifact revisions are not configuration requirements. These primary
+sources describe upstream identities and interfaces:
 
 - [Index-Translate repository](https://github.com/bilibili/Index-Translate): model
   family and local inference entry points.

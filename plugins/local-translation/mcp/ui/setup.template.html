@@ -32,13 +32,12 @@
     .notice { background: var(--lt-surface); border: 1px solid var(--lt-border); border-radius: 10px; padding: 12px 14px; }
     .hint { color: var(--lt-muted); font-size: 12px; margin: 5px 0 12px; }
     label { display: block; font-size: 13px; font-weight: 600; margin: 16px 0 5px; }
-    input, textarea, select, button { font: inherit; color: inherit; }
-    input, textarea, select { width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid var(--lt-border); border-radius: 7px; background: var(--lt-background); }
+    input, select, button { font: inherit; color: inherit; }
+    input, select { width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid var(--lt-border); border-radius: 7px; background: var(--lt-background); }
     input::placeholder { color: var(--lt-muted); opacity: .85; }
-    textarea { min-height: 104px; resize: vertical; }
     :focus-visible { outline: 2px solid var(--lt-accent); outline-offset: 3px; }
     fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-    fieldset:disabled input, fieldset:disabled textarea, fieldset:disabled select { opacity: .65; }
+    fieldset:disabled input, fieldset:disabled select { opacity: .65; }
     button { min-height: 40px; padding: 9px 16px; border: 1px solid var(--lt-border); border-radius: 7px; background: var(--lt-background); cursor: pointer; font-weight: 600; }
     button.primary { background: light-dark(#08756e, #8ce0d3); border-color: transparent; color: light-dark(#fff, #102d29); }
     button:disabled { opacity: .6; cursor: default; }
@@ -68,7 +67,7 @@
     <p class="notice hint">Saving checks the exact model and chat tokenizer, including <code>POST /tokenize</code>. It does not generate translations or download models.</p>
     <section id="migration" class="notice" hidden aria-labelledby="migration-title">
       <h2 id="migration-title">Upgrade saved settings</h2>
-      <p>Your saved settings use the earlier workspace format. Create a backup and keep the inference engine settings in the current format. Existing project files stay where they are.</p>
+      <p>Your saved settings use an earlier format. Create a backup and keep the endpoint, model, optional key and limits. Translation languages now come from each request. Existing project files stay where they are.</p>
       <button id="migrate" class="primary" type="button">Back up and upgrade saved settings</button>
     </section>
     <form id="settings" novalidate autocomplete="off">
@@ -77,35 +76,37 @@
         <label for="base_url">Local engine URL</label>
         <input id="base_url" type="url" required maxlength="200" placeholder="http://127.0.0.1:8080/v1" spellcheck="false" aria-describedby="base_url-help">
         <p class="hint" id="base_url-help">Use the port in your oMLX or runner settings and end with /v1. Use a numeric loopback address such as 127.0.0.1, rather than localhost.</p>
-        <label for="model">Exact served model name</label>
-        <input id="model" required maxlength="200" placeholder="Model alias reported by your engine" spellcheck="false" aria-describedby="model-help">
-        <p class="hint" id="model-help">Must match the model alias returned by your engine’s /v1/models endpoint.</p>
-        <div class="grid">
-          <div><label for="artifact_revision">Model artifact / revision</label><input id="artifact_revision" required maxlength="200" placeholder="Pinned revision and quantization"></div>
-          <div><label for="runner_version">Runner version / build</label><input id="runner_version" required maxlength="200" placeholder="Installed runner version"></div>
-        </div>
-        <p class="hint">Use metadata verified in your deployment. A connection check cannot verify the model’s files or training.</p>
-        <label for="locales">Allowed languages and locales</label>
-        <textarea id="locales" required spellcheck="false" aria-describedby="locales-help">en-US=English (United States)
-fr-FR=French (France)
-de-DE=German (Germany)</textarea>
-        <p class="hint" id="locales-help">One locale=language label per line. Include the source and every target locale you intend to use and qualify.</p>
         <h2>Engine authentication</h2>
         <label for="credential_action">API key</label>
         <select id="credential_action"><option value="keep">Keep the saved key, if any</option><option value="replace">Use a new key</option><option value="clear">Clear the saved key; use no authentication</option></select>
         <label for="api_key">New API key</label>
         <input id="api_key" type="password" maxlength="4096" autocomplete="new-password" spellcheck="false" disabled aria-describedby="api_key-help">
         <p class="hint" id="api_key-help">Enter your key here, never in chat. Saved keys remain in your private local settings file, in plaintext (0600 on POSIX), outside the plugin installation. The assistant receives no key value. Processes running as your user can read the file.</p>
+        <h2>Model</h2>
+        <button id="load_models" type="button">Load models</button>
+        <label for="model">Available model</label>
+        <select id="model" required disabled aria-describedby="model-help"><option value="">Load models, then choose a model</option></select>
+        <p class="hint" id="model-help">Models come from this endpoint using the optional key above. Choose an ID returned by the engine; no model is selected automatically.</p>
         <details>
-          <summary>Generation limits and timeouts</summary>
-          <p class="hint">Use limits supported by the engine. Its context window must fit the prompt and output. Changing deployment settings requires a replacement translation job.</p>
+          <summary>Advanced model settings and limits</summary>
+          <p class="hint">Optional. Leave sampling fields blank to use the engine’s defaults. Temperature defaults to 0. The context budget below checks prompt and output size in this plugin; it does not resize or reload the served model. Changing these settings requires a replacement translation job.</p>
           <div class="grid">
-            <div><label for="max_input_chars">Input characters per segment</label><input id="max_input_chars" type="number" min="1" max="32000" value="8000" required></div>
-            <div><label for="max_prompt_bytes">Prompt bytes per segment</label><input id="max_prompt_bytes" type="number" min="100" max="128000" value="32000" required></div>
-            <div><label for="max_output_tokens">Maximum output tokens</label><input id="max_output_tokens" type="number" min="16" max="8192" value="2048" required></div>
-            <div><label for="context_window_tokens">Served context window (tokens)</label><input id="context_window_tokens" type="number" min="128" max="262144" value="16384" required></div>
-            <div><label for="timeout_seconds">Request timeout (seconds)</label><input id="timeout_seconds" type="number" min="1" max="60" value="30" required></div>
-            <div><label for="run_timeout_seconds">Whole-locale timeout (seconds)</label><input id="run_timeout_seconds" type="number" min="1" max="540" value="120" required></div>
+            <div><label for="temperature">Temperature</label><input id="temperature" type="number" min="0" max="2" step="any" placeholder="0"></div>
+            <div><label for="top_p">Top p</label><input id="top_p" type="number" min="0" max="1" step="any" placeholder="Engine default"></div>
+            <div><label for="top_k">Top k</label><input id="top_k" type="number" min="0" max="100000" step="1" placeholder="Engine default"></div>
+            <div><label for="seed">Seed</label><input id="seed" type="number" min="0" max="2147483647" step="1" placeholder="Engine default"></div>
+            <div><label for="min_p">Min p</label><input id="min_p" type="number" min="0" max="1" step="any" placeholder="Engine default"></div>
+            <div><label for="presence_penalty">Presence penalty</label><input id="presence_penalty" type="number" min="-2" max="2" step="any" placeholder="Engine default"></div>
+            <div><label for="frequency_penalty">Frequency penalty</label><input id="frequency_penalty" type="number" min="-2" max="2" step="any" placeholder="Engine default"></div>
+            <div><label for="repetition_penalty">Repetition penalty (greater than 0)</label><input id="repetition_penalty" type="number" min="0" max="10" step="any" placeholder="Engine default"></div>
+          </div>
+          <div class="grid">
+            <div><label for="max_input_chars">Input characters per segment</label><input id="max_input_chars" type="number" min="1" max="32000" value="8000"></div>
+            <div><label for="max_prompt_bytes">Prompt bytes per segment</label><input id="max_prompt_bytes" type="number" min="100" max="128000" value="32000"></div>
+            <div><label for="max_output_tokens">Maximum output tokens</label><input id="max_output_tokens" type="number" min="16" max="8192" value="2048"></div>
+            <div><label for="context_window_tokens">Context budget (tokens)</label><input id="context_window_tokens" type="number" min="128" max="262144" value="16384"></div>
+            <div><label for="timeout_seconds">Request timeout (seconds)</label><input id="timeout_seconds" type="number" min="1" max="60" value="30"></div>
+            <div><label for="run_timeout_seconds">Whole-locale timeout (seconds)</label><input id="run_timeout_seconds" type="number" min="1" max="540" value="120"></div>
           </div>
         </details>
       </fieldset>

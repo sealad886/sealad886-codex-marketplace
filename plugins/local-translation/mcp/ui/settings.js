@@ -10,18 +10,24 @@ const cancel = element("cancel");
 const reload = element("reload");
 const migrate = element("migrate");
 const status = element("status");
-const textFields = ["base_url", "model", "artifact_revision", "runner_version"];
-const numericFields = ["max_input_chars", "max_prompt_bytes", "max_output_tokens", "context_window_tokens", "timeout_seconds", "run_timeout_seconds"];
+const model = element("model");
+const loadModels = element("load_models");
+const samplingFields = ["temperature", "top_p", "top_k", "seed", "min_p", "presence_penalty", "frequency_penalty", "repetition_penalty"];
+const numericFields = ["max_input_chars", "max_prompt_bytes", "max_output_tokens", "context_window_tokens", "timeout_seconds", "run_timeout_seconds", ...samplingFields];
 
-// Keep the key only in the password input and the in-flight private tool call.
+// Keep the key in the masked input for this screen’s lifetime.
+// Only the in-flight private tool call receives a transient copy.
 // Never send settings through messages, model context, logs, or persistent UI state.
-const app = new App({ name: "Local Translation settings", version: "0.4.0" }, {}, { autoResize: true, strict: true });
+const app = new App({ name: "Local Translation settings", version: "0.5.0" }, {}, { autoResize: true, strict: true });
 let expectedRevision = null;
 let connected = false;
 let busy = false;
 let editable = false;
 let ended = false;
 let needsMigration = false;
+let loadedModels = [];
+let modelsEndpoint = null;
+let preferredModel = null;
 
 const safeErrors = {
   invalid_input: "Enter valid engine settings. Nothing was saved.",
@@ -30,6 +36,7 @@ const safeErrors = {
   settings_busy: "Another settings save is active. Nothing was saved. Wait for it to finish, then try again.",
   stale_configuration: "Settings changed while this popup was open. Nothing was saved. Reload saved settings before trying again.",
   verification_failed: "The engine compatibility check failed. Nothing was saved. Check the endpoint, exact model alias and chat tokenizer support.",
+  model_list_failed: "The endpoint did not return an available model list. Check its OpenAI-compatible models endpoint and try again.",
   model_unavailable: "The engine does not list this exact model alias. Check the served model name. Nothing was saved.",
   tokenizer_unsupported: "This engine must support POST /tokenize with chat messages and return a positive token count. Check your installed engine version. Nothing was saved.",
   runner_unreachable: "Could not reach this local engine. Start it, check the port and API key, then try again. Nothing was saved.",
@@ -40,19 +47,36 @@ const safeErrors = {
 };
 
 function clearKey() { key.value = ""; }
+function endpointValue() { return element("base_url").value.trim().replace(/\/+$/, ""); }
+function handleSettingsFailure(result) {
+  if (["stale_configuration", "environment_override", "local_settings_failed", "migration_required"].includes(result?.code)) editable = false;
+  if (result?.code === "migration_required") {
+    needsMigration = true;
+    element("migration").hidden = false;
+  }
+}
 function showStatus(message, tone = "") {
   status.textContent = message;
   status.dataset.tone = tone;
 }
 function updateControls() {
   fields.disabled = !editable || busy || ended;
-  save.disabled = fields.disabled;
+  model.disabled = fields.disabled || modelsEndpoint === null;
+  loadModels.disabled = fields.disabled;
+  save.disabled = fields.disabled || modelsEndpoint === null || !model.value;
   cancel.disabled = busy || ended;
   reload.disabled = busy || ended || !connected;
   migrate.disabled = busy || ended || !connected;
   form.setAttribute("aria-busy", String(busy));
   key.disabled = fields.disabled || credentialAction.value !== "replace";
   key.required = !key.disabled;
+}
+function resetModels() {
+  loadedModels = [];
+  modelsEndpoint = null;
+  model.replaceChildren(new Option("Load models, then choose a model", ""));
+  loadModels.textContent = "Load models";
+  updateControls();
 }
 function applyHostContext(context) {
   if (context.theme) applyDocumentTheme(context.theme);
@@ -75,6 +99,9 @@ async function loadSettings() {
   editable = false;
   clearKey();
   credentialAction.value = "keep";
+  preferredModel = null;
+  resetModels();
+  for (const name of samplingFields) element(name).value = "";
   showStatus("Loading saved settings…");
   updateControls();
   try {
@@ -97,11 +124,9 @@ async function loadSettings() {
     }
     if (settings.configured && settings.deployment && typeof settings.deployment === "object") {
       const deployment = settings.deployment;
-      for (const name of [...textFields, ...numericFields]) {
+      preferredModel = typeof deployment.model === "string" ? deployment.model : null;
+      for (const name of ["base_url", ...numericFields]) {
         if (typeof deployment[name] === "string" || typeof deployment[name] === "number") element(name).value = deployment[name];
-      }
-      if (deployment.locales && typeof deployment.locales === "object") {
-        element("locales").value = Object.entries(deployment.locales).map(([locale, label]) => `${locale}=${label}`).join("\n");
       }
     }
     if (settings.environment_override === true) {
@@ -115,7 +140,7 @@ async function loadSettings() {
     editable = true;
     showStatus(settings.configured
       ? (settings.credential_configured ? "Saved settings loaded. A saved API key is present; its value is hidden." : "Saved settings loaded. No API key is saved.")
-      : "Enter the running engine’s verified settings.");
+      : "Enter your endpoint and optional key, then load its models.");
   } catch {
     if (!ended) {
       reload.hidden = false;
@@ -128,21 +153,80 @@ async function loadSettings() {
   }
 }
 
-credentialAction.addEventListener("change", () => {
-  clearKey();
-  updateControls();
+element("base_url").addEventListener("input", () => { preferredModel = null; resetModels(); });
+credentialAction.addEventListener("change", resetModels);
+key.addEventListener("input", resetModels);
+model.addEventListener("change", updateControls);
+loadModels.addEventListener("click", async () => {
+  if (!editable || busy || ended) return;
+  const endpoint = element("base_url");
+  if (!endpoint.checkValidity() || (credentialAction.value === "replace" && !key.checkValidity())) {
+    const invalid = !endpoint.checkValidity() ? endpoint : key;
+    invalid.reportValidity();
+    invalid.focus();
+    showStatus("Enter the endpoint and optional key before loading models. Your key remains masked.", "error");
+    return;
+  }
+  const previousSelection = model.value || preferredModel;
+  const payload = { base_url: endpointValue(), credential_action: credentialAction.value, expected_revision: expectedRevision };
+  if (payload.credential_action === "replace") payload.api_key = key.value;
+  busy = true;
+  resetModels();
+  showStatus("Loading models from this endpoint…");
+  try {
+    const response = await call("translation_list_models", payload, 150000);
+    if (ended) return;
+    const result = response.structuredContent;
+    if (response.isError) {
+      handleSettingsFailure(result);
+      showStatus(safeError(result, "Could not load models. Check the endpoint and optional key, then try again."), "error");
+      return;
+    }
+    if (!result || result.base_url !== payload.base_url || !Array.isArray(result.models) ||
+        !result.models.length || result.models.some(id => typeof id !== "string" || !id.trim())) {
+      showStatus(safeErrors.model_list_failed, "error");
+      return;
+    }
+    loadedModels = [...new Set(result.models)];
+    modelsEndpoint = payload.base_url;
+    model.replaceChildren(new Option("Choose a model", ""), ...loadedModels.map(id => new Option(id, id)));
+    if (previousSelection && loadedModels.includes(previousSelection)) model.value = previousSelection;
+    loadModels.textContent = "Refresh models";
+    showStatus(model.value ? "Models loaded. The saved or selected model is available." :
+      (previousSelection ? "The previously selected model was not returned. Choose an available model." : "Models loaded. Choose the model to use."));
+  } catch {
+    if (!ended) showStatus("Could not load models. Check the endpoint and optional key, then try again.", "error");
+  } finally {
+    delete payload.api_key;
+    busy = false;
+    updateControls();
+  }
 });
 reload.addEventListener("click", loadSettings);
-cancel.addEventListener("click", () => {
-  clearKey();
+async function closeScreen(message) {
   ended = true;
   updateControls();
-  showStatus("Cancelled. Nothing was saved. You can close this popup.");
-});
+  showStatus(message + " Closing configuration… If it remains open, use the popup’s close button.");
+  // Use the host’s documented close API when injected. Other MCP Apps hosts
+  // receive the standard teardown request. Neither path clears a visible input.
+  if (typeof window.openai?.requestClose === "function") {
+    try {
+      await window.openai.requestClose();
+      return;
+    } catch {
+      // A host may expose this optional API without supporting this view.
+    }
+  }
+  try {
+    await app.requestTeardown();
+  } catch {
+    showStatus(message + " Close this popup using its close button.");
+  }
+}
+cancel.addEventListener("click", () => { closeScreen("Cancelled. Nothing was saved."); });
 migrate.addEventListener("click", async () => {
   if (!needsMigration || busy || ended) return;
   busy = true;
-  clearKey();
   updateControls();
   showStatus("Backing up and upgrading saved settings…");
   try {
@@ -158,7 +242,6 @@ migrate.addEventListener("click", async () => {
   } catch {
     if (!ended) showStatus("The upgrade response was interrupted. Reload saved settings to check their current state before trying again.", "error");
   } finally {
-    clearKey();
     busy = false;
     updateControls();
   }
@@ -166,42 +249,28 @@ migrate.addEventListener("click", async () => {
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (!editable || busy || ended) { clearKey(); return; }
-  const invalid = form.querySelector("input:invalid, textarea:invalid, select:invalid");
+  if (!editable || busy || ended) return;
+  if (modelsEndpoint !== endpointValue() || !loadedModels.includes(model.value)) {
+    showStatus("Load models from this endpoint and choose a model before saving.", "error");
+    return;
+  }
+  const invalid = form.querySelector("input:invalid, select:invalid");
   if (invalid) {
-    clearKey();
     if (invalid.closest("details")) invalid.closest("details").open = true;
     invalid.reportValidity();
     invalid.focus();
-    showStatus("Complete the required fields within their allowed limits. Re-enter a new API key if you chose Use a new key.", "error");
+    showStatus("Complete the required fields within their allowed limits. Your key remains in the masked field.", "error");
     return;
   }
   const payload = { deployment: {}, credential_action: credentialAction.value, expected_revision: expectedRevision };
   if (payload.credential_action === "replace") payload.api_key = key.value;
-  clearKey();
   try {
     const deployment = payload.deployment;
-    for (const name of textFields) deployment[name] = element(name).value.trim();
-    for (const name of numericFields) deployment[name] = Number(element(name).value);
-    const locales = {};
-    for (const line of element("locales").value.split(/\r?\n/)) {
-      if (!line.trim()) continue;
-      const separator = line.indexOf("=");
-      const locale = line.slice(0, separator).trim();
-      const label = line.slice(separator + 1).trim();
-      if (separator < 1 || !locale || !label || Object.hasOwn(locales, locale)) {
-        showStatus("Use one unique locale=language label per line. Re-enter a new API key if needed.", "error");
-        element("locales").focus();
-        return;
-      }
-      Object.defineProperty(locales, locale, { value: label, enumerable: true });
+    deployment.base_url = endpointValue();
+    deployment.model = model.value;
+    for (const name of numericFields) {
+      if (element(name).value.trim() !== "") deployment[name] = Number(element(name).value);
     }
-    if (Object.keys(locales).length === 0) {
-      showStatus("Enter at least one allowed locale and language label.", "error");
-      element("locales").focus();
-      return;
-    }
-    deployment.locales = locales;
     busy = true;
     updateControls();
     showStatus("Checking the exact model and chat tokenizer…");
@@ -210,16 +279,10 @@ form.addEventListener("submit", async (event) => {
     const result = response.structuredContent;
     if (!response.isError && result?.saved === true) {
       expectedRevision = result.settings_revision;
-      ended = true;
-      credentialAction.value = "keep";
-      showStatus("Settings saved. Model and tokenizer checks passed. Run translation_health and a representative pilot before starting production work. You can close this popup.", "success");
+      await closeScreen("Settings saved. Model and tokenizer checks passed.");
     } else {
-      if (["stale_configuration", "environment_override", "local_settings_failed", "migration_required"].includes(result?.code)) editable = false;
-      if (result?.code === "migration_required") {
-        needsMigration = true;
-        element("migration").hidden = false;
-      }
-      showStatus(safeError(result, "The compatibility check or save failed. Saved settings were preserved. Reload settings before trying again.") + (payload.credential_action === "replace" ? " Re-enter the new key before retrying." : ""), "error");
+      handleSettingsFailure(result);
+      showStatus(safeError(result, "The compatibility check or save failed. Saved settings were preserved. Your key remains in the masked field. Reload settings before trying again."), "error");
     }
   } catch {
     if (!ended) {
@@ -228,7 +291,6 @@ form.addEventListener("submit", async (event) => {
     }
   } finally {
     delete payload.api_key;
-    clearKey();
     busy = false;
     updateControls();
   }
@@ -237,7 +299,7 @@ form.addEventListener("submit", async (event) => {
 app.onhostcontextchanged = applyHostContext;
 app.ontoolinput = () => {};
 app.ontoolresult = () => {};
-app.ontoolcancelled = () => { clearKey(); };
+app.ontoolcancelled = () => { closeScreen("Cancelled."); };
 app.onteardown = async () => {
   clearKey();
   ended = true;

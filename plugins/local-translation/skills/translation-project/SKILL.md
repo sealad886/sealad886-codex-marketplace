@@ -37,6 +37,7 @@ accepting those products; a skill describes expertise, not a missing media engin
   user authorization and any unresolved material decisions.
 - Permitted data flow, caller-managed result retention and disclosure to host agents.
 - Available host agents, slots, tools, context capacity and local runner budget.
+- Requested optional sampling settings and per-translation output controls.
 - Actual skill discovery, deployed model/pair qualification and
   `translation_health` evidence when local drafting is commissioned.
 
@@ -51,17 +52,19 @@ For first-run setup or a request to change runner settings, call
 `translation_settings` before commissioning translation. If unconfigured, offer
 `translation_open_settings` to open the bundled in-app form. The native plugin
 settings page also has **Configure local inference**, which opens the form as a
-modal. The user enters deployment metadata and any credential directly in its
-masked field; app-only operations handle saving outside model turns. There is
-no translation workspace setting. Never ask for a runner key in chat or change
+modal. The user enters the engine endpoint and any optional credential in its
+masked field, chooses **Load models**, selects the model from the dropdown and
+saves. App-only operations handle model discovery and saving outside model turns. There is no translation workspace setting. Never ask for a runner key in chat or change
 the client's MCP settings or plugin cache. Do not substitute an external browser
 or collect a key through ordinary elicitation/chat. If the host cannot render
 MCP Apps, report that limitation and use an already configured engine only.
 Retired saved settings require the user's explicit **Back up and upgrade saved
 settings** action; do not invoke migration on the user's behalf during inspection.
+Source and target locale codes belong to the job, not the connection setup.
 Saved settings apply on the next call; verify `translation_health` afterward.
-Report missing engine/tokenization support honestly. Do not invent deployment
-metadata or start installing a runner as a side effect of setup.
+Report missing engine/tokenization support honestly. Do not request a pinned
+model revision, runner version or language registry to configure the connection,
+and do not install a runner as a side effect of setup.
 
 Host agents may use cloud providers even when Index inference is local. Resolve
 permitted disclosure before distributing source or target content. Metadata-only

@@ -8,7 +8,8 @@
 - Deliverable formats and final presentation/product/media checks:
 - Adaptation rights, preserved facts, names, numbers, units and functional tokens:
 - Reference hierarchy; glossary/style/UI resource identities and revisions:
-- Local runner, exact model artifact/quantization/template/runtime and pair evidence:
+- Local engine endpoint/model ID, connection check and representative pair results:
+- Optional generation settings and requested per-translation output limits:
 - Approved host-agent/inference data flow and permitted disclosures:
 - Required self-check, independent AI/human revision and specialist coverage:
 - Actual client content owner and release/acceptance authority:

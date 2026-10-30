@@ -19,7 +19,11 @@ registry access; running the installed popup does not.
 
 Before writing the artifact, the build verifies that the HTML preserves exactly
 one complete inline bundle and parses that emitted script with Node's `vm.Script`
-without executing it. Dollar sequences in bundled code remain literal.
+without executing it. Dollar sequences in bundled code remain literal. The build
+removes console calls from this bundled private form because the SDK’s transport
+otherwise logs full JSON-RPC payloads. This does not patch global console or
+suppress the form’s visible errors; arbitrary host diagnostics remain outside
+the plugin’s control.
 
 The native host opens the modal from the `translation_open_settings` tool's UI
 resource association. The controller uses `App.callServerTool` for app-only
@@ -29,16 +33,38 @@ resource association. The controller uses `App.callServerTool` for app-only
 the host theme and style variables.
 
 The controller sends no chat messages, model-context updates, or persistent UI
-state. It never prefills a saved key, clears the password field on submission,
-failure, cancellation, page hide, and resource teardown, and shows only fixed
-safe error messages. The private save call carries an entered key directly to
-the MCP server; no claim is made about arbitrary host debug logging. Cancel
-clears the form's key and ends editing; the host's close button dismisses the
-popup. Interrupted saves require a reload to check current settings before retry.
+state. It never prefills a saved key. The masked field retains an entered key for
+that screen’s lifetime, including validation errors, failed saves, pending calls,
+and any successful result still visible before the host closes it. It clears
+only on actual resource teardown, page hide, or refresh/reload. No key is stored
+in localStorage, sessionStorage or widget state. It shows only fixed safe errors.
+The private save call carries an entered key directly to the MCP server; its
+transient payload copy is deleted after the call. No claim is made about
+arbitrary host debug logging.
 
-The explicit migration button backs up the earlier workspace-format settings
-before converting them through the existing server migrator. Migration never
-runs automatically. Environment-supplied configuration remains read-only.
+Success and Cancel call the documented `window.openai.requestClose()` when the
+host injects it. Otherwise the official SDK’s `App.requestTeardown()` sends
+`ui/notifications/request-teardown` to request dismissal of the entire resource.
+The host decides whether to close it; standard MCP Apps teardown invokes
+`onteardown` before unmounting.
+If a host leaves the form visible, the typed key remains masked until the user
+closes or refreshes it. Interrupted saves require a reload to check current
+settings before retry.
+
+Enter an endpoint and optional key, choose **Load models**, then select the actual
+returned ID from the **Available model** dropdown and choose **Test and save**.
+There is no manual model-ID or provenance input. Endpoint or credential edits
+invalidate the list. A saved or explicitly selected model is restored only if the
+current endpoint returns it; the form never silently selects a different model.
+Advanced settings optionally provide temperature, top p/k, seed, min p, presence,
+frequency and repetition penalties. Blank values are omitted; temperature defaults
+to 0. The context budget is a client-side prompt/output check, not a model reload.
+Generation limits have defaults and can be omitted. Target languages are supplied
+with each translation request.
+
+The explicit migration button backs up earlier settings before converting them
+to the current endpoint/model configuration through the existing server migrator.
+Migration never runs automatically. Environment-supplied configuration remains read-only.
 
 Bundled package versions and their complete upstream license/NOTICE files are
 recorded in `THIRD_PARTY_NOTICES.md`. Build dependencies remain in the lockfile;

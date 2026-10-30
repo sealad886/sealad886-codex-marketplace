@@ -10,7 +10,7 @@ external messages or disclosure.
 
 ## Content boundaries
 
-The client permits configured numeric loopback HTTP endpoints and disables its
+The client permits configured numeric loopback HTTP(S) endpoints and disables its
 HTTP proxy and redirect handling. It sends content only through that configured
 client route. Those controls do not prove the runner has local weights or no
 remote upstream. Verify the actual deployment, model artifact, telemetry, logging,
@@ -22,6 +22,14 @@ a remote orchestrator or reviewer can leave the machine through that host. Agree
 the project's disclosure policy before agent review. Metadata-only status limits
 content in that response; job IDs, locale information and metadata can still be
 sensitive. A metadata-only remote agent cannot perform complete bilingual review.
+
+`translation_request` also sends caller-supplied messages and response-format
+objects to the configured local runner and returns its provider response through
+MCP. That output is unreviewed, caller-managed data; it receives no workbench
+acceptance or delivery status. The caller must validate a requested JSON/schema
+result and apply the project's disclosure, retention and review rules.
+The static `translation://capabilities` resource contains no credentials or saved
+settings and performs no engine requests.
 
 Jobs retain source content, candidates, queries and reviews in private temporary
 storage for the MCP process. Normal process exit removes that process's job
@@ -41,7 +49,9 @@ call to the local stdio server. Supported hosts must exclude that operation from
 the model's tool catalog and call it without starting a model turn. This behavior
 is verified for Codex desktop 0.166.0-alpha.5.1; installation or tool discovery in
 another client does not establish the same protection. The form sends no chat
-message or model-context update, and the package does not log its arguments. Host diagnostics are outside this server's control.
+message or model-context update. The Python server returns fixed safe errors
+without runner response bodies or credential values. Host diagnostics are
+outside this server's control.
 The form stores an optional key in the private per-user settings JSON
 file with mode 0600 on POSIX systems; this file is not encrypted. The settings
 directory uses mode 0700. Protect it with the OS account and disk permissions;
@@ -52,8 +62,10 @@ Avoid placing sensitive information in actor IDs or brief metadata.
 The configuration screen is a local MCP App resource opened by the native plugin
 settings action as a modal. It has no external scripts, network resources,
 browser-launch helper or HTTP setup listener. Its password field is never
-prefilled and is cleared after submission or cancellation. Settings and keys
-are not sent through `ui/message`, `ui/update-model-context` or saved widget state.
+prefilled. A new key remains masked in the current input until the screen
+refreshes or closes. Input errors, retries and tool responses do not clear it.
+Unsaved keys are not persisted across reloads. Settings and keys are not sent
+through `ui/message`, `ui/update-model-context` or saved widget state.
 Only an explicit Test and save action validates and replaces settings. It checks
 model listing and tokenization with synthetic text before saving; failed checks
 leave the previous file unchanged. An existing launch-environment override is
@@ -61,11 +73,13 @@ reported instead of changing the inactive saved configuration. Setup does not
 launch an engine, install models or grant access to a caller workspace. Engine
 settings and an optional credential persist separately from temporary jobs.
 
-Previous workspace-based settings are rejected until the operator runs the
+Earlier saved-settings schemas are rejected until the operator runs the
 explicit settings migration. That conversion locks the file, creates a private,
-non-overwriting backup of its exact bytes, then atomically writes engine-only
-settings. Backups can contain the optional credential and need the same private
-handling. Migration does not inspect, move or delete old job directories.
+non-overwriting backup of its exact bytes, then atomically writes the current
+endpoint/model configuration. It removes retired model-revision, runner-version
+and locale-registry fields, preserves supported budgets and the optional key,
+and removes the workspace setting when present. Backups can contain the optional
+credential and need the same private handling. Migration does not inspect, move or delete old job directories.
 
 ## Trust and authority
 

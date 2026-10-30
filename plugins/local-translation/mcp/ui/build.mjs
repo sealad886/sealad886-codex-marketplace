@@ -27,6 +27,11 @@ try {
     format: "iife",
     target: "es2022",
     minify: true,
+    // The bundled SDK logs full JSON-RPC messages, including credential calls.
+    // Strip diagnostics from this private form without changing global console.
+    // UI error handling remains active; transport log arguments have no required
+    // side effects (plain messages, events and parse-error diagnostics).
+    drop: ["console"],
     legalComments: "inline",
     metafile: true,
   });
