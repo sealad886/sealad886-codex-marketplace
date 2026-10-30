@@ -131,6 +131,32 @@ class TranslationTests(unittest.TestCase):
         self.assertFalse(response["isError"], response)
         return json.loads(response["content"][0]["text"])
 
+    def test_malformed_resource_uris_return_errors_without_losing_stdio_jobs(self):
+        self.workbench({"url": "http://127.0.0.1:8080/v1"})
+        process = self.start_server()
+        job = self.call_server(process, "translation_create_job", {
+            "source_text": "Retain this temporary source", "source_locale": "en-US",
+            "target_locales": ["fr-FR"], "brief": "Brief"})
+        for params in ({"uri": []}, {"uri": {}}, {"uri": None}, {"uri": 7}, {"uri": True}, {}, []):
+            with self.subTest(params=params):
+                process.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 2,
+                                               "method": "resources/read", "params": params}) + "\n")
+                process.stdin.flush()
+                line = process.stdout.readline()
+                self.assertTrue(line, "Malformed resource input must not terminate the MCP session")
+                response = json.loads(line)
+                self.assertEqual(response["error"]["code"], -32602)
+                process.stdin.write(json.dumps({"jsonrpc": "2.0", "id": 3, "method": "ping"}) + "\n")
+                process.stdin.flush()
+                self.assertEqual(json.loads(process.stdout.readline())["result"], {})
+                self.assertIsNone(process.poll())
+        status = self.call_server(process, "translation_status", {"job_id": job["id"]})
+        self.assertEqual(status["id"], job["id"])
+        self.assertEqual(status["source_sha256"], job["source_sha256"])
+        process.stdin.close()
+        self.assertEqual(process.wait(timeout=10), 0)
+        self.assertEqual(process.stderr.read(), "")
+
     def test_temporary_session_returns_exact_multiline_drafts_and_delivery_over_stdio(self):
         with runner() as state:
             self.workbench(state)

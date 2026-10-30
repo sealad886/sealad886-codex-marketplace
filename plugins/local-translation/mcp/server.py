@@ -1198,7 +1198,8 @@ def dispatch(message):
         response["result"] = {"resourceTemplates": []}
     elif method == "resources/read":
         params = message.get("params", {})
-        if not isinstance(params, dict) or params.get("uri") not in {_local_module("setup").RESOURCE_URI, CAPABILITIES_URI}:
+        if (not isinstance(params, dict) or not isinstance(params.get("uri"), str)
+                or params["uri"] not in {_local_module("setup").RESOURCE_URI, CAPABILITIES_URI}):
             response["error"] = {"code": -32602, "message": "Unknown settings resource"}
         elif params["uri"] == CAPABILITIES_URI:
             response["result"] = {"contents": [capabilities_resource()]}
