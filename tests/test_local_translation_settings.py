@@ -53,7 +53,10 @@ def engine():
 
         def do_GET(self):
             state["requests"].append((self.path, None, self.headers.get("Authorization")))
-            self.send({"data": [{"id": state["model"]}]})
+            if state.get("required_key") and self.headers.get("Authorization") != "Bearer " + state["required_key"]:
+                self.send({"error": "PRIVATE_RUNNER_AUTH_DETAIL"}, 401)
+                return
+            self.send({"data": state.get("models", [{"id": state["model"]}])})
 
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
@@ -126,10 +129,10 @@ class SettingsTests(unittest.TestCase):
         self.assertEqual(initialized["capabilities"]["extensions"]["openai/settings"],
                          {"readTool": "translation_read_settings", "updateTool": "translation_update_settings"})
         tools = core.dispatch({"jsonrpc": "2.0", "id": 2, "method": "tools/list"})["result"]["tools"]
-        self.assertEqual(len(tools), 14)
+        self.assertEqual(len(tools), 16)
         private = {tool["name"] for tool in tools if tool.get("_meta", {}).get("ui", {}).get("visibility") == ["app"]}
         self.assertEqual(private, {"translation_read_settings", "translation_update_settings",
-                                   "translation_save_settings", "translation_migrate_settings"})
+                                   "translation_save_settings", "translation_migrate_settings", "translation_list_models"})
         by_name = {tool["name"]: tool for tool in tools}
         self.assertEqual(by_name["translation_open_settings"]["_meta"]["ui"]["resourceUri"], setup.RESOURCE_URI)
         for name in private:
@@ -153,7 +156,7 @@ class SettingsTests(unittest.TestCase):
             self.assertFalse(opened["isError"])
             self.assertEqual(opened["structuredContent"]["settings_ui"], "in_app")
             listed = core.dispatch({"jsonrpc": "2.0", "id": 1, "method": "resources/list"})["result"]["resources"]
-            self.assertEqual([resource["uri"] for resource in listed], [setup.RESOURCE_URI])
+            self.assertEqual({resource["uri"] for resource in listed}, {setup.RESOURCE_URI, core.CAPABILITIES_URI})
             resource = core.dispatch({"jsonrpc": "2.0", "id": 2, "method": "resources/read",
                                       "params": {"uri": setup.RESOURCE_URI}})["result"]["contents"][0]
             self.assertEqual(resource["mimeType"], "text/html;profile=mcp-app")
@@ -164,6 +167,70 @@ class SettingsTests(unittest.TestCase):
             self.assertEqual(result["error"]["code"], -32602)
             self.assertNotIn(uri, json.dumps(result))
         self.assertFalse(settings.settings_path().exists())
+
+    def test_model_discovery_needs_only_endpoint_and_optional_key_without_saving(self):
+        key = "synthetic-model-list-key"
+        with engine() as state:
+            state.update(required_key=key, models=[{"id": "first-model"}, {"id": "second/model"}, {"id": "first-model"}])
+            arguments = {"base_url": state["url"], "credential_action": "replace", "expected_revision": None, "api_key": key}
+            result = self.call("translation_list_models", arguments)
+            self.assertFalse(result["isError"], result)
+            self.assertEqual(result["structuredContent"]["models"], ["first-model", "second/model"])
+            self.assertEqual([item[0] for item in state["requests"]], ["/v1/models"])
+            self.assertEqual(state["requests"][0][2], "Bearer " + key)
+            self.assertNotIn(key, json.dumps(result))
+            self.assertFalse(settings.settings_path().exists())
+            denied = self.call("translation_list_models", {**arguments, "api_key": "wrong-key"})
+            self.assertEqual(denied["structuredContent"]["code"], "auth_required")
+            self.assertNotIn("PRIVATE_RUNNER", json.dumps(denied))
+            self.assertFalse(settings.settings_path().exists())
+
+    def test_model_discovery_keep_clear_stale_override_and_malformed_lists(self):
+        self.save(api_key_action="replace", api_key="saved-list-key")
+        before = settings.settings_path().read_bytes()
+        revision = settings.settings_revision()
+        with engine() as state:
+            arguments = {"base_url": state["url"], "credential_action": "keep", "expected_revision": revision}
+            result = self.call("translation_list_models", arguments)
+            self.assertFalse(result["isError"], result)
+            self.assertEqual(state["requests"][-1][2], "Bearer saved-list-key")
+            result = self.call("translation_list_models", {**arguments, "credential_action": "clear"})
+            self.assertFalse(result["isError"], result)
+            self.assertIsNone(state["requests"][-1][2])
+            state["models"] = [{"id": 1}]
+            self.assertEqual(self.call("translation_list_models", arguments)["structuredContent"]["code"], "model_list_failed")
+            state["models"] = [{"id": "x"}] * 1001
+            self.assertEqual(self.call("translation_list_models", arguments)["structuredContent"]["code"], "model_list_failed")
+            count = len(state["requests"])
+            self.assertEqual(self.call("translation_list_models", {**arguments, "expected_revision": "0" * 64})["structuredContent"]["code"], "stale_configuration")
+            with mock.patch.dict(os.environ, {"LOCAL_TRANSLATION_CONFIG": ""}):
+                self.assertEqual(self.call("translation_list_models", arguments)["structuredContent"]["code"], "environment_override")
+            self.assertEqual(len(state["requests"]), count)
+        self.assertEqual(settings.settings_path().read_bytes(), before)
+
+    def test_static_capabilities_resource_lists_contract_without_private_reads_or_network(self):
+        with mock.patch.object(core, "Workbench", side_effect=AssertionError("No workbench for static capabilities")), \
+             mock.patch.object(settings, "load_settings", side_effect=AssertionError("No settings for static capabilities")):
+            result = core.dispatch({"jsonrpc": "2.0", "id": 1, "method": "resources/read", "params": {"uri": core.CAPABILITIES_URI}})
+        content = result["result"]["contents"][0]
+        self.assertEqual(content["mimeType"], "application/json")
+        data = json.loads(content["text"])
+        self.assertEqual(data["connection"]["required"], ["base_url", "model"])
+        self.assertIn("response_format", data["generation_options"]["properties"])
+        self.assertEqual(data["structured_output"]["tool"], "translation_request")
+        self.assertFalse(settings.settings_path().exists())
+
+    def test_optional_sampling_settings_validate_persist_and_clear_without_extra_requirements(self):
+        options = {"temperature": 0.5, "top_p": 0.8, "top_k": 20, "seed": 10, "min_p": 0.1,
+                   "presence_penalty": 0.2, "frequency_penalty": -0.2, "repetition_penalty": 1.1}
+        self.save({**self.deployment(), **options})
+        deployment = settings.public_settings()["deployment"]
+        self.assertTrue(all(deployment[key] == value for key, value in options.items()))
+        for value in (True, None, float("inf"), -1, 2.1):
+            with self.subTest(value=value), self.assertRaises(settings.SettingsError):
+                self.save({**self.deployment(), "temperature": value})
+        self.save(self.deployment())
+        self.assertFalse(set(options) & set(settings.public_settings()["deployment"]))
 
     def test_private_form_save_checks_model_and_tokenizer_without_returning_key(self):
         key = "popup-private-test-key"

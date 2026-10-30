@@ -55,13 +55,16 @@ for all twenty entry points and their evidence requirements.
    does not download weights or start inference.
 3. Open the plugin's settings and choose **Configure local inference**. Codex
    opens the bundled configuration form as a modal inside the app. Enter the
-   engine endpoint URL and model name/ID, then choose **Test and save**. These
-   are the only required connection fields. Optional authentication goes
-   directly into the masked key field, never into chat. No translation workspace,
+   engine endpoint URL and any optional API key, then choose **Load models**.
+   Select the model from the returned dropdown and choose **Test and save**.
+   Endpoint and selected model are the only required connection fields.
+   Authentication goes directly into the masked key field, never into chat. No translation workspace,
    MCP settings editor, terminal environment variables or app restart is required.
    The coordinator can also open the form inside a compatible MCP App host when
    you ask **“Open Local Translation settings.”** See the
    [runtime guide](skills/.shared/references/runtime.md) for fields and limits.
+   Advanced sampling controls and context/output budgets are optional; you can
+   also set generation controls for an individual translation request.
 4. Give the calling agent your approved source content, source and target locales,
    audience, resources and acceptance owner. The agent supplies plain text or
    explicit segments through MCP. Run a representative pilot before a large batch.
@@ -111,9 +114,24 @@ supplied with each job; setup does not require a language registry, pinned model
 revision or runner version. Successful setup does not establish translation
 quality; run a representative pilot afterward.
 
+Optional advanced controls include temperature, top-p, top-k, seed and sampling
+penalties. The context setting is a client-side token budget; it does not resize
+the inference server's loaded model context. A `translation_run` request can
+override generation options and set a per-segment output-token cap or stop
+sequences. See [generation controls](skills/.shared/references/runtime.md#optional-generation-controls)
+for defaults, ranges, provider support and the output-limit contract.
+
+Callers that supply their own messages and JSON/schema response format can use
+`translation_request`. It returns the local provider's response as unreviewed,
+caller-managed output; it does not create a workbench job or delivery candidate.
+The MCP resource `translation://capabilities` describes available controls and
+limits without reading credentials or probing the engine.
+
 For oMLX, use the port shown in its settings and append `/v1`, such as
 `http://127.0.0.1:8000/v1` when using its default port. The model field must match
 the served MLX model alias, which may differ from `IndexTeam/Index-Translate-9B`.
+The popup fetches the endpoint's model IDs; it does not select a model for you.
+Changing the endpoint or credential requires loading its model list again.
 oMLX 0.7.3rc1's installed API supports the required chat-tokenization contract;
 verify your running deployment through setup rather than assuming all versions
 or model conversions behave identically.
@@ -133,7 +151,8 @@ A new key stays masked in the current input until the screen refreshes or
 closes. Input errors, retries and tool responses do not clear it. Unsaved keys
 are not persisted in browser or widget state and do not survive a reload. An
 already saved key remains in the private settings file and is never prefilled.
-Settings survive plugin updates and apply on the next tool call. Keep this
+After a successful save or Cancel, the form asks the host to close the
+configuration screen. Settings survive plugin updates and apply on the next tool call. Keep this
 directory outside a shared or version-controlled workspace.
 
 `translation_settings` reports the active configuration source and redacted
@@ -168,12 +187,11 @@ profile/home for an isolated check. If the marketplace is already registered,
 inspect its source before adding another registration. For a temporary Copilot
 session with the source package, the CLI also supports
 `copilot --plugin-dir "$PWD/plugins/local-translation"`. Open the plugin settings
-after installation and verify ten model-facing translation tools and the
-twenty skills. Installation alone does not verify live inference or
+after installation and verify eleven model-facing tools and the twenty skills. Installation alone does not verify live inference or
 multi-agent execution. Consult your installed client's help if its commands differ.
 
 The native settings modal requires a host with MCP Apps and the `openai/settings`
-extension. Its four app-only settings operations are hidden from the model's
+extension. Its five app-only settings/model-discovery operations are hidden from the model's
 tool catalog. Codex desktop provides this surface. A CLI that cannot render MCP
 Apps can still use saved engine settings or the explicit deployment-file
 environment route. The plugin never falls back to launching an external browser.
@@ -182,6 +200,8 @@ environment route. The plugin never falls back to launching an external browser.
 
 - Inline UTF-8 plain text or explicit text segments through MCP; multiple
   job-supplied source and target locale codes.
+- Optional sampling and per-request output controls, plus caller-managed
+  structured requests with provider-dependent JSON/schema response formats.
 - Frozen job inputs and configuration, local model checks, prompt tokenization,
   response/termination validation and supported invariant checks.
 - Plain prose treats percentages literally; explicit JSON segments can declare

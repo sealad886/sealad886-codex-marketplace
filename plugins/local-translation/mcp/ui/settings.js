@@ -10,8 +10,10 @@ const cancel = element("cancel");
 const reload = element("reload");
 const migrate = element("migrate");
 const status = element("status");
-const textFields = ["base_url", "model"];
-const numericFields = ["max_input_chars", "max_prompt_bytes", "max_output_tokens", "context_window_tokens", "timeout_seconds", "run_timeout_seconds"];
+const model = element("model");
+const loadModels = element("load_models");
+const samplingFields = ["temperature", "top_p", "top_k", "seed", "min_p", "presence_penalty", "frequency_penalty", "repetition_penalty"];
+const numericFields = ["max_input_chars", "max_prompt_bytes", "max_output_tokens", "context_window_tokens", "timeout_seconds", "run_timeout_seconds", ...samplingFields];
 
 // Keep the key in the masked input for this screen’s lifetime.
 // Only the in-flight private tool call receives a transient copy.
@@ -23,6 +25,9 @@ let busy = false;
 let editable = false;
 let ended = false;
 let needsMigration = false;
+let loadedModels = [];
+let modelsEndpoint = null;
+let preferredModel = null;
 
 const safeErrors = {
   invalid_input: "Enter valid engine settings. Nothing was saved.",
@@ -31,6 +36,7 @@ const safeErrors = {
   settings_busy: "Another settings save is active. Nothing was saved. Wait for it to finish, then try again.",
   stale_configuration: "Settings changed while this popup was open. Nothing was saved. Reload saved settings before trying again.",
   verification_failed: "The engine compatibility check failed. Nothing was saved. Check the endpoint, exact model alias and chat tokenizer support.",
+  model_list_failed: "The endpoint did not return an available model list. Check its OpenAI-compatible models endpoint and try again.",
   model_unavailable: "The engine does not list this exact model alias. Check the served model name. Nothing was saved.",
   tokenizer_unsupported: "This engine must support POST /tokenize with chat messages and return a positive token count. Check your installed engine version. Nothing was saved.",
   runner_unreachable: "Could not reach this local engine. Start it, check the port and API key, then try again. Nothing was saved.",
@@ -41,19 +47,36 @@ const safeErrors = {
 };
 
 function clearKey() { key.value = ""; }
+function endpointValue() { return element("base_url").value.trim().replace(/\/+$/, ""); }
+function handleSettingsFailure(result) {
+  if (["stale_configuration", "environment_override", "local_settings_failed", "migration_required"].includes(result?.code)) editable = false;
+  if (result?.code === "migration_required") {
+    needsMigration = true;
+    element("migration").hidden = false;
+  }
+}
 function showStatus(message, tone = "") {
   status.textContent = message;
   status.dataset.tone = tone;
 }
 function updateControls() {
   fields.disabled = !editable || busy || ended;
-  save.disabled = fields.disabled;
+  model.disabled = fields.disabled || modelsEndpoint === null;
+  loadModels.disabled = fields.disabled;
+  save.disabled = fields.disabled || modelsEndpoint === null || !model.value;
   cancel.disabled = busy || ended;
   reload.disabled = busy || ended || !connected;
   migrate.disabled = busy || ended || !connected;
   form.setAttribute("aria-busy", String(busy));
   key.disabled = fields.disabled || credentialAction.value !== "replace";
   key.required = !key.disabled;
+}
+function resetModels() {
+  loadedModels = [];
+  modelsEndpoint = null;
+  model.replaceChildren(new Option("Load models, then choose a model", ""));
+  loadModels.textContent = "Load models";
+  updateControls();
 }
 function applyHostContext(context) {
   if (context.theme) applyDocumentTheme(context.theme);
@@ -76,6 +99,9 @@ async function loadSettings() {
   editable = false;
   clearKey();
   credentialAction.value = "keep";
+  preferredModel = null;
+  resetModels();
+  for (const name of samplingFields) element(name).value = "";
   showStatus("Loading saved settings…");
   updateControls();
   try {
@@ -98,7 +124,8 @@ async function loadSettings() {
     }
     if (settings.configured && settings.deployment && typeof settings.deployment === "object") {
       const deployment = settings.deployment;
-      for (const name of [...textFields, ...numericFields]) {
+      preferredModel = typeof deployment.model === "string" ? deployment.model : null;
+      for (const name of ["base_url", ...numericFields]) {
         if (typeof deployment[name] === "string" || typeof deployment[name] === "number") element(name).value = deployment[name];
       }
     }
@@ -113,7 +140,7 @@ async function loadSettings() {
     editable = true;
     showStatus(settings.configured
       ? (settings.credential_configured ? "Saved settings loaded. A saved API key is present; its value is hidden." : "Saved settings loaded. No API key is saved.")
-      : "Enter your endpoint and model name or ID.");
+      : "Enter your endpoint and optional key, then load its models.");
   } catch {
     if (!ended) {
       reload.hidden = false;
@@ -126,7 +153,55 @@ async function loadSettings() {
   }
 }
 
-credentialAction.addEventListener("change", updateControls);
+element("base_url").addEventListener("input", () => { preferredModel = null; resetModels(); });
+credentialAction.addEventListener("change", resetModels);
+key.addEventListener("input", resetModels);
+model.addEventListener("change", updateControls);
+loadModels.addEventListener("click", async () => {
+  if (!editable || busy || ended) return;
+  const endpoint = element("base_url");
+  if (!endpoint.checkValidity() || (credentialAction.value === "replace" && !key.checkValidity())) {
+    const invalid = !endpoint.checkValidity() ? endpoint : key;
+    invalid.reportValidity();
+    invalid.focus();
+    showStatus("Enter the endpoint and optional key before loading models. Your key remains masked.", "error");
+    return;
+  }
+  const previousSelection = model.value || preferredModel;
+  const payload = { base_url: endpointValue(), credential_action: credentialAction.value, expected_revision: expectedRevision };
+  if (payload.credential_action === "replace") payload.api_key = key.value;
+  busy = true;
+  resetModels();
+  showStatus("Loading models from this endpoint…");
+  try {
+    const response = await call("translation_list_models", payload, 150000);
+    if (ended) return;
+    const result = response.structuredContent;
+    if (response.isError) {
+      handleSettingsFailure(result);
+      showStatus(safeError(result, "Could not load models. Check the endpoint and optional key, then try again."), "error");
+      return;
+    }
+    if (!result || result.base_url !== payload.base_url || !Array.isArray(result.models) ||
+        !result.models.length || result.models.some(id => typeof id !== "string" || !id.trim())) {
+      showStatus(safeErrors.model_list_failed, "error");
+      return;
+    }
+    loadedModels = [...new Set(result.models)];
+    modelsEndpoint = payload.base_url;
+    model.replaceChildren(new Option("Choose a model", ""), ...loadedModels.map(id => new Option(id, id)));
+    if (previousSelection && loadedModels.includes(previousSelection)) model.value = previousSelection;
+    loadModels.textContent = "Refresh models";
+    showStatus(model.value ? "Models loaded. The saved or selected model is available." :
+      (previousSelection ? "The previously selected model was not returned. Choose an available model." : "Models loaded. Choose the model to use."));
+  } catch {
+    if (!ended) showStatus("Could not load models. Check the endpoint and optional key, then try again.", "error");
+  } finally {
+    delete payload.api_key;
+    busy = false;
+    updateControls();
+  }
+});
 reload.addEventListener("click", loadSettings);
 async function closeScreen(message) {
   ended = true;
@@ -175,6 +250,10 @@ migrate.addEventListener("click", async () => {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   if (!editable || busy || ended) return;
+  if (modelsEndpoint !== endpointValue() || !loadedModels.includes(model.value)) {
+    showStatus("Load models from this endpoint and choose a model before saving.", "error");
+    return;
+  }
   const invalid = form.querySelector("input:invalid, select:invalid");
   if (invalid) {
     if (invalid.closest("details")) invalid.closest("details").open = true;
@@ -187,7 +266,8 @@ form.addEventListener("submit", async (event) => {
   if (payload.credential_action === "replace") payload.api_key = key.value;
   try {
     const deployment = payload.deployment;
-    for (const name of textFields) deployment[name] = element(name).value.trim();
+    deployment.base_url = endpointValue();
+    deployment.model = model.value;
     for (const name of numericFields) {
       if (element(name).value.trim() !== "") deployment[name] = Number(element(name).value);
     }
@@ -201,11 +281,7 @@ form.addEventListener("submit", async (event) => {
       expectedRevision = result.settings_revision;
       await closeScreen("Settings saved. Model and tokenizer checks passed.");
     } else {
-      if (["stale_configuration", "environment_override", "local_settings_failed", "migration_required"].includes(result?.code)) editable = false;
-      if (result?.code === "migration_required") {
-        needsMigration = true;
-        element("migration").hidden = false;
-      }
+      handleSettingsFailure(result);
       showStatus(safeError(result, "The compatibility check or save failed. Saved settings were preserved. Your key remains in the masked field. Reload settings before trying again."), "error");
     }
   } catch {

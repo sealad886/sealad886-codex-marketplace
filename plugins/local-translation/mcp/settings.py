@@ -27,6 +27,8 @@ PUBLIC_DEPLOYMENT_FIELDS = {
     "base_url", "model",
     "max_input_chars", "max_prompt_bytes", "max_output_tokens",
     "context_window_tokens", "timeout_seconds", "run_timeout_seconds",
+    "temperature", "top_p", "top_k", "seed", "min_p",
+    "presence_penalty", "frequency_penalty", "repetition_penalty",
 }
 
 
@@ -41,6 +43,7 @@ class SettingsError(RuntimeError):
         "settings_busy": "Another settings save is active. Nothing was saved. Wait for it to finish, then try again.",
         "stale_configuration": "Settings changed while this page was open. Nothing was saved. Reopen setup to use the latest settings.",
         "verification_failed": "The engine compatibility check failed. Nothing was saved. Check the local endpoint, exact model alias and tokenizer support.",
+        "model_list_failed": "The engine returned an invalid or oversized model list. Nothing was saved.",
         "model_unavailable": "The exact model alias is not listed by this engine. Check the served model name. Nothing was saved.",
         "tokenizer_unsupported": "This engine must support POST /tokenize with chat messages and return a positive token count. A chat-only OpenAI endpoint is insufficient. Nothing was saved.",
         "runner_unreachable": "Could not reach this local engine. Start it, check its port and API key, and try again. Nothing was saved.",
@@ -229,6 +232,26 @@ def _atomic_write(path, raw):
                 pass
 
 
+def resolve_credential(api_key_action, api_key=None, expected_revision=_UNSET):
+    """Read a checked credential snapshot for app-only discovery or saving."""
+    if not isinstance(api_key_action, str) or api_key_action not in {"keep", "replace", "clear"}:
+        raise SettingsError("invalid_credential")
+    if api_key_action == "replace":
+        api_key = _secret(api_key)
+    elif api_key is not None:
+        raise SettingsError("invalid_credential")
+    previous, revision = _read_snapshot()
+    if expected_revision is not _UNSET:
+        if (expected_revision is not None and
+                (not isinstance(expected_revision, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_revision))):
+            raise SettingsError("invalid_input")
+        if revision != expected_revision:
+            raise SettingsError("stale_configuration")
+    if api_key_action == "keep":
+        api_key = previous.get("api_key") if previous else None
+    return api_key, revision
+
+
 def save_settings(deployment, *, api_key_action="keep", api_key=None,
                   expected_revision=_UNSET, validate, verify):
     """Validate, verify, then atomically save; failed checks preserve old bytes.
@@ -246,21 +269,7 @@ def save_settings(deployment, *, api_key_action="keep", api_key=None,
             raise ValueError()
     except Exception:
         raise SettingsError("invalid_input") from None
-    if not isinstance(api_key_action, str) or api_key_action not in {"keep", "replace", "clear"}:
-        raise SettingsError("invalid_credential")
-    if api_key_action == "replace":
-        api_key = _secret(api_key)
-    elif api_key is not None:
-        raise SettingsError("invalid_credential")
-    previous, revision = _read_snapshot()
-    if expected_revision is not _UNSET:
-        if (expected_revision is not None and
-                (not isinstance(expected_revision, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_revision))):
-            raise SettingsError("invalid_input")
-        if revision != expected_revision:
-            raise SettingsError("stale_configuration")
-    if api_key_action == "keep":
-        api_key = previous.get("api_key") if previous else None
+    api_key, revision = resolve_credential(api_key_action, api_key, expected_revision)
     candidate = {"schema_version": SCHEMA_VERSION, "deployment": deployment}
     if api_key is not None:
         candidate["api_key"] = api_key

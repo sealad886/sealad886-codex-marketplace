@@ -41,7 +41,12 @@ for behavioral checks. Include inline source transport, temporary-session
 lifetime/cleanup, returned content identities, the no-environment settings form,
 persistent endpoint/model configuration with no required provenance or locale
 registry, explicit earlier-settings backup migration, synthetic model/tokenization
-checks and secret redaction when changing setup. Cover masked key retention
+checks, optional sampling/output controls and secret redaction when changing
+setup. Verify omitted option defaults, provider payloads, per-segment output caps
+and rejected invalid options without weakening completion/review gates. Cover
+model-list authentication without saving, static credential-free capability
+resources, and caller-owned JSON/schema requests that cannot acquire a fabricated
+workbench review or delivery status. Cover masked key retention
 through validation errors, authentication/save retries and tool responses,
 clearing on screen refresh/close, and absence of unsaved-key persistence across
 reloads.

@@ -103,9 +103,10 @@ state ownership, contracts, verification commands, and delivery policies.
 Assign a translation coordinator and nineteen separately invocable expert skills,
 including translator, independent bilingual reviser, terminologist, editor,
 proofreader, quality lead and media specialists. Each subagent loads its role's
-working method and exchanges attributed findings and replies. Ten model-facing
-MCP tools accept inline text, keep session job files temporary, and return
-reviewed candidates to the caller. Native plugin settings open a bundled
+working method and exchanges attributed findings and replies. Eleven model-facing
+MCP tools support coordinated translation jobs and caller-controlled inference
+requests, with optional sampling and output constraints. Session job files stay
+temporary, and reviewed workbench candidates return to the caller. Native plugin settings open a bundled
 configuration modal for connecting an existing Index-Translate runner.
 
 **Version:** `0.5.0` · [Role directory and setup](plugins/local-translation/README.md)

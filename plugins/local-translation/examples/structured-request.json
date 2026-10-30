@@ -1,0 +1,30 @@
+{
+  "messages": [
+    {
+      "role": "user",
+      "content": "Translate Welcome to French. Return a JSON object matching the requested schema."
+    }
+  ],
+  "generation_options": {
+    "max_output_tokens": 512,
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "translation",
+        "strict": true,
+        "schema": {
+          "type": "object",
+          "properties": {
+            "translation": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "translation"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  }
+}

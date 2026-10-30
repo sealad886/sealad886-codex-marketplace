@@ -10,7 +10,7 @@ external messages or disclosure.
 
 ## Content boundaries
 
-The client permits configured numeric loopback HTTP endpoints and disables its
+The client permits configured numeric loopback HTTP(S) endpoints and disables its
 HTTP proxy and redirect handling. It sends content only through that configured
 client route. Those controls do not prove the runner has local weights or no
 remote upstream. Verify the actual deployment, model artifact, telemetry, logging,
@@ -22,6 +22,14 @@ a remote orchestrator or reviewer can leave the machine through that host. Agree
 the project's disclosure policy before agent review. Metadata-only status limits
 content in that response; job IDs, locale information and metadata can still be
 sensitive. A metadata-only remote agent cannot perform complete bilingual review.
+
+`translation_request` also sends caller-supplied messages and response-format
+objects to the configured local runner and returns its provider response through
+MCP. That output is unreviewed, caller-managed data; it receives no workbench
+acceptance or delivery status. The caller must validate a requested JSON/schema
+result and apply the project's disclosure, retention and review rules.
+The static `translation://capabilities` resource contains no credentials or saved
+settings and performs no engine requests.
 
 Jobs retain source content, candidates, queries and reviews in private temporary
 storage for the MCP process. Normal process exit removes that process's job
@@ -41,7 +49,9 @@ call to the local stdio server. Supported hosts must exclude that operation from
 the model's tool catalog and call it without starting a model turn. This behavior
 is verified for Codex desktop 0.166.0-alpha.5.1; installation or tool discovery in
 another client does not establish the same protection. The form sends no chat
-message or model-context update, and the package does not log its arguments. Host diagnostics are outside this server's control.
+message or model-context update. The Python server returns fixed safe errors
+without runner response bodies or credential values. Host diagnostics are
+outside this server's control.
 The form stores an optional key in the private per-user settings JSON
 file with mode 0600 on POSIX systems; this file is not encrypted. The settings
 directory uses mode 0700. Protect it with the OS account and disk permissions;

@@ -19,7 +19,11 @@ registry access; running the installed popup does not.
 
 Before writing the artifact, the build verifies that the HTML preserves exactly
 one complete inline bundle and parses that emitted script with Node's `vm.Script`
-without executing it. Dollar sequences in bundled code remain literal.
+without executing it. Dollar sequences in bundled code remain literal. The build
+removes console calls from this bundled private form because the SDK’s transport
+otherwise logs full JSON-RPC payloads. This does not patch global console or
+suppress the form’s visible errors; arbitrary host diagnostics remain outside
+the plugin’s control.
 
 The native host opens the modal from the `translation_open_settings` tool's UI
 resource association. The controller uses `App.callServerTool` for app-only
@@ -47,7 +51,14 @@ If a host leaves the form visible, the typed key remains masked until the user
 closes or refreshes it. Interrupted saves require a reload to check current
 settings before retry.
 
-The form needs only an endpoint and model name or ID, plus an optional API key.
+Enter an endpoint and optional key, choose **Load models**, then select the actual
+returned ID from the **Available model** dropdown and choose **Test and save**.
+There is no manual model-ID or provenance input. Endpoint or credential edits
+invalidate the list. A saved or explicitly selected model is restored only if the
+current endpoint returns it; the form never silently selects a different model.
+Advanced settings optionally provide temperature, top p/k, seed, min p, presence,
+frequency and repetition penalties. Blank values are omitted; temperature defaults
+to 0. The context budget is a client-side prompt/output check, not a model reload.
 Generation limits have defaults and can be omitted. Target languages are supplied
 with each translation request.
 

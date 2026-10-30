@@ -72,8 +72,8 @@ def runner():
                 state["on_completion"]()
             message = {"role": "assistant", "content": state["content"]}
             message.update(state.get("message_extra", {}))
-            self.send({"model": state["response_model"], "choices": [
-                {"finish_reason": state["finish_reason"], "message": message}]})
+            self.send(state.get("response", {"model": state["response_model"], "choices": [
+                {"finish_reason": state["finish_reason"], "message": message}]}))
 
     httpd = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
     thread = threading.Thread(target=httpd.serve_forever, daemon=True)
@@ -375,6 +375,106 @@ class TranslationTests(unittest.TestCase):
             self.assertEqual(wire["temperature"], 0)
             self.assertEqual(wire["messages"][0]["role"], "user")
             self.assertEqual(state["requests"][-2][1]["messages"], wire["messages"])
+
+    def test_optional_sampling_and_per_run_limits_reach_provider_and_delivery_evidence(self):
+        with runner() as state:
+            self.workbench(state)
+            config = json.loads(self.config.read_text())
+            config.update(temperature=0.8, top_p=0.9, top_k=40, seed=42,
+                          min_p=0.1, presence_penalty=0.2, frequency_penalty=-0.2, repetition_penalty=1.1)
+            self.config.write_text(json.dumps(config))
+            workbench = runtime.Workbench(self.config)
+            job = self.create(workbench)
+            supplied = {"temperature": 0.3, "max_output_tokens": 128, "stop": ["\n\n", "END"]}
+            candidate = workbench.run(job, "fr-FR", "translator", generation_options=supplied)
+            self.assertEqual(candidate["state"], "draft")
+            wire = state["requests"][-1][1]
+            self.assertEqual(wire["temperature"], 0.3)
+            for key in runtime.SAMPLING_SCHEMAS.keys() - {"temperature"}:
+                self.assertEqual(wire[key], config[key])
+            self.assertEqual(wire["max_tokens"], 128)
+            self.assertEqual(wire["stop"], supplied["stop"])
+            self.assertNotIn("max_output_tokens", wire)
+            self.assertNotIn("context_window_tokens", wire)
+            self.assertNotIn("response_format", wire)
+            self.assertEqual(workbench.status(job)["targets"]["fr-FR"]["generation_options"], candidate["generation_options"])
+            self.approve(workbench, job, candidate)
+            delivery = workbench.prepare_delivery(job)
+            self.assertEqual(delivery["artifacts"][0]["generation_options"], candidate["generation_options"])
+            before = workbench.status(job)
+            with self.assertRaisesRegex(runtime.TranslationError, "candidate already exists"):
+                workbench.run(job, "fr-FR", "translator", generation_options={"temperature": 1})
+            self.assertEqual(workbench.status(job), before)
+
+    def test_sampling_and_run_restrictions_are_bounded_before_network_or_job_mutation(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            job = self.create(workbench)
+            bad = [{"temperature": True}, {"temperature": float("nan")}, {"temperature": 2.01},
+                   {"top_p": -0.1}, {"top_k": 1.5}, {"top_k": 100001}, {"seed": -1},
+                   {"min_p": 1.1}, {"presence_penalty": -3}, {"frequency_penalty": 3},
+                   {"repetition_penalty": 0}, {"max_output_tokens": 0}, {"max_output_tokens": 2049},
+                   {"stop": []}, {"stop": [""]}, {"stop": ["x"] * 5}, {"stop": ["x" * 201]},
+                   {"stop": [1]}, {"stop": ["\ud800"]}, {"stream": True},
+                   {"response_format": {"type": "json_object"}}]
+            for options in bad:
+                with self.subTest(options=options), self.assertRaises(runtime.TranslationError):
+                    workbench.run(job, "fr-FR", "translator", generation_options=options)
+            self.assertEqual(state["requests"], [])
+            self.assertEqual(workbench.status(job)["targets"], {})
+
+    def test_lower_run_output_cap_is_used_by_context_guard_and_truncation_still_fails(self):
+        with runner() as state:
+            self.workbench(state)
+            config = json.loads(self.config.read_text())
+            config["context_window_tokens"] = 256
+            self.config.write_text(json.dumps(config))
+            workbench = runtime.Workbench(self.config)
+            candidate = workbench.run(self.create(workbench), "fr-FR", "translator", generation_options={"max_output_tokens": 64})
+            self.assertEqual(candidate["state"], "draft")
+            state["finish_reason"] = "length"
+            failed = workbench.run(self.create(workbench), "fr-FR", "translator", generation_options={"max_output_tokens": 64, "stop": ["END"]})
+            self.assertEqual(failed["state"], "failed")
+            self.assertNotIn("artifact", failed)
+
+    def test_caller_structured_request_preserves_messages_format_and_provider_response(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            messages = [{"role": "system", "content": "Return the requested JSON."},
+                        {"role": "user", "content": "Translate hello to French."}]
+            response_format = {"type": "json_schema", "json_schema": {"name": "caller_translation", "strict": True,
+                               "schema": {"type": "object", "properties": {"translation": {"type": "string"}},
+                                          "required": ["translation"], "additionalProperties": False},
+                               "caller_extension": {"preserve": True}}}
+            actual = {"id": "fixture-response", "model": "index-test", "choices": [
+                {"finish_reason": "stop", "message": {"role": "assistant", "content": '{"translation":"bonjour"}'}}],
+                "usage": {"completion_tokens": 8}, "provider_extension": {"actual": True}}
+            state["response"] = actual
+            reply = workbench.request(messages, {"response_format": response_format, "max_output_tokens": 64})
+            self.assertEqual(reply["response"], actual)
+            self.assertTrue(reply["unreviewed"])
+            self.assertTrue(reply["caller_managed"])
+            wire = state["requests"][-1][1]
+            self.assertEqual(wire["messages"], messages)
+            self.assertEqual(wire["response_format"], response_format)
+            self.assertNotIn("chat_template_kwargs", wire)
+            self.assertEqual(state["requests"][-2][1]["messages"], messages)
+            self.assertIsNone(runtime._session_directory)
+            self.assertNotIn("job_id", reply)
+
+    def test_caller_request_rejects_invalid_shapes_and_budgets_without_completions(self):
+        with runner() as state:
+            workbench = self.workbench(state)
+            for messages, options in (([], {}), ([{"role": "user", "content": 1}], {}),
+                                      ([{"role": [], "content": "Hello"}], {}),
+                                      ([{"role": "user", "content": "Hello", "model": "other"}], {}),
+                                      ([{"role": "user", "content": "Hello"}], {"response_format": []}),
+                                      ([{"role": "user", "content": "Hello"}], {"base_url": "http://other"})):
+                with self.subTest(messages=messages, options=options), self.assertRaises(runtime.TranslationError):
+                    workbench.request(messages, options)
+            with self.assertRaisesRegex(runtime.TranslationError, "byte budget"):
+                workbench.request([{"role": "user", "content": "x" * 33000}])
+            self.assertFalse(any(path == "/v1/chat/completions" for path, _ in state["requests"]))
 
     def test_configured_total_budget_allows_a_longer_multisegment_locale(self):
         with runner() as state:
@@ -966,8 +1066,8 @@ class TranslationTests(unittest.TestCase):
         self.assertEqual(responses[0]["error"]["code"], -32700)
         self.assertEqual(responses[1]["result"]["protocolVersion"], runtime.PROTOCOL)
         tools = responses[2]["result"]["tools"]
-        self.assertEqual(len(tools), 14)
-        self.assertEqual(len([t for t in tools if "app" not in t.get("_meta", {}).get("ui", {}).get("visibility", [])]), 10)
+        self.assertEqual(len(tools), 16)
+        self.assertEqual(len([t for t in tools if "app" not in t.get("_meta", {}).get("ui", {}).get("visibility", [])]), 11)
         status_tool = next(tool for tool in responses[2]["result"]["tools"] if tool["name"] == "translation_status")
         self.assertFalse(status_tool["annotations"]["readOnlyHint"])
         for name in ("translation_settings", "translation_health"):

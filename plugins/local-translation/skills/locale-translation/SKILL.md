@@ -44,8 +44,11 @@ liaison; do not record your preferred interpretation as the client's answer.
 
 For the local-tool route, require a successful health check and an existing frozen
 job. Call `translation_run` for your assigned locale and observed actor identity
-only in the coordinator's serialized writing slot. Keep its candidate digest,
-context revision, served-model/configuration identity and visible failures. Inspect
+only in the coordinator's serialized writing slot. Pass commissioned
+`generation_options` when specified; otherwise use the saved defaults. Output
+limits apply to each segment completion, not the whole document. Keep effective
+generation options, candidate digest, context revision, served-model/configuration
+identity and visible failures. Inspect
 the `content` and `segments` returned through MCP; a temporary path is not the
 candidate handoff. Do not substitute an invented completion if the configured
 runner cannot produce a draft.

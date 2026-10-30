@@ -5,6 +5,17 @@ use ISO 8601 and plugin versions follow Semantic Versioning.
 
 ## Local Translation 0.5.0 - 2026-10-30
 
+### Added
+
+- Discover models from the endpoint and optional key, then select an actual served
+  model from a dropdown.
+- Optional advanced sampling controls, plus per-request output-token limits and
+  stop sequences. Existing context-size settings remain client capacity limits.
+- Caller-managed inference requests with caller-defined JSON/schema constraints
+  passed unchanged to the engine; results remain explicitly unreviewed.
+- An MCP capabilities resource describing request options, defaults, limits and
+  provider-dependent support.
+
 ### Changed
 
 - Require only an endpoint and model ID for inference setup, with an optional
@@ -16,6 +27,10 @@ use ISO 8601 and plugin versions follow Semantic Versioning.
 - Remove manually declared revision/version metadata from runtime configuration,
   health and job records while retaining model identity and content/configuration
   digests.
+
+### Fixed
+
+- Remove bundled UI console logging that could expose private tool arguments.
 
 ### Migration
 

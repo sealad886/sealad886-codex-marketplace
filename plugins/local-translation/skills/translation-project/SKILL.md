@@ -37,6 +37,7 @@ accepting those products; a skill describes expertise, not a missing media engin
   user authorization and any unresolved material decisions.
 - Permitted data flow, caller-managed result retention and disclosure to host agents.
 - Available host agents, slots, tools, context capacity and local runner budget.
+- Requested optional sampling settings and per-translation output controls.
 - Actual skill discovery, deployed model/pair qualification and
   `translation_health` evidence when local drafting is commissioned.
 
@@ -51,9 +52,9 @@ For first-run setup or a request to change runner settings, call
 `translation_settings` before commissioning translation. If unconfigured, offer
 `translation_open_settings` to open the bundled in-app form. The native plugin
 settings page also has **Configure local inference**, which opens the form as a
-modal. The user enters only the engine endpoint URL and model name/ID, plus an
-optional credential directly in its masked field; app-only operations handle
-saving outside model turns. There is no translation workspace setting. Never ask for a runner key in chat or change
+modal. The user enters the engine endpoint and any optional credential in its
+masked field, chooses **Load models**, selects the model from the dropdown and
+saves. App-only operations handle model discovery and saving outside model turns. There is no translation workspace setting. Never ask for a runner key in chat or change
 the client's MCP settings or plugin cache. Do not substitute an external browser
 or collect a key through ordinary elicitation/chat. If the host cannot render
 MCP Apps, report that limitation and use an already configured engine only.
