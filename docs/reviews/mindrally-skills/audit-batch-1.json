@@ -1,0 +1,4056 @@
+{
+  "source_commit": "7682ca77710e0971eab4e0ae5dddfa281aea0ba5",
+  "records": [
+    {
+      "skill": "accessibility-a11y",
+      "source_sha256": "e01a2c0ac3e18147a6a983ef6f90f4328490fd1e135f31850c0c84a7b7de7fb1",
+      "reviewed_source_sections": [
+        "Accessibility (a11y) Best Practices",
+        "Core Accessibility Principles",
+        "Semantic HTML",
+        "Structural Elements",
+        "Form Accessibility",
+        "ARIA Implementation",
+        "When to Use ARIA",
+        "Common ARIA Patterns",
+        "Visual Accessibility",
+        "Color and Contrast",
+        "Focus Management",
+        "Keyboard Navigation",
+        "Navigation Requirements",
+        "Interactive Elements",
+        "Content Accessibility",
+        "Images and Media",
+        "Text and Typography",
+        "Responsive and Adaptive Design",
+        "Mobile-First Approach",
+        "User Preferences",
+        "Testing and Validation",
+        "Automated Testing",
+        "Manual Testing",
+        "CSS Best Practices for Accessibility"
+      ],
+      "corrections": [
+        "Corrected blanket 44px minimum to distinguish WCAG 2.2 AA 24px from AAA 44px criteria and exceptions.",
+        "Removed deprecated onKeyPress and duplicate keyboard activation advice for native buttons.",
+        "Removed universal BEM, external stylesheet, and mobile-first mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+          "checked_claim": "WCAG 2.2 AA target size and exceptions"
+        },
+        {
+          "url": "https://www.w3.org/WAI/ARIA/apg/patterns/",
+          "checked_claim": "Widget semantics and keyboard interaction"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "alpine-js",
+      "source_sha256": "f9833e283c3e49a8bc062f76c3b41f92e11771e07d81751f620dd99bcb754fc0",
+      "reviewed_source_sections": [
+        "Alpine.js Development",
+        "Core Principles",
+        "Alpine.js Fundamentals",
+        "Directives",
+        "Component Pattern",
+        "Integration Patterns",
+        "With Tailwind CSS",
+        "With Laravel/Livewire (TALL Stack)",
+        "With Ghost CMS",
+        "Best Practices",
+        "Performance",
+        "Code Organization",
+        "Accessibility",
+        "Common Patterns",
+        "Dropdown Menu",
+        "Form Validation"
+      ],
+      "corrections": [
+        "Replaced legacy @click.away guidance with current .outside event modifier.",
+        "Distinguished x-show DOM retention from x-if lifecycle instead of universal speed preference.",
+        "Removed incomplete submit/validateEmail sample and unconditional Livewire @entangle recommendation."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://alpinejs.dev/directives/on",
+          "checked_claim": "Outside event modifier and event handling"
+        },
+        {
+          "url": "https://alpinejs.dev/directives/if",
+          "checked_claim": "Conditional DOM lifecycle"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "analytics-data-analysis",
+      "source_sha256": "2d200073c2490a1fac7e3b2c08ae3df915a12a264f40f69ee1d5ae791cb438ee",
+      "reviewed_source_sections": [
+        "Analytics and Data Analysis",
+        "Workflow: Exploratory Data Analysis Pipeline",
+        "Key Principles",
+        "Quick Start Example",
+        "Data Analysis with Pandas",
+        "Data Manipulation Best Practices",
+        "Performance Optimization",
+        "Data Validation",
+        "Visualization Standards",
+        "Matplotlib Guidelines",
+        "Seaborn for Statistical Visualizations",
+        "Accessibility in Visualizations",
+        "Jupyter Notebook Best Practices",
+        "Notebook Structure",
+        "Execution and Reproducibility",
+        "Code Organization",
+        "Technical Requirements",
+        "Core Dependencies",
+        "Extended Libraries",
+        "Analytics Implementation",
+        "Tracking and Measurement",
+        "Statistical Analysis",
+        "Error Handling and Logging"
+      ],
+      "corrections": [
+        "Replaced unconditional drop-target/median-impute quick start with justified missingness policy.",
+        "Removed pandas-for-every-task and mandatory output-clearing assumptions.",
+        "Made categorical grouping and seaborn palette behavior version explicit."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/missing_data.html",
+          "checked_claim": "Missing-value representations and treatment"
+        },
+        {
+          "url": "https://seaborn.pydata.org/whatsnew/v0.13.0.html",
+          "checked_claim": "Categorical color and hue changes"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "android-development",
+      "source_sha256": "c3634c82ea41a1d7a24889206f836ee9ed261a8e398224ac0a222cb7262228e2",
+      "reviewed_source_sections": [
+        "Android Development Best Practices",
+        "General Kotlin Guidelines",
+        "Basic Principles",
+        "Naming Standards",
+        "Function Design",
+        "Data and Classes",
+        "Exception Handling",
+        "Android Architecture",
+        "Clean Architecture",
+        "Project Structure",
+        "MVI Pattern",
+        "UI Development",
+        "Navigation",
+        "Main Activity Structure",
+        "View Binding and State",
+        "UI Framework Preferences",
+        "Authentication Flow",
+        "Testing",
+        "Unit Testing",
+        "UI Testing",
+        "Best Practices",
+        "Lifecycle Management",
+        "Background Processing",
+        "Dependency Injection",
+        "Performance"
+      ],
+      "corrections": [
+        "Removed XML/Fragments preference that conflicts with current Android Compose guidance.",
+        "Corrected Kotlin Any/type-inference/file-naming guidance and removed arbitrary size limits.",
+        "Separated optional domain/MVI architecture, Compose vs Views navigation and testing."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.android.com/topic/architecture/recommendations",
+          "checked_claim": "Current Android architecture and Compose recommendations"
+        },
+        {
+          "url": "https://developer.android.com/kotlin/coroutines/coroutines-best-practices",
+          "checked_claim": "Lifecycle-aware cancellable coroutine work"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "angular",
+      "source_sha256": "755bbb84f98da2e45030aa3f9ad3a3d5c2e8438821fb80357299c091eda70923",
+      "reviewed_source_sections": [
+        "Angular",
+        "Core Principles",
+        "TypeScript Standards",
+        "File Organization",
+        "Code Standards",
+        "Angular-Specific Guidelines",
+        "Performance Optimization",
+        "Error Handling & Security"
+      ],
+      "corrections": [
+        "Updated standalone defaults and modern control-flow tracking rather than assuming old NgModule/ngFor conventions.",
+        "Removed mandatory interface/file-suffix/style choices and clarified inject context.",
+        "Removed implication that trust-bypass sanitization makes untrusted HTML safe."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://angular.dev/guide/components",
+          "checked_claim": "Standalone component defaults and imports"
+        },
+        {
+          "url": "https://angular.dev/guide/templates/control-flow",
+          "checked_claim": "Built-in control flow and track expressions"
+        },
+        {
+          "url": "https://angular.dev/best-practices/security",
+          "checked_claim": "Sanitization and security trust boundaries"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "angular-development",
+      "source_sha256": "29c6b57589dcc26cb85c2741dcc82b2f50941d35ada66f872b7a5c82117a2cf6",
+      "reviewed_source_sections": [
+        "Angular Development",
+        "Key Development Principles",
+        "Type Safety with Interfaces",
+        "Component Composition",
+        "Meaningful Naming",
+        "File Naming",
+        "Angular Best Practices",
+        "Standalone Components",
+        "Signals for State Management",
+        "Service Injection",
+        "Template Best Practices",
+        "File Structure",
+        "Coding Standards",
+        "Performance Optimization",
+        "Security Best Practices",
+        "Testing"
+      ],
+      "corrections": [
+        "Updated standalone defaults and modern control-flow tracking rather than assuming old NgModule/ngFor conventions.",
+        "Removed mandatory interface/file-suffix/style choices and clarified inject context.",
+        "Removed implication that trust-bypass sanitization makes untrusted HTML safe."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://angular.dev/guide/components",
+          "checked_claim": "Standalone component defaults and imports"
+        },
+        {
+          "url": "https://angular.dev/guide/templates/control-flow",
+          "checked_claim": "Built-in control flow and track expressions"
+        },
+        {
+          "url": "https://angular.dev/best-practices/security",
+          "checked_claim": "Sanitization and security trust boundaries"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "anime-js",
+      "source_sha256": "7fe51d52215ed091997f324763bb578c76ab9e34101f30e915c5c8195a2af97d",
+      "reviewed_source_sections": [
+        "Anime.js Animation Guidelines",
+        "Core Principles",
+        "Installation and Import",
+        "Basic Animation",
+        "Performance Optimization",
+        "Frame Rate Control",
+        "Use Transforms Over Layout Properties",
+        "Use Animatable for High-Frequency Updates",
+        "Timeline Animations",
+        "Basic Timeline",
+        "Timeline Controls",
+        "Stagger Animations",
+        "Basic Stagger",
+        "Advanced Stagger Options",
+        "Easing Functions",
+        "Built-in Easings",
+        "Custom Easing",
+        "SVG Animation",
+        "Path Animation",
+        "Line Drawing",
+        "Morphing",
+        "Function-Based Values",
+        "Dynamic Values",
+        "Callbacks and Events",
+        "Animation Events",
+        "Looping",
+        "React Integration",
+        "Basic React Usage",
+        "With useCallback for Controls",
+        "Web Animations API Bridge",
+        "Using WAAPI for Native Performance",
+        "Accessibility",
+        "Respect Reduced Motion",
+        "Best Practices Summary"
+      ],
+      "corrections": [
+        "Removed mixed v3/v4 imports, anime.timeline examples, nonexistent wapiAnimate export and incorrect Animatable property assignment.",
+        "Replaced pause-only React cleanup and blanket GPU claims with lifecycle reversion and measured behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://animejs.com/documentation/animation/",
+          "checked_claim": "v4 animate API"
+        },
+        {
+          "url": "https://animejs.com/documentation/timeline/",
+          "checked_claim": "createTimeline API"
+        },
+        {
+          "url": "https://animejs.com/documentation/animatable/",
+          "checked_claim": "createAnimatable API"
+        },
+        {
+          "url": "https://animejs.com/documentation/waapi/",
+          "checked_claim": "WAAPI API"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "anthropic-claude-development",
+      "source_sha256": "52c993e654aa826503ec23e74f5f0eb77ac25e48c5809bcc5d586ef29162aeca",
+      "reviewed_source_sections": [
+        "Anthropic Claude API Development",
+        "Key Principles",
+        "Setup and Configuration",
+        "Environment Setup",
+        "Best Practices",
+        "Messages API",
+        "Basic Usage",
+        "Streaming Responses",
+        "Model Selection",
+        "Tool Use (Function Calling)",
+        "Defining Tools",
+        "Handling Tool Calls",
+        "Vision and Multimodal",
+        "Image Analysis",
+        "Prompt Engineering for Claude",
+        "System Prompts",
+        "Prompting Best Practices",
+        "Error Handling",
+        "Retry Logic",
+        "Common Error Types",
+        "Prompt Caching",
+        "Using Caching",
+        "Caching Best Practices",
+        "Message Batches API",
+        "Batch Processing",
+        "Cost Optimization",
+        "Security Best Practices",
+        "Dependencies"
+      ],
+      "corrections": [
+        "Removed stale hardcoded model recommendations and chain-of-thought prompting mandate.",
+        "Corrected first-block text assumption and single-tool-only loop.",
+        "Removed blanket APIError retries and arbitrary similar-query caching claim."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.anthropic.com/en/api/messages",
+          "checked_claim": "Messages content blocks and stop reasons"
+        },
+        {
+          "url": "https://docs.anthropic.com/en/docs/agents-and-tools/tool-use/implement-tool-use",
+          "checked_claim": "Complete tool-use result flow"
+        },
+        {
+          "url": "https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching",
+          "checked_claim": "Prompt cache prefix requirements"
+        }
+      ],
+      "verification_limits": [
+        "Initial provider documentation fetch timed out; retry via docs.anthropic.com succeeded and redirected to current platform.claude.com Messages documentation. SDK examples were not executed against paid APIs."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "api-development",
+      "source_sha256": "aef6c286b421509b176a7843a548aa852a37b82449edcfbf812e6bcb08cd0c6e",
+      "reviewed_source_sections": [
+        "API Development",
+        "Go API Development with Standard Library (1.22+)",
+        "Core Principles",
+        "HTTP Handling",
+        "Error Handling",
+        "Input Validation",
+        "Middleware",
+        "Clean NestJS APIs with TypeScript",
+        "Code Standards",
+        "Naming Conventions",
+        "Modular Architecture",
+        "DTOs and Validation",
+        "Controller Guidelines",
+        "Common Module",
+        "Security Best Practices"
+      ],
+      "corrections": [
+        "Removed always-latest Go upgrade and universal DTO/module/style mandates.",
+        "Added configured ValidationPipe requirement and bounded Go body parsing.",
+        "Replaced generic sanitize-all-input/output claims with contextual validation/encoding."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://pkg.go.dev/net/http",
+          "checked_claim": "ServeMux routing and MaxBytesReader"
+        },
+        {
+          "url": "https://docs.nestjs.com/techniques/validation",
+          "checked_claim": "ValidationPipe runtime validation"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "apollo-graphql",
+      "source_sha256": "303c0a1bcc6c416802a6c582803428f2b0caf1fe7dccb8fbf746c6000a2c552d",
+      "reviewed_source_sections": [
+        "Apollo GraphQL Best Practices",
+        "Core Principles",
+        "Project Structure",
+        "Setup and Configuration",
+        "Apollo Client Setup",
+        "Apollo Provider Setup",
+        "Schema Design Best Practices",
+        "Naming Conventions",
+        "Schema Structure",
+        "Query Patterns",
+        "Defining Queries with Fragments",
+        "Custom Query Hooks",
+        "Mutation Patterns",
+        "Defining Mutations",
+        "Custom Mutation Hooks",
+        "Optimistic Updates",
+        "Caching Strategies",
+        "Cache Normalization",
+        "Reading and Writing Cache",
+        "Pagination",
+        "Cursor-Based Pagination (Relay Style)",
+        "Cache Merge Policy for Pagination",
+        "Performance Optimization",
+        "DataLoader Pattern",
+        "Query Batching",
+        "Fetch Policies",
+        "Error Handling",
+        "Query Error Handling",
+        "Mutation Error Handling",
+        "State Management",
+        "Anti-Patterns to Avoid",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Updated Apollo 4 React/ErrorLink imports and removed render-prop recommendation.",
+        "Corrected undefined refetch/data shape example and request-global DataLoader risk.",
+        "Replaced unconditional concatenation and global partial-error policy with explicit pagination/cache invariants."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.apollographql.com/docs/react/migrating/apollo-client-4-migration",
+          "checked_claim": "Apollo Client 4 migration and exports"
+        },
+        {
+          "url": "https://www.apollographql.com/docs/react/api/link/apollo-link-error",
+          "checked_claim": "ErrorLink current error interface"
+        },
+        {
+          "url": "https://www.apollographql.com/docs/react/pagination/core-api",
+          "checked_claim": "Pagination merge and keyArgs contracts"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "aspnet-core",
+      "source_sha256": "e6426047ec812cfa884aa14282b9dd4ac13d0c4922460dbcec7dde71493e0567",
+      "reviewed_source_sections": [
+        "ASP.NET Core Development Guidelines",
+        "Project Structure",
+        "Controller Design",
+        "RESTful Controllers",
+        "Best Practices",
+        "Middleware",
+        "Custom Middleware",
+        "Middleware Order",
+        "Caching",
+        "Response Caching",
+        "Memory Caching",
+        "Distributed Caching",
+        "Authentication",
+        "JWT Configuration",
+        "Token Generation",
+        "Authorization",
+        "Policy-Based Authorization",
+        "Error Handling",
+        "Global Exception Handler",
+        "Validation",
+        "FluentValidation",
+        "Configuration",
+        "Options Pattern",
+        "Documentation",
+        "Swagger/OpenAPI"
+      ],
+      "corrections": [
+        "Corrected ResponseCache attribute versus actual response/output caching behavior.",
+        "Removed universal custom-middleware position and automatic self-issued JWT assumption.",
+        "Clarified cache stampede/isolation and version-specific OpenAPI choice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/performance/caching/middleware",
+          "checked_claim": "Response-caching services and middleware"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/fundamentals/middleware/",
+          "checked_claim": "Middleware dependency order"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "astro",
+      "source_sha256": "fb47394c85befad746adb902ac7f2cf51263ca3a55894a7f63319f904e49173d",
+      "reviewed_source_sections": [
+        "Astro",
+        "Core Principles",
+        "Project Structure",
+        "Component Development",
+        "Routing & Pages",
+        "Performance Optimization",
+        "Content Management",
+        "Styling",
+        "Data Fetching",
+        "SEO & Accessibility",
+        "Performance Metrics"
+      ],
+      "corrections": [
+        "Replaced deprecated Astro.glob and unconditional @astrojs/tailwind integration.",
+        "Corrected special head-tag implication and FID metric.",
+        "Separated build-time getStaticPaths from general prop/data loading."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.astro.build/en/guides/styling/",
+          "checked_claim": "Tailwind 4 Vite integration"
+        },
+        {
+          "url": "https://docs.astro.build/en/guides/content-collections/",
+          "checked_claim": "Content loading and collections"
+        },
+        {
+          "url": "https://docs.astro.build/en/guides/client-side-scripts/",
+          "checked_claim": "Client-side scripts and island boundaries"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "auth0-authentication",
+      "source_sha256": "94eb8ee36871d1fbc8554baa6b69d0e61761031b55570ba0a7adab3cb2415efd",
+      "reviewed_source_sections": [
+        "Auth0 Authentication",
+        "Core Principles",
+        "Environment Variables",
+        "Authentication Flows",
+        "Authorization Code Flow with PKCE (Recommended for SPAs and Native Apps)",
+        "Authorization Code Flow (Server-Side Applications)",
+        "Auth0 Actions Best Practices",
+        "Action Structure",
+        "Action Security Rules",
+        "Token Management",
+        "Access Token Best Practices",
+        "Refresh Token Configuration",
+        "Security Best Practices",
+        "CSRF Protection",
+        "Redirect URI Security",
+        "Session Management",
+        "Multi-Factor Authentication",
+        "Error Handling",
+        "MCP Integration",
+        "Testing",
+        "Common Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Removed client secret from universal/public configuration and localStorage default.",
+        "Corrected Actions total time limit versus HTTP timeout and invented one-hour token maximum.",
+        "Made MFA/tenant/MCP availability and settings changes explicit."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://auth0.com/docs/secure/security-guidance/data-security/token-storage",
+          "checked_claim": "Browser token storage guidance"
+        },
+        {
+          "url": "https://auth0.com/docs/secure/tokens/refresh-tokens/refresh-token-rotation",
+          "checked_claim": "Rotation and reuse detection"
+        },
+        {
+          "url": "https://auth0.com/docs/customize/actions/limitations",
+          "checked_claim": "Actions execution limits"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "autogen-development",
+      "source_sha256": "a42bc4b0fe15187c6bf091459e14dfa8f3e0f28a5900470f6b82592697e4fe03",
+      "reviewed_source_sections": [
+        "AutoGen Multi-Agent Development",
+        "Key Principles",
+        "Setup and Installation",
+        "Environment Setup",
+        "Model Configuration",
+        "Core Concepts",
+        "Agent Types",
+        "Creating Agents",
+        "Basic Assistant Agent",
+        "Agent with Tools",
+        "Multi-Agent Conversations",
+        "Two-Agent Chat",
+        "Group Chat with Multiple Agents",
+        "Code Execution",
+        "Setting Up Code Execution",
+        "Docker-Based Execution",
+        "Conversation Patterns",
+        "Sequential Workflow",
+        "Hierarchical Structure",
+        "Memory and State",
+        "Conversation Memory",
+        "Event-Driven Architecture",
+        "Custom Event Handling",
+        "Error Handling",
+        "Robust Agent Design",
+        "Best Practices",
+        "Agent Design",
+        "Performance",
+        "Security",
+        "Testing",
+        "Dependencies",
+        "Common Patterns",
+        "Research and Writing",
+        "Code Generation",
+        "Data Analysis"
+      ],
+      "corrections": [
+        "Removed unsafe eval tool and mixed v0.2/current AgentChat APIs.",
+        "Corrected AssistantAgent code_executor argument and invented autogen_core.Event example.",
+        "Added complete state persistence/resource lifecycle and side-effect-aware retries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/state.html",
+          "checked_claim": "AgentChat save_state/load_state"
+        },
+        {
+          "url": "https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/code-execution.html",
+          "checked_claim": "CodeExecutorAgent and executor lifecycle"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "automl-hyperparameter-optimization",
+      "source_sha256": "b783296cdf8014de809fc6cc586632fc909ca39a04078d6b3569f4f4e2794dca",
+      "reviewed_source_sections": [
+        "AutoML and Hyperparameter Optimization",
+        "Workflow for Running a Hyperparameter Search",
+        "Experiment Design",
+        "Search Space Design",
+        "Tooling",
+        "Optuna \u2014 custom loops with pruning",
+        "Ray Tune \u2014 distributed trials",
+        "PyCaret \u2014 quick low-code comparison",
+        "Time-series AutoML",
+        "Experiment tracking and environments",
+        "Reporting",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Corrected ineffective Optuna pruning example (single step 0 after all CV with warmup 5).",
+        "Removed undefined Ray training sample and version-mixed reporting recommendation.",
+        "Qualified forecasting automatic-split claim and PyCaret holdout finalization leakage."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://optuna.readthedocs.io/en/stable/reference/generated/optuna.pruners.MedianPruner.html",
+          "checked_claim": "Warmup and intermediate pruning reports"
+        },
+        {
+          "url": "https://docs.ray.io/en/latest/tune/api/reporters.html",
+          "checked_claim": "Current Tune reporting API"
+        },
+        {
+          "url": "https://pycaret.readthedocs.io/en/latest/api/classification.html#pycaret.classification.finalize_model",
+          "checked_claim": "Finalization refit behavior"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "aws-development",
+      "source_sha256": "240e89eed5e3ace43f72055419590ec4ae297b001d99f657896e59ba3208ec1e",
+      "reviewed_source_sections": [
+        "AWS Development Best Practices",
+        "Overview",
+        "Core Principles",
+        "AWS Lambda Guidelines",
+        "Configuration Standards",
+        "Lambda Best Practices",
+        "AWS CDK Guidelines",
+        "Implementation Standards",
+        "Project Structure",
+        "CDK Best Practices",
+        "DynamoDB Patterns",
+        "Table Design",
+        "Best Practices",
+        "IAM Security Best Practices",
+        "Principles",
+        "Policy Example",
+        "SAM Template Configuration",
+        "Template Structure",
+        "API Gateway Configuration",
+        "Best Practices",
+        "Step Functions for Orchestration",
+        "Security Standards",
+        "Encryption",
+        "Secrets Management",
+        "Observability",
+        "Logging",
+        "Monitoring",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "CI/CD Integration",
+        "Common Pitfalls to Avoid"
+      ],
+      "corrections": [
+        "Corrected CDK subpath/import errors and incomplete SDK example.",
+        "Removed mandatory TypeScript/ARM64 and obsolete runtime defaults.",
+        "Clarified API-key usage plans, duplicate events, and mock versus integration evidence."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html",
+          "checked_claim": "Lambda runtime and idempotency practices"
+        },
+        {
+          "url": "https://docs.aws.amazon.com/cdk/api/v2/",
+          "checked_claim": "CDK v2 modules and Construct ownership"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "azure",
+      "source_sha256": "625223f52a5d6fa8fb8b043f3e0c0fdf5fc6b8b5ead73395902f07850190b1ba",
+      "reviewed_source_sections": [
+        "Azure Cloud Development",
+        "Core Principles",
+        "Naming Standards",
+        "Azure Services",
+        "Provisioning",
+        "Azure Pipelines",
+        "Monitoring & Logging",
+        "Security",
+        "Cost Optimization",
+        "Kubernetes on Azure (AKS)",
+        "Testing & Documentation"
+      ],
+      "corrections": [
+        "Separated AKS Workload ID from pod security and cluster identity.",
+        "Removed arbitrary naming/test-language mandates and unconditional reservation recommendations.",
+        "Qualified StatefulSet persistence and IaC/production authority."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://learn.microsoft.com/azure/aks/managed-identity-overview",
+          "checked_claim": "AKS identity scenarios"
+        },
+        {
+          "url": "https://learn.microsoft.com/azure/aks/workload-identity-overview",
+          "checked_claim": "Pod-to-Azure Workload ID"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "backend-development",
+      "source_sha256": "27a1c79601f5937c2ebdf0635af5111d41fcab119460679caaa50df699588b9b",
+      "reviewed_source_sections": [
+        "Backend Development",
+        "C++ Development",
+        "Naming Conventions",
+        "Memory Management",
+        "Modern C++ Features",
+        "Error Handling",
+        "Best Practices",
+        "Elixir and Phoenix Best Practices",
+        "Core Philosophy",
+        "Code Organization",
+        "Pattern Matching and Control Flow",
+        "Error Handling",
+        "Phoenix Contexts",
+        "LiveView",
+        "Data Validation"
+      ],
+      "corrections": [
+        "Clarified non-owning raw pointers and std::move rather than universal smart-pointer/move mandates.",
+        "Qualified exceptions, let-it-crash, and mandatory LiveView/DDD prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines",
+          "checked_claim": "Resource ownership and RAII"
+        },
+        {
+          "url": "https://hexdocs.pm/phoenix/contexts.html",
+          "checked_claim": "Phoenix context boundaries"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "bash-scripting",
+      "source_sha256": "30674e59131ce02e7f131285a8a5c438ae1721d213c00b88b3915678673f49c6",
+      "reviewed_source_sections": [
+        "Bash Scripting",
+        "Core Principles",
+        "Naming & Structure",
+        "Input Validation & Security",
+        "Code Quality",
+        "Error Handling & Cleanup",
+        "Best Practices",
+        "Automation Best Practices",
+        "Specific Use Cases"
+      ],
+      "corrections": [
+        "Corrected Bash-versus-POSIX contradiction and valid-input set -e exit defect.",
+        "Replaced unowned TEMP_FILE cleanup and generic sanitization with quoted data/owned resource handling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.gnu.org/software/bash/manual/bash.html",
+          "checked_claim": "errexit, pipefail, quoting, traps, and arrays"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "beautifulsoup-parsing",
+      "source_sha256": "a19c6d49b59696a786664d7c564ddcf45310c9b84021da7f467b018bd8b75f5e",
+      "reviewed_source_sections": [
+        "BeautifulSoup HTML Parsing",
+        "Core Expertise",
+        "Key Principles",
+        "Basic Setup",
+        "Loading HTML",
+        "Parser Options",
+        "Finding Elements",
+        "By Tag",
+        "By Attributes",
+        "CSS Selectors",
+        "With Functions",
+        "Extracting Data",
+        "Text Content",
+        "Attributes",
+        "HTML Content",
+        "DOM Navigation",
+        "Parent/Ancestors",
+        "Children",
+        "Siblings",
+        "Data Extraction Patterns",
+        "Safe Extraction",
+        "Table Extraction",
+        "List Extraction",
+        "URL Resolution",
+        "Handling Malformed HTML",
+        "Complete Scraping Example",
+        "Performance Optimization",
+        "Key Dependencies",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected inner-HTML str(tag) claim and next_element whitespace/sibling claim.",
+        "Removed always-lxml/fastest claims and silent table/price/URL failure examples."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.crummy.com/software/BeautifulSoup/bs4/doc/",
+          "checked_claim": "Parser differences, traversal and decode_contents"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "bitbucket-workflow",
+      "source_sha256": "7e767527de4f407bc6f77409e915c05be1a469c2c058abf72754c4117fa47cbc",
+      "reviewed_source_sections": [
+        "Bitbucket Workflow Best Practices",
+        "Core Principles",
+        "Pull Request Best Practices",
+        "Creating Effective Pull Requests",
+        "Code Review in Bitbucket",
+        "Merge Strategies",
+        "Bitbucket Pipelines",
+        "Basic Pipeline Configuration",
+        "Pipeline Features",
+        "Services for Testing",
+        "Caching",
+        "Jira Integration",
+        "Smart Commits",
+        "Branch Naming",
+        "Automation Rules",
+        "Branching Models",
+        "Gitflow in Bitbucket",
+        "Branch Permissions",
+        "Repository Management",
+        "Default Reviewers",
+        "Merge Checks",
+        "Access Levels",
+        "Security Best Practices",
+        "Repository Variables",
+        "IP Allowlisting",
+        "Access Tokens",
+        "Deployment Environments",
+        "Environment Configuration",
+        "Deployment Permissions",
+        "Atlassian Ecosystem Integration",
+        "Confluence Integration",
+        "Trello Integration",
+        "Opsgenie Integration",
+        "Best Practices Summary"
+      ],
+      "corrections": [
+        "Corrected npm custom-script syntax and missing step isolation/dependency assumptions.",
+        "Removed automatic Gitflow/Jira/settings/deployment actions and unsupported feature guarantees.",
+        "Replaced long-lived key/CLI-argument secret examples with configured least-privilege identity."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://support.atlassian.com/bitbucket-cloud/docs/step-options/",
+          "checked_claim": "Pipeline step services, runtime and OIDC options"
+        },
+        {
+          "url": "https://support.atlassian.com/bitbucket-cloud/docs/integrate-pipelines-with-resource-servers-using-oidc/",
+          "checked_claim": "OIDC integration and claims"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "blazor",
+      "source_sha256": "1dc5e67e038e77562ee6173d902579fdaa729c4a8e6a2a1b9155f599a3c10a04",
+      "reviewed_source_sections": [
+        "Blazor Development Guidelines",
+        "Component Architecture",
+        "Component Design",
+        "Component Structure",
+        "Component Lifecycle",
+        "Lifecycle Methods",
+        "Best Practices",
+        "Data Binding",
+        "One-Way Binding",
+        "Two-Way Binding",
+        "Event Handling",
+        "Render Optimization",
+        "Prevent Unnecessary Renders",
+        "Virtualization",
+        "State Management",
+        "Component State",
+        "Cascading Parameters",
+        "State Containers",
+        "Blazor Server vs WebAssembly",
+        "Blazor Server",
+        "Blazor WebAssembly",
+        "API Integration",
+        "HTTP Client",
+        "Error Handling",
+        "Error Handling",
+        "Error Boundaries",
+        "Global Error Handling",
+        "Testing",
+        "bUnit Testing",
+        "Authentication",
+        "Setup",
+        "AuthorizeView",
+        "Performance Tips"
+      ],
+      "corrections": [
+        "Corrected parameter loading lifecycle, invented IErrorBoundary, and @if lazy-code claim.",
+        "Qualified offline capability and server/client authorization boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/blazor/components/lifecycle",
+          "checked_claim": "Parameter and prerender lifecycle"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/aspnet/core/blazor/fundamentals/handle-errors",
+          "checked_claim": "ErrorBoundary handling and recovery"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "blender-python-addon",
+      "source_sha256": "ab09442134397ddc88f5b26f6b1ccf0cfc5839d930896d086441c62a1b5d74b5",
+      "reviewed_source_sections": [
+        "Blender Python Add-on Development",
+        "Workflow for Building a Blender Add-on",
+        "Add-on Structure",
+        "API Usage",
+        "Example: Operator, Panel, and Registration",
+        "Data and Properties",
+        "Safety and Performance",
+        "Testing and Debugging",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Clarified modern Extension versus legacy add-on packaging and optional operator flags.",
+        "Removed suggestion that preferences secure API keys or PropertyGroup alone guarantees undo safety.",
+        "Added bpy threading/context and registration resource ownership boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.blender.org/manual/en/4.2/advanced/extensions/addons.html",
+          "checked_claim": "Blender 4.2 extension migration and manifest"
+        },
+        {
+          "url": "https://docs.blender.org/api/current/info_gotchas_threading.html",
+          "checked_claim": "Blender Python threading limits"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "blockchain",
+      "source_sha256": "08d81a7fcb5766ee4f991affc295c99f7b00e76097a154554025c5e8593a8731",
+      "reviewed_source_sections": [
+        "Blockchain Development",
+        "Core Principles",
+        "CosmWasm Development (Cosmos)",
+        "Rust Best Practices",
+        "IBC Integration",
+        "State Management",
+        "Cross-Chain Patterns",
+        "Message Passing",
+        "Security Considerations",
+        "Testing Strategies",
+        "Documentation"
+      ],
+      "corrections": [
+        "Qualified immutability/upgradability and Rust safety guarantees.",
+        "Expanded asynchronous IBC failure/timeout semantics beyond generic message validation."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://cosmwasm.cosmos.network/",
+          "checked_claim": "CosmWasm contract architecture and IBC documentation"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "bootstrap",
+      "source_sha256": "2153919ad92535303a8151e617539396cf87ebf8c217c988a5ca26a1ab36522f",
+      "reviewed_source_sections": [
+        "Bootstrap Development",
+        "Core Principles",
+        "Grid System & Layout",
+        "Components",
+        "Buttons",
+        "Modals",
+        "Alerts",
+        "Utilities",
+        "Form Validation",
+        "Customization",
+        "Performance",
+        "Accessibility"
+      ],
+      "corrections": [
+        "Corrected incomplete novalidate sample and styling-versus-validation distinction.",
+        "Added modal name/close-label requirements and removed universal CDN recommendation."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://getbootstrap.com/docs/5.3/forms/validation/",
+          "checked_claim": "Validation behavior and accessibility limitations"
+        },
+        {
+          "url": "https://getbootstrap.com/docs/5.3/components/modal/",
+          "checked_claim": "Modal markup, focus, and labels"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "business-central-development",
+      "source_sha256": "77a4100e7e64f84be27e08a87e23b7e196aae9afc2ffe5323025fad77f9466e5",
+      "reviewed_source_sections": [
+        "Microsoft Dynamics 365 Business Central Development",
+        "Key Principles",
+        "Core Development Practices",
+        "Language & Structure",
+        "Error Management",
+        "Business Central-Specific Guidelines",
+        "Performance Optimization",
+        "Dependencies",
+        "Key Conventions",
+        "Object Types",
+        "Tables",
+        "Pages",
+        "Codeunits",
+        "Resources"
+      ],
+      "corrections": [
+        "Replaced nonexistent AL try-catch and object-oriented assumptions.",
+        "Clarified TryFunction database transaction risk and FlowField/query semantics.",
+        "Removed universal assertion-system and UI-message assumptions for background work."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/dynamics365/business-central/dev-itpro/developer/devenv-handling-errors-using-try-methods",
+          "checked_claim": "TryFunction and database-write semantics"
+        },
+        {
+          "url": "https://learn.microsoft.com/dynamics365/business-central/dev-itpro/developer/devenv-programming-in-al",
+          "checked_claim": "AL language/object model"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "c-sharp",
+      "source_sha256": "239da321359b49b6e721cbdfcc3bcad75b65d8eb06e8f3b2749f3545c34b13df",
+      "reviewed_source_sections": [
+        "C# Development Guidelines",
+        "Code Style and Structure",
+        "Naming Conventions",
+        "C# Language Features",
+        "C# 10+ Features",
+        "Modern Syntax",
+        "Error Handling",
+        "API Design",
+        "Performance",
+        "Dependency Injection",
+        "Testing",
+        "Security",
+        "Blazor-Specific Guidelines",
+        "Unity-Specific Guidelines"
+      ],
+      "corrections": [
+        "Corrected constant naming and qualified record immutability/Unity language support.",
+        "Added resource/DI lifetime and raw SQL safety boundaries; removed blanket LINQ/performance mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/csharp/fundamentals/coding-style/identifier-names",
+          "checked_claim": "C# identifier and constant conventions"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/record",
+          "checked_claim": "Record mutability semantics"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "cheerio-parsing",
+      "source_sha256": "5384c275fab53295ab43f8c2f0b73582d58024f7de8865e2f8d3a72d03681a35",
+      "reviewed_source_sections": [
+        "Cheerio HTML Parsing",
+        "Core Expertise",
+        "Key Principles",
+        "Basic Setup",
+        "Loading HTML",
+        "Selecting Elements",
+        "CSS Selectors",
+        "Multiple Selectors",
+        "Extracting Data",
+        "Text Content",
+        "Attributes",
+        "Multiple Elements",
+        "DOM Traversal",
+        "Navigation",
+        "Filtering",
+        "Data Extraction Patterns",
+        "Table Extraction",
+        "List Extraction",
+        "Pagination Links",
+        "Handling Missing Data",
+        "URL Resolution",
+        "Performance Optimization",
+        "Complete Scraping Example",
+        "Key Dependencies",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected xmlMode false comment and version-mixed parser configuration.",
+        "Removed unbound this helper, missing-href URL, zero-to-null, and swallow-errors-as-empty defects."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://cheerio.js.org/docs/advanced/configuring-cheerio/",
+          "checked_claim": "parse5/htmlparser2 and XML/fragment options"
+        },
+        {
+          "url": "https://cheerio.js.org/docs/basics/loading",
+          "checked_claim": "Loading methods and document scope"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "chrome-extension-development",
+      "source_sha256": "ad47a5811991e78d30834f5c3f03f4020279134d91cdf30c408b65e907adad4a",
+      "reviewed_source_sections": [
+        "Chrome Extension Development",
+        "Workflow: Building a Chrome Extension from Scratch",
+        "Example: Minimal Manifest V3 Configuration",
+        "Example: Background Service Worker with Messaging",
+        "Code Style and Structure",
+        "Architecture and Best Practices",
+        "Chrome API Usage",
+        "Security and Privacy",
+        "Performance and Optimization",
+        "UI and User Experience",
+        "Internationalization",
+        "Accessibility",
+        "Testing and Debugging",
+        "Publishing and Maintenance",
+        "Follow Official Documentation",
+        "Output Expectations"
+      ],
+      "corrections": [
+        "Added missing alarms permission and corrected non-atomic storage increment example.",
+        "Clarified worker persistence, message sender validation, CSP, and storage secrecy.",
+        "Removed automatic store publication and guaranteed cross-browser compatibility."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.chrome.com/docs/extensions/get-started/tutorial/service-worker-events",
+          "checked_claim": "Worker listeners, persistence and alarms permission"
+        },
+        {
+          "url": "https://developer.chrome.com/docs/extensions/develop/concepts/messaging",
+          "checked_claim": "Messaging trust boundaries"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "ci-cd-best-practices",
+      "source_sha256": "34f668263a39a37f57be30d6ee18bcb72b183fbd63733b4c0f576acdcd3e28e0",
+      "reviewed_source_sections": [
+        "CI/CD Best Practices",
+        "Core Principles",
+        "Pipeline Design",
+        "Pipeline Stages",
+        "Deployment Strategies",
+        "Blue-Green Deployment",
+        "Canary Deployment",
+        "Rolling Deployment",
+        "Feature Flags",
+        "Environment Management",
+        "Environment Hierarchy",
+        "Environment Variables",
+        "Infrastructure as Code",
+        "Testing Strategies",
+        "Test Pyramid",
+        "Test Parallelization",
+        "Test Data Management",
+        "Flaky Test Handling",
+        "Monitoring and Observability",
+        "Pipeline Metrics",
+        "Health Checks",
+        "Alerting",
+        "Security in CI/CD",
+        "Secrets Management",
+        "Pipeline Security",
+        "Dependency Security",
+        "Optimization Techniques",
+        "Caching",
+        "Parallelization",
+        "Artifact Management",
+        "Rollback Strategies",
+        "Automatic Rollback",
+        "Manual Rollback",
+        "Database Rollbacks",
+        "Documentation",
+        "Pipeline Documentation",
+        "Runbooks",
+        "Continuous Improvement",
+        "Metrics to Track",
+        "Regular Reviews"
+      ],
+      "corrections": [
+        "Corrected automatic Kubernetes rollback and rollout-restart-as-deployment claims.",
+        "Removed invalid generic Terraform deployment_configuration example and provider-mixed incomplete YAML.",
+        "Clarified cache/artifact trust, rollback status, and secret encoding."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://kubernetes.io/docs/concepts/workloads/controllers/deployment/",
+          "checked_claim": "Deployment progress conditions and explicit rollback"
+        },
+        {
+          "url": "https://docs.gitlab.com/ci/yaml/",
+          "checked_claim": "GitLab provider-specific pipeline schema"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "clean-architecture",
+      "source_sha256": "352cd25c2754125a7457bbcf191ee29b2ab095d1e404c72104bcd24a60519392",
+      "reviewed_source_sections": [
+        "Clean Architecture",
+        "Core Principles",
+        "Flutter + Clean Architecture",
+        "Architecture Layers",
+        "Feature-first Organization",
+        "State Management with flutter_bloc",
+        "Error Handling",
+        "Key Libraries",
+        "Go Backend Clean Architecture",
+        "Layer Separation",
+        "Interface-driven Development",
+        "Project Structure",
+        "Testing Strategy"
+      ],
+      "corrections": [
+        "Removed mandatory Flutter BLoC/Freezed/get_it/Dartz dependency bundle.",
+        "Qualified domain layers, universal interfaces, folder trees, and Either-only error handling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.flutter.dev/app-architecture/recommendations",
+          "checked_claim": "Conditional domain layer and state-management choices"
+        },
+        {
+          "url": "https://go.dev/doc/modules/layout",
+          "checked_claim": "Go module/package organization"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "clean-code",
+      "source_sha256": "bac5e58e0d0a0579736bace8d5c113bf818b1105605617dad857c1f6a26807a4",
+      "reviewed_source_sections": [
+        "Clean Code",
+        "Workflow for Writing or Reviewing Code",
+        "Meaningful Names",
+        "Constants Over Magic Numbers",
+        "Smart Comments",
+        "Single Responsibility",
+        "DRY \u2014 Don't Repeat Yourself",
+        "Encapsulation",
+        "Clean Structure",
+        "Avoiding Over-Engineering",
+        "Rule of Three",
+        "Signs of Over-Engineering",
+        "Code Quality Maintenance",
+        "Testing",
+        "Version Control",
+        "Before Delivery Checklist"
+      ],
+      "corrections": [
+        "Qualified rigid comment/split, rule-of-three, and interface-count rules.",
+        "Identified short-circuit/evaluation-order change in upstream canCheckout rewrite.",
+        "Removed universal failing-test-first and test-for-every-trivial-edit mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://google.github.io/eng-practices/review/reviewer/looking-for.html",
+          "checked_claim": "Review functionality, complexity, tests and design"
+        },
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Logical_AND",
+          "checked_claim": "Short-circuit evaluation semantics"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "clerk-authentication",
+      "source_sha256": "316d05bb0c5722dbbea85560fdbc9aa82f027308c15d061e9ff514f580bfd39b",
+      "reviewed_source_sections": [
+        "Clerk Authentication",
+        "Core Principles",
+        "Installation and Setup",
+        "Environment Variables",
+        "Provider Setup",
+        "App Router (app/layout.tsx)",
+        "With Custom Appearance",
+        "Middleware Configuration",
+        "Basic Middleware (middleware.ts)",
+        "Advanced Middleware with Role-Based Access",
+        "Authentication in Server Components",
+        "Using auth()",
+        "Using currentUser()",
+        "Authentication in Client Components",
+        "useUser Hook",
+        "useAuth Hook",
+        "Server Actions Protection",
+        "With Role Validation",
+        "API Route Protection",
+        "Route Handlers (App Router)",
+        "JWT Verification for External APIs",
+        "Organization Support",
+        "Custom Session Claims",
+        "Configure in Clerk Dashboard",
+        "UI Components",
+        "Pre-built Components",
+        "Security Best Practices",
+        "1. Defense in Depth",
+        "2. Protect All Server Actions",
+        "3. Avoid Client-Side Only Protection",
+        "Error Handling",
+        "Testing",
+        "Common Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Corrected assumption that custom claims appear via JWT template metadata automatically.",
+        "Removed unvalidated FormData casts, undefined/missing imports, and unhandled null token sample.",
+        "Qualified middleware/proxy versioning, HttpOnly blanket claim and per-resource authorization."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://clerk.com/docs/reference/nextjs/app-router/auth",
+          "checked_claim": "Current async auth/protect contract"
+        },
+        {
+          "url": "https://clerk.com/docs/guides/sessions/session-tokens",
+          "checked_claim": "Session token version and claims"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "cloudflare-development",
+      "source_sha256": "ae24c26d928fbd35be74ff063c08646277e558f44125569c3607655a5cf3d03d",
+      "reviewed_source_sections": [
+        "Cloudflare Development Best Practices",
+        "Overview",
+        "Core Principles",
+        "Cloudflare Workers Guidelines",
+        "Basic Worker Structure",
+        "Environment Types",
+        "Best Practices",
+        "Wrangler Configuration",
+        "wrangler.toml Structure",
+        "KV Storage Guidelines",
+        "Usage Patterns",
+        "Best Practices",
+        "D1 Database Guidelines",
+        "Query Patterns",
+        "Schema Management",
+        "Best Practices",
+        "R2 Object Storage Guidelines",
+        "Usage Patterns",
+        "Best Practices",
+        "Durable Objects Guidelines",
+        "Implementation",
+        "Best Practices",
+        "Cloudflare Pages Guidelines",
+        "Project Structure",
+        "Pages Functions",
+        "Edge Security Best Practices",
+        "Request Validation",
+        "Authentication",
+        "Rate Limiting",
+        "Performance Optimization",
+        "Caching Strategies",
+        "Background Processing",
+        "Testing",
+        "Local Development",
+        "Unit Testing",
+        "Deployment",
+        "Production Deployment",
+        "CI/CD Integration",
+        "Common Pitfalls to Avoid"
+      ],
+      "corrections": [
+        "Removed unsafe KV rate limiter and public-cache/undefined-ctx example.",
+        "Corrected Durable Object class/binding mismatch and backend migration assumptions.",
+        "Replaced obsolete Wrangler unstable_dev/persistence assumptions with version checks."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developers.cloudflare.com/kv/reference/faq/",
+          "checked_claim": "KV eventual consistency and per-key write limits"
+        },
+        {
+          "url": "https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/",
+          "checked_claim": "Rate-limit binding consistency scope"
+        },
+        {
+          "url": "https://developers.cloudflare.com/workers/runtime-apis/context/",
+          "checked_claim": "Bounded execution context lifetime"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "computer-vision-opencv",
+      "source_sha256": "54fda7c665cea91e2dabd3a3319dfac693357976d9772318ece4b2186e8762a0",
+      "reviewed_source_sections": [
+        "Computer Vision and OpenCV Development",
+        "Key Principles",
+        "OpenCV Fundamentals",
+        "Image Processing Operations",
+        "Feature Detection and Matching",
+        "Object Detection and Recognition",
+        "Deep Learning for Computer Vision",
+        "Video Processing",
+        "Performance Optimization",
+        "Error Handling and Validation",
+        "Dependencies",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Qualified CUDA/contrib/SURF/tracker and codec availability instead of blanket dependency claims.",
+        "Added model/image range, descriptor distance, and decoded video validation boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/opencv/opencv-python",
+          "checked_claim": "CPU wheel and contrib packaging capabilities"
+        },
+        {
+          "url": "https://docs.opencv.org/4.x/",
+          "checked_claim": "Image, feature and video API contracts"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "convex",
+      "source_sha256": "2d1472c27d161c281d1b9eb577b082bf631d72d8628520f5d4ed2662cafa3e61",
+      "reviewed_source_sections": [
+        "Convex Development Guidelines",
+        "General Development Specifications",
+        "Code Style and Structure",
+        "Error Handling",
+        "UI Framework Integration",
+        "Convex-Specific Patterns",
+        "Queries",
+        "Mutations",
+        "Actions",
+        "Schema Definition with Indexes",
+        "HTTP Router",
+        "Scheduled Jobs",
+        "File Handling",
+        "Best Practices",
+        "Performance Considerations"
+      ],
+      "corrections": [
+        "Corrected unscoped getItems data leak and createItem/schema mismatch.",
+        "Added missing upload/action/webhook authorization and transaction separation.",
+        "Removed unrelated mandatory React/Tailwind/Server Component style and universal cache/index claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.convex.dev/understanding/best-practices",
+          "checked_claim": "Validators and access control on every public function"
+        },
+        {
+          "url": "https://docs.convex.dev/functions/actions",
+          "checked_claim": "Action and transaction boundaries"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "cpp",
+      "source_sha256": "4328a707cfde136abff4fc12f3c0ac1f18a0154ef5ca6bfd01b39435a8e169e6",
+      "reviewed_source_sections": [
+        "C++ Development Guidelines",
+        "Code Style and Structure",
+        "Naming Conventions",
+        "Memory Management",
+        "Smart Pointers",
+        "RAII (Resource Acquisition Is Initialization)",
+        "Best Practices",
+        "Modern C++ Features",
+        "C++17 Features",
+        "C++20 Features",
+        "Error Handling",
+        "Performance",
+        "Security",
+        "Buffer Safety",
+        "Type Safety",
+        "Concurrency",
+        "Testing",
+        "Documentation",
+        "Build System"
+      ],
+      "corrections": [
+        "Corrected vector bounds-checking, atomics-always-lock-free, and inline-as-performance claims.",
+        "Qualified move/copy-elision, async scheduling, noexcept, and view lifetime semantics."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines",
+          "checked_claim": "Ownership, bounds, lifetime and concurrency guidelines"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "css",
+      "source_sha256": "1ae648cb363e969fb03f8cfc9c4f30186aafdf8f1dbd69353d651a9bbd3a0a02",
+      "reviewed_source_sections": [
+        "CSS Development Guidelines",
+        "Core Principles",
+        "Layout Techniques",
+        "Flexbox",
+        "Grid",
+        "Units and Typography",
+        "CSS Variables (Custom Properties)",
+        "Naming Conventions",
+        "BEM Methodology",
+        "Best Practices",
+        "Specificity Management",
+        "Responsive Design",
+        "Performance",
+        "Modern CSS Features",
+        "Organization",
+        "Browser Compatibility",
+        "Accessibility"
+      ],
+      "corrections": [
+        "Removed universal external-style/BEM/px/important bans and selector-speed claims.",
+        "Clarified cascade layer/important ordering and containment/unit accessibility tradeoffs."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/CSS/Guides/Cascade/Introduction",
+          "checked_claim": "Cascade ordering, layers, inline and important precedence"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "cypress",
+      "source_sha256": "c19631e9578e1775b5d44793d763763d4889e2eee29801016670e94809aaaedc",
+      "reviewed_source_sections": [
+        "Cypress Testing Best Practices",
+        "Core Principles",
+        "Test Structure",
+        "Selecting Elements",
+        "Commands and Assertions",
+        "Custom Commands",
+        "Handling Async Operations",
+        "Test Isolation",
+        "Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Corrected session helper secret leakage and missing restoration validation/navigation.",
+        "Clarified retryable assertions versus once-only then and browser versus server isolation."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.cypress.io/api/commands/session",
+          "checked_claim": "Session validation, visible IDs, and post-session navigation"
+        },
+        {
+          "url": "https://docs.cypress.io/app/core-concepts/test-isolation",
+          "checked_claim": "Independent test state and storage scope"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "data-analysis-jupyter",
+      "source_sha256": "cd27e793be4ee02be404093aee3fd891c07db3820e2061b573885631c798de23",
+      "reviewed_source_sections": [
+        "Data Analysis and Jupyter Notebook Development",
+        "Key Principles",
+        "Data Analysis and Manipulation",
+        "Visualization Standards",
+        "Jupyter Notebook Practices",
+        "NumPy Best Practices",
+        "Error Handling and Validation",
+        "Performance Optimization",
+        "Statistical Analysis",
+        "Dependencies",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Corrected global-seed reproducibility, unguarded normalization and silent date coercion assumptions.",
+        "Qualified categorical dtype and chunk-concat memory optimization.",
+        "Removed universal output clearing, mandatory functional style, and library-for-every-task mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://numpy.org/doc/stable/reference/random/",
+          "checked_claim": "Generator and reproducibility semantics"
+        },
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/scale.html",
+          "checked_claim": "Chunking and memory scaling"
+        },
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/missing_data.html",
+          "checked_claim": "Explicit missing-data treatment"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "data-analyst",
+      "source_sha256": "8e2919445920959e11208c98075f8abd9284a49a642e228b7b39e1e3f8e49d63",
+      "reviewed_source_sections": [
+        "Data Analyst",
+        "Core Principles",
+        "Data Manipulation",
+        "Pandas Best Practices",
+        "NumPy Operations",
+        "Data Validation",
+        "Visualization",
+        "Matplotlib",
+        "Seaborn",
+        "Accessibility",
+        "Jupyter Best Practices",
+        "Performance",
+        "Reporting"
+      ],
+      "corrections": [
+        "Corrected global-seed reproducibility, unguarded normalization and silent date coercion assumptions.",
+        "Qualified categorical dtype and chunk-concat memory optimization.",
+        "Removed universal output clearing, mandatory functional style, and library-for-every-task mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://numpy.org/doc/stable/reference/random/",
+          "checked_claim": "Generator and reproducibility semantics"
+        },
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/scale.html",
+          "checked_claim": "Chunking and memory scaling"
+        },
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/missing_data.html",
+          "checked_claim": "Explicit missing-data treatment"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "data-jupyter-python",
+      "source_sha256": "845c182b9d4b81f4fec5be361c324177aa1c688a1bd4a239f418876e7f4ac1b4",
+      "reviewed_source_sections": [
+        "Data Analysis and Jupyter Python Development",
+        "Key Principles",
+        "Data Analysis and Manipulation",
+        "Visualization Standards",
+        "Jupyter Best Practices",
+        "Error Handling and Data Validation",
+        "Performance Optimization",
+        "Key Dependencies"
+      ],
+      "corrections": [
+        "Corrected global-seed reproducibility, unguarded normalization and silent date coercion assumptions.",
+        "Qualified categorical dtype and chunk-concat memory optimization.",
+        "Removed universal output clearing, mandatory functional style, and library-for-every-task mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://numpy.org/doc/stable/reference/random/",
+          "checked_claim": "Generator and reproducibility semantics"
+        },
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/scale.html",
+          "checked_claim": "Chunking and memory scaling"
+        },
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/missing_data.html",
+          "checked_claim": "Explicit missing-data treatment"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "deep-learning",
+      "source_sha256": "8949ab541817fcabe0161413011891ba448383c1d048298cc36f783086b0085b",
+      "reviewed_source_sections": [
+        "Deep Learning",
+        "Core Principles",
+        "Network Architecture",
+        "Layer Design",
+        "Model Structure",
+        "Training Strategies",
+        "Optimization",
+        "Data Handling",
+        "Multi-GPU Training",
+        "DataParallel",
+        "DistributedDataParallel",
+        "Memory Optimization",
+        "Gradient Accumulation",
+        "Mixed Precision",
+        "Checkpointing",
+        "Evaluation and Debugging",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Updated deprecated AMP guidance and DDP versus DataParallel recommendation.",
+        "Added eval/gradient distinction, accumulation/clipping, backend capability and resume-state contracts.",
+        "Removed mandatory full ML dependency bundle and unbounded demo/telemetry assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.pytorch.org/docs/stable/amp.html",
+          "checked_claim": "Current torch.amp and backend-specific precision"
+        },
+        {
+          "url": "https://docs.pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html",
+          "checked_claim": "DistributedDataParallel semantics"
+        },
+        {
+          "url": "https://docs.pytorch.org/docs/stable/notes/randomness.html",
+          "checked_claim": "Reproducibility limitations"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "deep-learning-python",
+      "source_sha256": "42ab2333d55e0bfa93c745a4d019d50780c4b616c84eba8a55e865816d598849",
+      "reviewed_source_sections": [
+        "Deep Learning Python Development",
+        "Core Principles",
+        "Deep Learning and Model Development",
+        "Transformers and LLMs",
+        "Diffusion Models",
+        "Training and Evaluation",
+        "Gradio Integration",
+        "Error Handling",
+        "Performance Optimization",
+        "Required Dependencies",
+        "Project Conventions"
+      ],
+      "corrections": [
+        "Updated deprecated AMP guidance and DDP versus DataParallel recommendation.",
+        "Added eval/gradient distinction, accumulation/clipping, backend capability and resume-state contracts.",
+        "Removed mandatory full ML dependency bundle and unbounded demo/telemetry assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.pytorch.org/docs/stable/amp.html",
+          "checked_claim": "Current torch.amp and backend-specific precision"
+        },
+        {
+          "url": "https://docs.pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html",
+          "checked_claim": "DistributedDataParallel semantics"
+        },
+        {
+          "url": "https://docs.pytorch.org/docs/stable/notes/randomness.html",
+          "checked_claim": "Reproducibility limitations"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "deep-learning-pytorch",
+      "source_sha256": "f0bef11ba5fadceb84cf72e10ea20833443feeea2b8258f7eee4dade1a53645e",
+      "reviewed_source_sections": [
+        "Deep Learning and PyTorch Development",
+        "Key Principles",
+        "Deep Learning and Model Development",
+        "Transformers and LLMs",
+        "Diffusion Models",
+        "Model Training and Evaluation",
+        "Gradio Integration",
+        "Error Handling and Debugging",
+        "Performance Optimization",
+        "Dependencies",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Updated deprecated AMP guidance and DDP versus DataParallel recommendation.",
+        "Added eval/gradient distinction, accumulation/clipping, backend capability and resume-state contracts.",
+        "Removed mandatory full ML dependency bundle and unbounded demo/telemetry assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.pytorch.org/docs/stable/amp.html",
+          "checked_claim": "Current torch.amp and backend-specific precision"
+        },
+        {
+          "url": "https://docs.pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html",
+          "checked_claim": "DistributedDataParallel semantics"
+        },
+        {
+          "url": "https://docs.pytorch.org/docs/stable/notes/randomness.html",
+          "checked_claim": "Reproducibility limitations"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "deno-typescript",
+      "source_sha256": "4bb6ce1bc96a65562911f32c14a21a30bcec0ce1b3a34c4423d67ac564537fc1",
+      "reviewed_source_sections": [
+        "Deno TypeScript Development",
+        "TypeScript General Guidelines",
+        "Basic Principles",
+        "Nomenclature",
+        "Functions",
+        "Types and Interfaces",
+        "Deno-Specific Guidelines",
+        "Project Structure",
+        "Module System",
+        "Security Model",
+        "HTTP Server with Deno.serve",
+        "Using Hono with Deno",
+        "Using Fresh Framework",
+        "Database Integration",
+        "Environment Variables",
+        "Testing with Built-in Test Runner",
+        "Built-in Tooling",
+        "Configuration with deno.json",
+        "Error Handling",
+        "Web Standards",
+        "Performance"
+      ],
+      "corrections": [
+        "Corrected no-configuration/no-checking implication and outdated std/Fresh dependency examples.",
+        "Added subprocess escape from parent permission sandbox and version-specific KV/CLI checks."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.deno.com/runtime/fundamentals/typescript/",
+          "checked_claim": "Execution versus type checking"
+        },
+        {
+          "url": "https://docs.deno.com/runtime/fundamentals/security/",
+          "checked_claim": "Scoped permissions and subprocess trust"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "design-systems",
+      "source_sha256": "275910a02eb924f7bc471264329d7ef158eed4b2014b04d5fa25d895965f8211",
+      "reviewed_source_sections": [
+        "Design Systems Best Practices",
+        "Workflow: Setting Up a Design System",
+        "Foundation Elements",
+        "Color System",
+        "Typography",
+        "Spacing System",
+        "Icons and Imagery",
+        "Component Architecture",
+        "Component Structure",
+        "Component States",
+        "Component Variants",
+        "Accessibility Requirements",
+        "Documentation Standards",
+        "Component Documentation",
+        "Pattern Documentation",
+        "Implementation Guidelines",
+        "CSS Architecture",
+        "Component Libraries",
+        "Governance",
+        "Contribution Guidelines",
+        "Maintenance",
+        "Design Tokens",
+        "Token Categories",
+        "Token Implementation",
+        "Example: React Button Component Using Design Tokens",
+        "Example: Storybook Configuration",
+        "Quality Assurance"
+      ],
+      "corrections": [
+        "Corrected incomplete token/button example and prop/style override hazards.",
+        "Updated accessibility target selection and removed assumed compliance/paid tooling.",
+        "Made Storybook setup version-aware and publication authority explicit."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.w3.org/TR/WCAG22/",
+          "checked_claim": "Current WCAG criteria and conformance"
+        },
+        {
+          "url": "https://storybook.js.org/docs/writing-stories",
+          "checked_claim": "Component stories and states"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "devops",
+      "source_sha256": "1e5ee8aa800d5f76a4008c49f600c5a6b4a7de02b469ac9fd559f7dc4bfe6f21",
+      "reviewed_source_sections": [
+        "DevOps Engineering",
+        "Core Principles",
+        "Naming Conventions",
+        "Bash Scripting",
+        "Ansible Guidelines",
+        "Kubernetes Practices",
+        "Python Standards",
+        "CI/CD Principles",
+        "System Design"
+      ],
+      "corrections": [
+        "Qualified workload identity, StatefulSet durability, Ansible check/idempotency, and Vault secrecy.",
+        "Removed universal tool/naming/deployment-strategy mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_checkmode.html",
+          "checked_claim": "Check-mode limits"
+        },
+        {
+          "url": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/",
+          "checked_claim": "StatefulSet guarantees and limits"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "django-python",
+      "source_sha256": "9bbc7f7fed84ece31d41c08857f68867b302435f25cc186850906940821761de",
+      "reviewed_source_sections": [
+        "Django Python",
+        "Core Principles",
+        "Django/Python Guidelines",
+        "Error Handling & Validation",
+        "Key Dependencies",
+        "Performance Optimization"
+      ],
+      "corrections": [
+        "Corrected model validation/save assumption and signals-as-error-handler advice.",
+        "Removed mandatory DRF/Celery/Redis and every-I/O background-task mandate."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.djangoproject.com/en/stable/ref/models/instances/",
+          "checked_claim": "full_clean is not automatically invoked by save"
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/topics/db/transactions/",
+          "checked_claim": "Atomic transactions and on_commit"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "django-rest-api-development",
+      "source_sha256": "63ac09dad90919197ca3868ad8f61e658af4f19859e2728a1f52bedd31a749fd",
+      "reviewed_source_sections": [
+        "Django REST API Development",
+        "Core Principles",
+        "Project Structure",
+        "Application Structure",
+        "API Structure",
+        "Views and API Design",
+        "Models and Database",
+        "Serializers and Validation",
+        "Authentication and Permissions",
+        "Performance and Scalability",
+        "Error Handling"
+      ],
+      "corrections": [
+        "Clarified object-permission gaps for list/create and scoped querysets.",
+        "Removed universal SimpleJWT, signals-for-errors and 422 response assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.django-rest-framework.org/api-guide/permissions/",
+          "checked_claim": "Object permission list/create limitations"
+        },
+        {
+          "url": "https://www.django-rest-framework.org/api-guide/exceptions/",
+          "checked_claim": "DRF error handling and status semantics"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "docker",
+      "source_sha256": "fc8ed3c2c371da1b0e8e2fa644b45661e89ec79cc3a9c5b4bd66bd71a5cb11fd",
+      "reviewed_source_sections": [
+        "Docker Development",
+        "Core Principles",
+        "Dockerfile Best Practices",
+        "Multi-Stage Builds",
+        "Layer Optimization",
+        "Base Images",
+        "Security Best Practices",
+        "Docker Compose",
+        "Configuration",
+        "Development Workflow",
+        "CI/CD Integration",
+        "Networking",
+        "Logging and Monitoring"
+      ],
+      "corrections": [
+        "Corrected obsolete Compose version 3 mandate and depends_on readiness guarantees.",
+        "Qualified minimal base-image/one-process rules and build-argument secret handling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.docker.com/compose/compose-file/04-version-and-name/",
+          "checked_claim": "Obsolete Compose version field"
+        },
+        {
+          "url": "https://docs.docker.com/compose/how-tos/startup-order/",
+          "checked_claim": "Dependency health and startup order"
+        },
+        {
+          "url": "https://docs.docker.com/build/building/secrets/",
+          "checked_claim": "Build secret mounts"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "dotnet",
+      "source_sha256": "50f00e1403bfab01479704301f2bb6f4750acc269273679ff1d6b95dd734fa7b",
+      "reviewed_source_sections": [
+        ".NET Development Guidelines",
+        "Code Style and Structure",
+        "Project Structure",
+        "RESTful API Design",
+        "Async/Await Patterns",
+        "Entity Framework Core",
+        "Configuration",
+        "Best Practices",
+        "Dependency Injection",
+        "Caching",
+        "Validation",
+        "Error Handling",
+        "Security",
+        "Authentication",
+        "Authorization",
+        "Testing",
+        "Documentation"
+      ],
+      "corrections": [
+        "Removed universal ValueTask, repository wrapper, JWT, and layered-project mandates.",
+        "Corrected EF InMemory parity and added DbContext concurrency/provider-test boundaries.",
+        "Replaced incomplete non-compiling controller declarations with workflow guidance."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://learn.microsoft.com/en-us/ef/core/testing/choosing-a-testing-strategy",
+          "checked_claim": "Real provider versus test-double limits"
+        },
+        {
+          "url": "https://learn.microsoft.com/en-us/dotnet/api/system.threading.tasks.valuetask",
+          "checked_claim": "ValueTask use and consumption restrictions"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "drizzle-orm",
+      "source_sha256": "5b23d9bb80df3dcde45625fdea579b22c20fcdcdbebc941ff64b596d80b3e36b",
+      "reviewed_source_sections": [
+        "Drizzle ORM Development Guidelines",
+        "Core Principles",
+        "Schema Design",
+        "Basic Table Definition",
+        "Schema Organization",
+        "Naming Conventions",
+        "Defining Relations",
+        "Adding Indexes",
+        "Database Connection",
+        "PostgreSQL with node-postgres",
+        "SQLite with better-sqlite3",
+        "Turso/LibSQL",
+        "Query Patterns",
+        "Select Queries",
+        "Relational Queries",
+        "Insert Operations",
+        "Update Operations",
+        "Delete Operations",
+        "Transactions",
+        "Migrations",
+        "Generate Migrations",
+        "Migration Configuration",
+        "Type Safety Best Practices",
+        "Infer Types from Schema",
+        "Strict TypeScript Configuration",
+        "Performance Best Practices",
+        "Use Indexes Appropriately",
+        "Select Only Needed Columns",
+        "Use Proper Pagination",
+        "Avoid N+1 Queries",
+        "Common Mistakes to Avoid"
+      ],
+      "corrections": [
+        "Corrected relations/FK and defaultNow/update assumptions; made v0/v1 API generation explicit.",
+        "Removed index-every-column, never-manual-migration, fixed-size guarantees and table-variable shadowing examples.",
+        "Qualified dialect transaction/returning/upsert support and destructive push authority."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://orm.drizzle.team/docs/relations",
+          "checked_claim": "Relation API and foreign-key distinction"
+        },
+        {
+          "url": "https://orm.drizzle.team/docs/update",
+          "checked_claim": "Update and returning semantics"
+        },
+        {
+          "url": "https://orm.drizzle.team/docs/v0-v1-changes",
+          "checked_claim": "Version-specific migration and relation changes"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "drupal-development",
+      "source_sha256": "08120a804dddba39b960e62f93f6dafe2a6a8d8a5d8a972dc3c83f4741faab40",
+      "reviewed_source_sections": [
+        "Drupal Development",
+        "Core Principles",
+        "PHP Standards",
+        "Drupal Best Practices",
+        "Code Architecture",
+        "Services",
+        "Routing",
+        "Schema and Updates",
+        "Events",
+        "Forms",
+        "Security"
+      ],
+      "corrections": [
+        "Replaced PSR-12/current-PHP blanket claims with Drupal standards/version constraints.",
+        "Added explicit entity access checks and cacheability metadata.",
+        "Qualified universal repository/Form API/sanitize-all mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.drupal.org/docs/develop/standards/coding-standards",
+          "checked_claim": "Drupal coding standards"
+        },
+        {
+          "url": "https://api.drupal.org/api/drupal/core%21lib%21Drupal%21Core%21Entity%21Query%21QueryInterface.php/function/QueryInterface%3A%3AaccessCheck/11.x",
+          "checked_claim": "Explicit entity-query access checking"
+        }
+      ],
+      "verification_limits": [
+        "Drupal standards URL could not be fetched by the web tool; the official API accessCheck contract remains the targeted technical source. No Drupal runtime or module tests executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "elasticsearch-best-practices",
+      "source_sha256": "bdfd892a4f0fd5510e223d777e5245a928c72c9c6ec6d465b6f866035db39e4f",
+      "reviewed_source_sections": [
+        "Elasticsearch Best Practices",
+        "Core Principles",
+        "Index Design",
+        "Mapping Best Practices",
+        "Field Types",
+        "Index Settings",
+        "Shard Sizing",
+        "Guidelines",
+        "Index Lifecycle Management (ILM)",
+        "Query Optimization",
+        "Query Types",
+        "Query Best Practices",
+        "Aggregations",
+        "Common Aggregation Patterns",
+        "Aggregation Best Practices",
+        "Indexing Best Practices",
+        "Bulk Indexing",
+        "Bulk API Guidelines",
+        "Document Updates",
+        "Analysis and Tokenization",
+        "Custom Analyzers",
+        "Test Analyzer",
+        "Search Features",
+        "Autocomplete/Suggestions",
+        "Highlighting",
+        "Performance Optimization",
+        "Query Caching",
+        "Search Performance",
+        "Monitoring and Maintenance",
+        "Cluster Health",
+        "Index Maintenance",
+        "Slow Query Log",
+        "Security",
+        "Index-Level Security",
+        "Field-Level Security",
+        "Aliases and Reindexing",
+        "Index Aliases",
+        "Reindex with Transformation"
+      ],
+      "corrections": [
+        "Removed obsolete 20-shards/GB guidance and invalid _id sorting example.",
+        "Corrected guaranteed filter cache, fixed bulk sizes, refresh restoration and routine force-merge advice.",
+        "Added analyzer limits, partial bulk errors, PIT/tiebreakers and reindex data consistency."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.elastic.co/search-labs/blog/elasticsearch-node-shard-size-best-practices",
+          "checked_claim": "Modern shard guidance and retired heap rule"
+        },
+        {
+          "url": "https://www.elastic.co/docs/reference/elasticsearch/mapping-reference/mapping-id-field",
+          "checked_claim": "_id sorting restrictions"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "electron-development",
+      "source_sha256": "b9e2002cc6c5a1a6f6b234b0d240582f0d7e2d825e6e049558d64f328ac90683",
+      "reviewed_source_sections": [
+        "Electron Development Guidelines",
+        "Core Principles",
+        "Project Structure",
+        "Security Best Practices",
+        "Context Isolation",
+        "Preload Scripts",
+        "Content Security Policy",
+        "IPC Communication",
+        "Main Process",
+        "Renderer Process",
+        "Window Management",
+        "Auto Updates",
+        "Native Modules",
+        "Performance",
+        "Testing",
+        "Building and Distribution"
+      ],
+      "corrections": [
+        "Removed unsafe arbitrary-path IPC, missing readFile bridge and subscription leak.",
+        "Updated deprecated Spectron recommendation and automatic quit/install behavior.",
+        "Added main-process sender/schema validation beyond preload channel allowlists."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.electronjs.org/docs/latest/tutorial/security",
+          "checked_claim": "IPC sender validation and process security"
+        },
+        {
+          "url": "https://www.electronjs.org/blog/spectron-deprecation-notice",
+          "checked_claim": "Spectron deprecation"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "elixir",
+      "source_sha256": "cc1cf5dd696fee6bf2ca3b22d0b43ff00d675ba5a6d2cd48f5117e937cea716d",
+      "reviewed_source_sections": [
+        "Elixir",
+        "Core Principles",
+        "Naming Conventions",
+        "Technical Practices",
+        "Elixir & Phoenix Usage",
+        "Formatting",
+        "Error Handling",
+        "Advanced Topics",
+        "Performance"
+      ],
+      "corrections": [
+        "Updated charlist syntax and removed mandatory Tailwind/Guardian/Pow/TDD choices.",
+        "Qualified let-it-crash, GenServer use, and cache/pool guarantees."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://elixir.hexdocs.pm/binaries-strings-and-charlists.html",
+          "checked_claim": "Binaries and current charlist syntax"
+        },
+        {
+          "url": "https://hexdocs.pm/elixir/Supervisor.html",
+          "checked_claim": "Supervision behavior"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "embedded-stm32",
+      "source_sha256": "dcc30759b8225eb0b0b091c057e305f6dd7c32bc76fdcaea4b63be48a6e8dac7",
+      "reviewed_source_sections": [
+        "Embedded STM32 / HAL Development",
+        "Workflow for STM32 HAL Firmware Development",
+        "Project Structure",
+        "STM32 HAL and Peripherals",
+        "Example: Non-Blocking UART Receive with DMA and Idle-Line Detection",
+        "Interrupts and Concurrency",
+        "Memory and Timing",
+        "Testing and Debugging",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Removed racing DMA rearm/read example and duplicate/manual IRQ assumptions.",
+        "Corrected unconditional disable/enable critical section and cache/memory placement claims.",
+        "Separated host checks from hardware timing/electrical proof."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/STMicroelectronics/stm32f4xx-hal-driver/blob/master/Src/stm32f4xx_hal_uart.c",
+          "checked_claim": "HAL UART receive-to-idle, events and DMA lifecycle"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "esbuild-bundler",
+      "source_sha256": "01afaf9e70afae312af763877037a9ca3f3e1c4d1212b1351a0c33ba371a8a52",
+      "reviewed_source_sections": [
+        "esbuild Bundler",
+        "Core Principles",
+        "Project Structure",
+        "Basic Usage",
+        "Command Line",
+        "JavaScript API",
+        "TypeScript Configuration",
+        "tsconfig.json Best Practices",
+        "Important TypeScript Settings",
+        "Build Configuration",
+        "Browser Build",
+        "Node.js Build",
+        "Multiple Entry Points",
+        "Output Formats",
+        "ESM (ES Modules)",
+        "CommonJS",
+        "IIFE (Browser Scripts)",
+        "Loaders",
+        "Built-in Loaders",
+        "Loader Types",
+        "External Dependencies",
+        "Mark as External",
+        "External Patterns",
+        "Code Splitting",
+        "Plugins",
+        "Plugin Structure",
+        "Common Plugins",
+        "Development Server",
+        "Serve API",
+        "Watch Mode",
+        "Environment Variables",
+        "Define API",
+        "Optimization",
+        "Minification",
+        "Tree Shaking",
+        "Drop Console and Debugger",
+        "Type Checking",
+        "Build Script Example",
+        "Best Practices",
+        "Do",
+        "Avoid",
+        "Common Patterns",
+        "Library Build",
+        "Application Build",
+        "Performance Tips"
+      ],
+      "corrections": [
+        "Removed env-plugin credential exposure and drop-console side-effect trap.",
+        "Qualified isolatedModules, target/polyfill, cache and fixed speed claims; removed dated runtime defaults."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://esbuild.github.io/api/",
+          "checked_claim": "Build targets, splitting, drop and context lifecycle"
+        },
+        {
+          "url": "https://esbuild.github.io/content-types/#typescript",
+          "checked_claim": "TypeScript transpilation limits"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "ethereum",
+      "source_sha256": "2fd8c09e4679a2159b2e066009914ef08588517f9401e4df1b75ba75763f0f9a",
+      "reviewed_source_sections": [
+        "Ethereum Development",
+        "Core Philosophy",
+        "General Principles",
+        "Solidity Best Practices",
+        "Code Standards",
+        "Security Patterns",
+        "OpenZeppelin Integration",
+        "Optimization",
+        "Testing & Analysis",
+        "Development Workflow"
+      ],
+      "corrections": [
+        "Corrected contract naming and immutable-versus-constant claim.",
+        "Removed obsolete OpenZeppelin ERC20Snapshot recommendation for v5.",
+        "Removed default proxies/assembly/emerging-tech mandates and added versioned invariant checks."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.openzeppelin.com/contracts/5.x/changelog",
+          "checked_claim": "Contracts v5 removals and extension changes"
+        },
+        {
+          "url": "https://docs.soliditylang.org/en/latest/contracts.html#constant-and-immutable-state-variables",
+          "checked_claim": "Constant versus immutable semantics"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "expo-react-native-javascript-best-practices",
+      "source_sha256": "1737ba5ad763c5d5d4c713614966bdae02855a38691572e79e3e649348cd4481",
+      "reviewed_source_sections": [
+        "Expo React Native JavaScript Best Practices",
+        "Code Style and Structure",
+        "Naming Conventions",
+        "JavaScript Usage",
+        "Performance Optimization",
+        "UI and Styling",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Removed universal PropTypes/memoization/fast-image and Context performance prescriptions.",
+        "Corrected native ARIA, Suspense code-splitting, Mobile Web Vitals, and configuration secrecy assumptions.",
+        "Qualified safe-area duplication and router/native-module/OTA runtime requirements."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.expo.dev/guides/environment-variables/",
+          "checked_claim": "Public environment variable bundling"
+        },
+        {
+          "url": "https://docs.expo.dev/versions/latest/sdk/image/",
+          "checked_claim": "Expo-compatible image API"
+        },
+        {
+          "url": "https://react.dev/blog/2024/04/25/react-19-upgrade-guide",
+          "checked_claim": "Function component propTypes removal"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "expo-react-native-typescript",
+      "source_sha256": "5f136d1768c38205871d49af02a7542aae9f23dc6635ba4f9fe12f650392e2a3",
+      "reviewed_source_sections": [
+        "Expo React Native TypeScript",
+        "Core Principles",
+        "TypeScript Standards",
+        "UI & Styling",
+        "Safe Area Management",
+        "Performance Optimization",
+        "Navigation & State",
+        "Error Handling",
+        "Testing & Security",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Removed universal PropTypes/memoization/fast-image and Context performance prescriptions.",
+        "Corrected native ARIA, Suspense code-splitting, Mobile Web Vitals, and configuration secrecy assumptions.",
+        "Qualified safe-area duplication and router/native-module/OTA runtime requirements."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.expo.dev/guides/environment-variables/",
+          "checked_claim": "Public environment variable bundling"
+        },
+        {
+          "url": "https://docs.expo.dev/versions/latest/sdk/image/",
+          "checked_claim": "Expo-compatible image API"
+        },
+        {
+          "url": "https://react.dev/blog/2024/04/25/react-19-upgrade-guide",
+          "checked_claim": "Function component propTypes removal"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "express-typescript",
+      "source_sha256": "c2ccaaf0dcf0235535dbe2470a1fd7c251f5d9da751570132b82152e9845ed34",
+      "reviewed_source_sections": [
+        "Express TypeScript Development",
+        "TypeScript General Guidelines",
+        "Basic Principles",
+        "Nomenclature",
+        "Functions",
+        "Types and Interfaces",
+        "Express-Specific Guidelines",
+        "Project Structure",
+        "Application Setup",
+        "Middleware Patterns",
+        "Routing",
+        "Request Validation",
+        "Error Handling",
+        "TypeScript Extensions",
+        "Security Best Practices",
+        "Testing"
+      ],
+      "corrections": [
+        "Corrected discarded schema transformation, versioned Zod errors and Express 4/5 async behavior.",
+        "Added missing ownership authorization, body limits, headersSent and proxy-aware rate-limit boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://expressjs.com/en/guide/error-handling.html",
+          "checked_claim": "Async error forwarding and error middleware"
+        },
+        {
+          "url": "https://expressjs.com/en/guide/behind-proxies.html",
+          "checked_claim": "Trusted proxy configuration"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "fastapi-microservices-serverless",
+      "source_sha256": "520797762bee2face1324e5f7bb08573407938b47680054b9560ba0297d936ec",
+      "reviewed_source_sections": [
+        "FastAPI Microservices Serverless",
+        "Core Principles",
+        "Stateless Design",
+        "API Gateway Integration",
+        "Serverless Patterns",
+        "Security",
+        "Performance",
+        "Monitoring"
+      ],
+      "corrections": [
+        "Corrected OpenTelemetry-as-security and mandatory Redis/gateway/tooling claims.",
+        "Added ASGI hosting, blocking-I/O, durable task and gateway authorization limits."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://fastapi.tiangolo.com/async/",
+          "checked_claim": "Sync versus async execution"
+        },
+        {
+          "url": "https://fastapi.tiangolo.com/deployment/",
+          "checked_claim": "Deployment/runtime concerns"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "fastapi-python",
+      "source_sha256": "a06aa566a5490bef8faa07da2d40d0b130149dd1b61bf0cb2d6e20a205f64c58",
+      "reviewed_source_sections": [
+        "FastAPI Python",
+        "Key Principles",
+        "Python/FastAPI Standards",
+        "Error Handling",
+        "FastAPI-Specific Guidelines",
+        "Performance Optimization",
+        "Key Conventions",
+        "Dependencies"
+      ],
+      "corrections": [
+        "Removed nonsensical curly-brace rule and mandatory driver/architecture/style bundle.",
+        "Corrected sync/async helper execution and explicit response/authorization boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://fastapi.tiangolo.com/async/",
+          "checked_claim": "Threadpool and awaited coroutine execution"
+        },
+        {
+          "url": "https://fastapi.tiangolo.com/advanced/events/",
+          "checked_claim": "Lifespan context management"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "fastify-typescript",
+      "source_sha256": "c0e0a4fa346c458cb66fa941d7dfcbd34ccc471e671f73970424a31066efdaf4",
+      "reviewed_source_sections": [
+        "Fastify TypeScript Development",
+        "TypeScript General Guidelines",
+        "Basic Principles",
+        "Nomenclature",
+        "Functions",
+        "Types and Interfaces",
+        "Fastify-Specific Guidelines",
+        "Project Structure",
+        "Route Organization",
+        "Schema Validation with JSON Schema / Ajv",
+        "Plugins and Decorators",
+        "Prisma Integration",
+        "Error Handling",
+        "Testing with Jest",
+        "Performance",
+        "Security"
+      ],
+      "corrections": [
+        "Corrected response-schema serialization versus validation and unsafe 500-message exposure.",
+        "Added decorator typing/encapsulation, schema trust and Prisma date mismatch considerations.",
+        "Removed mandatory Prisma/Zod/JWT/repository and production logging-off prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://fastify.dev/docs/latest/Reference/Validation-and-Serialization/",
+          "checked_claim": "Schema compilation, validation and serialization"
+        },
+        {
+          "url": "https://fastify.dev/docs/latest/Reference/Encapsulation/",
+          "checked_claim": "Plugin/decorator visibility"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "figma-integration",
+      "source_sha256": "e6da53b0d683ffa8455151a2f3a67146e77f18c5363fbdfde829242515f2909c",
+      "reviewed_source_sections": [
+        "Figma Integration Guidelines",
+        "Design-to-Code Workflow",
+        "Extracting Design Information",
+        "Component Mapping",
+        "Implementation Guidelines",
+        "Colors and Theming",
+        "Typography",
+        "Spacing and Layout",
+        "Components and Variants",
+        "Asset Handling",
+        "Images and Icons",
+        "Exporting Best Practices",
+        "Collaboration Workflow",
+        "Design Handoff",
+        "Feedback Loop",
+        "MCP Server Integration",
+        "Setup and Configuration",
+        "Available MCP Tools",
+        "Usage Guidelines",
+        "Quality Assurance",
+        "Visual Comparison",
+        "Design Token Validation",
+        "Figma API Usage",
+        "Reading Design Data",
+        "Common Operations",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Removed fabricated global Figma API and Cursor-only automatic tool/approval assumptions.",
+        "Qualified one-to-one layer mapping and asset/interaction inference."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developers.figma.com/docs/rest-api/file-endpoints/",
+          "checked_claim": "File/node endpoint contracts"
+        },
+        {
+          "url": "https://developers.figma.com/docs/figma-mcp-server/",
+          "checked_claim": "Official MCP integration and availability"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "firebase-development",
+      "source_sha256": "4f9ff2f12cacff61266eecb742a81b68586818e88089ff6ac284d6987b9d26b0",
+      "reviewed_source_sections": [
+        "Firebase Development",
+        "Project Structure",
+        "Code Organization Best Practices",
+        "Firebase-Specific Patterns",
+        "Firestore",
+        "Cloud Functions",
+        "Storage",
+        "Authentication",
+        "Naming Conventions",
+        "Performance Optimization",
+        "Testing Requirements"
+      ],
+      "corrections": [
+        "Clarified Admin/server Rules bypass and query-versus-rule authorization.",
+        "Qualified signed URLs, duplicate events, transaction retries and offline privacy."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://firebase.google.com/docs/firestore/security/rules-conditions",
+          "checked_claim": "Rules and server library boundaries"
+        },
+        {
+          "url": "https://firebase.google.com/docs/firestore/manage-data/transactions",
+          "checked_claim": "Transaction retry and batch semantics"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "flask-python",
+      "source_sha256": "0d6fd92cb5def0ff09c689b0d8c5d30e9a14ff9acaa14e6521384106e0642190",
+      "reviewed_source_sections": [
+        "Flask Python Development",
+        "Key Principles",
+        "Python/Flask Standards",
+        "Error Handling and Validation",
+        "Required Dependencies",
+        "Flask-Specific Guidelines",
+        "Performance Optimization",
+        "Key Conventions",
+        "Database Interaction",
+        "Serialization and Validation",
+        "Authentication and Authorization",
+        "Testing",
+        "API Documentation",
+        "Deployment"
+      ],
+      "corrections": [
+        "Removed mandatory Flask extension bundle, Python named-export/curly-brace rules.",
+        "Clarified WSGI async worker limits, background task lifetime and production server boundary."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://flask.palletsprojects.com/en/stable/async-await/",
+          "checked_claim": "Async support and background-task lifetime"
+        },
+        {
+          "url": "https://flask.palletsprojects.com/en/stable/patterns/appfactories/",
+          "checked_claim": "Application factories"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "flutter",
+      "source_sha256": "8f48110338aab934b91ded83988cd8054edf9691954927a6eb736d52bebb91a3",
+      "reviewed_source_sections": [
+        "Flutter",
+        "Core Principles",
+        "State Management",
+        "Riverpod",
+        "Bloc/Cubit",
+        "Architecture",
+        "Clean Architecture",
+        "Dependencies",
+        "Error Handling",
+        "Firebase Integration",
+        "Performance",
+        "Testing"
+      ],
+      "corrections": [
+        "Removed mandatory multilayer/BLoC/Riverpod/GetIt/Dartz/Firebase bundle.",
+        "Corrected const-prevents-rebuild and SelectableText.rich-for-all-errors claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.flutter.dev/app-architecture/recommendations",
+          "checked_claim": "Architecture and conditional domain layer"
+        },
+        {
+          "url": "https://docs.flutter.dev/perf/best-practices",
+          "checked_claim": "Measured widget/rendering performance"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "fortran",
+      "source_sha256": "e70381ee4c71f9bcaac67ea4743a294995ca952913033571fe354d2ee8062dfa",
+      "reviewed_source_sections": [
+        "Modern Fortran Development",
+        "Workflow for Writing a Modern Fortran Module",
+        "Basic Principles",
+        "Kinds and Types",
+        "Example: Kinds Module and a Numerical Procedure",
+        "Naming and Style",
+        "Procedures",
+        "Memory and Arrays",
+        "Testing and Build",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Corrected unguarded empty mean and undefined n<2 sample standard deviation.",
+        "Distinguished storage-size kinds from C ABI and qualified allocatable lifetimes/STOP behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fFORTRAN_005fENV.html",
+          "checked_claim": "Kind availability and storage sizes"
+        },
+        {
+          "url": "https://gcc.gnu.org/onlinedocs/gfortran/ISO_005fC_005fBINDING.html",
+          "checked_claim": "C interoperability kinds"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "fpga",
+      "source_sha256": "8e299317af823bc2335a11ead2d5345121f65573a7083b6ebf5068e14f8ea770",
+      "reviewed_source_sections": [
+        "FPGA Development",
+        "Modular Design & Code Organization",
+        "Synchronous Design Principles",
+        "Timing Closure & Constraints",
+        "Resource Utilization & Optimization",
+        "Power Optimization",
+        "Debugging & Simulation",
+        "Advanced Techniques",
+        "Clock Domain Crossing",
+        "AXI Protocol Compliance",
+        "DMA Integration",
+        "Latency Reduction"
+      ],
+      "corrections": [
+        "Replaced blanket clock-gating and reset preferences with safe vendor/CDC design.",
+        "Qualified reg-array RAM inference, multicycle exceptions, synchronizer scope and DMA burst claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.amd.com/r/en-US/ug903-vivado-using-constraints/Constraining-Asynchronous-Signals",
+          "checked_claim": "CDC timing constraints and exception priority"
+        },
+        {
+          "url": "https://docs.amd.com/r/en-US/ug949-vivado-design-methodology",
+          "checked_claim": "FPGA methodology, clocks and implementation checks"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "framer-motion",
+      "source_sha256": "9769178ba4c2040b64ef0ba122b822b992feb3f8df66a849919e5b7ddfaf21b8",
+      "reviewed_source_sections": [
+        "Framer Motion / Motion Animation Guidelines",
+        "Core Principles",
+        "Import from the Correct Package",
+        "Performance-First Approach",
+        "Hardware Acceleration",
+        "Use will-change Properly",
+        "Properties to Add to willChange",
+        "Animation Best Practices",
+        "Use Variants for Complex Animations",
+        "Use layoutId for Shared Element Transitions",
+        "Prefer spring Animations",
+        "React Integration",
+        "Memoization for Performance",
+        "Avoid Inline Style Objects",
+        "Accessibility",
+        "Respect Reduced Motion Preferences",
+        "Gesture Animations",
+        "Use Gesture Props Correctly",
+        "Scroll Animations",
+        "Use useScroll for Scroll-Linked Animations",
+        "Exit Animations",
+        "Use AnimatePresence for Exit Animations",
+        "Common Patterns",
+        "Staggered List Animation",
+        "Page Transitions",
+        "Performance Debugging"
+      ],
+      "corrections": [
+        "Corrected blanket framer-motion-is-invalid/latest upgrade instruction.",
+        "Removed universal will-change/GPU/backgroundColor and memoization prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://motion.dev/docs/react-upgrade-guide",
+          "checked_claim": "Versioned Motion/Framer Motion migration"
+        },
+        {
+          "url": "https://motion.dev/docs/performance",
+          "checked_claim": "Animation backend and measured performance"
+        },
+        {
+          "url": "https://motion.dev/docs/react-accessibility",
+          "checked_claim": "Reduced-motion behavior"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "front-end-developer",
+      "source_sha256": "0d02cd7c1e6810b208269ccfab68acf503ca35f5f338455f0c5e08305942fc42",
+      "reviewed_source_sections": [
+        "Front-End Developer",
+        "Development Workflow",
+        "Code Quality Standards",
+        "Implementation Guidelines"
+      ],
+      "corrections": [
+        "Corrected Svelte class: guidance in React and removed Tailwind-only mandate.",
+        "Removed mandatory confirmation/pseudocode and impossible bug-free assertions.",
+        "Qualified accessibility attributes and native keyboard behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://react.dev/learn/conditional-rendering",
+          "checked_claim": "Conditional JSX and className syntax"
+        },
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA",
+          "checked_claim": "Native semantic/ARIA boundaries"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "game-development",
+      "source_sha256": "f4943b056e132bf5ad9ee654cd515ea77c83668971ca5fb44818398a6bd12888",
+      "reviewed_source_sections": [
+        "Game Development",
+        "C# Unity Game Development",
+        "Key Principles",
+        "Unity Best Practices",
+        "Error Handling",
+        "Unity-Specific Guidelines",
+        "Performance Optimization",
+        "Lua Development Best Practices",
+        "Key Principles",
+        "Code Organization",
+        "Error Handling",
+        "Memory Management",
+        "Performance",
+        "Naming Conventions",
+        "C# Unity Expert Developer Guidelines",
+        "Code Style Conventions",
+        "Best Practices",
+        "Cross-Platform Considerations"
+      ],
+      "corrections": [
+        "Corrected coroutines-as-background-work and string.format loop optimization advice.",
+        "Qualified pooling, jobs/thread safety, TryGetComponent and asset pipeline mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.unity3d.com/Manual/Coroutines.html",
+          "checked_claim": "Coroutine main-thread execution"
+        },
+        {
+          "url": "https://www.lua.org/manual/5.4/manual.html",
+          "checked_claim": "Lua errors, weak tables and table.concat"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "gamemaker-gml",
+      "source_sha256": "c00e6867f19a8517cbffb40983298fc4c0586f5cb033bf69f7b4944b5d077d0e",
+      "reviewed_source_sections": [
+        "GameMaker Language (GML) Development",
+        "Workflow for Building GML Gameplay Features",
+        "Code Organization",
+        "GML Style",
+        "Example: A State Machine with a Script and an Object",
+        "Gameplay Architecture",
+        "Performance",
+        "Debugging and Testing",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Corrected jump-on-fall, stale idle velocity and double-movement defects in state-machine sample.",
+        "Replaced Destroy/Room End cleanup prescription with owned Clean Up lifetime and surface-loss handling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://manual.gamemaker.io/lts/en/The_Asset_Editors/Object_Properties/Object_Events.htm",
+          "checked_claim": "Clean Up and Destroy event lifetime"
+        },
+        {
+          "url": "https://manual.gamemaker.io/monthly/en/GameMaker_Language/GML_Reference/Movement_And_Collisions/Movement/move_and_collide.htm",
+          "checked_claim": "Explicit movement/collision API"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "gcp-development",
+      "source_sha256": "4cebaf9225b51d87cf242070e42c979a74823831b77131573c0cbf238c945542",
+      "reviewed_source_sections": [
+        "GCP Development Best Practices",
+        "Overview",
+        "Core Principles",
+        "Code Organization and Structure",
+        "Terraform Module Structure",
+        "Application Structure",
+        "Cloud Functions Guidelines",
+        "Function Configuration",
+        "Best Practices",
+        "Cloud Run Guidelines",
+        "Container Best Practices",
+        "Dockerfile Example",
+        "Service Configuration",
+        "Firestore Guidelines",
+        "Data Modeling",
+        "Best Practices",
+        "BigQuery Guidelines",
+        "Query Best Practices",
+        "Cost Optimization",
+        "Cloud Storage Guidelines",
+        "Bucket Configuration",
+        "Best Practices",
+        "Terraform Best Practices",
+        "Provider Configuration",
+        "Module Best Practices",
+        "Security Best Practices",
+        "IAM Configuration",
+        "Secret Management",
+        "Network Security",
+        "Deployment Best Practices",
+        "Blue/Green Deployments",
+        "CI/CD with Cloud Build",
+        "Observability",
+        "Cloud Logging",
+        "Cloud Monitoring",
+        "Cloud Trace",
+        "Debugging Strategies",
+        "Recommended Tools",
+        "Common Pitfalls to Avoid"
+      ],
+      "corrections": [
+        "Removed retired Cloud Debugger and broken no-build Dockerfile.",
+        "Corrected Firestore.FieldValue, empty-secret fallback and version-mixed telemetry sample.",
+        "Qualified workspaces, budgets/reservations, signed URLs and serverless lifetime."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.cloud.google.com/stackdriver/docs/deprecations/debugger-deprecation",
+          "checked_claim": "Cloud Debugger shutdown"
+        },
+        {
+          "url": "https://cloud.google.com/run/docs/container-contract",
+          "checked_claim": "Cloud Run runtime contract"
+        },
+        {
+          "url": "https://cloud.google.com/nodejs/docs/reference/firestore/latest",
+          "checked_claim": "Firestore SDK classes and transaction APIs"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "general-best-practices",
+      "source_sha256": "62ca692f92c52b9dbf1483271f8d845349592ef85a93a347cdfa3a31463c2721",
+      "reviewed_source_sections": [
+        "General Best Practices",
+        "Code Quality",
+        "Readability and Maintainability",
+        "Error Handling",
+        "Code Organization",
+        "Architecture",
+        "Clean Architecture Principles",
+        "Design Principles",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "Test Organization",
+        "Security",
+        "Input Validation",
+        "Authentication and Authorization",
+        "Network Security",
+        "Performance",
+        "Optimization Principles",
+        "Resource Management",
+        "Caching",
+        "Observability",
+        "Logging",
+        "Metrics",
+        "Tracing",
+        "Documentation",
+        "Code Documentation",
+        "Project Documentation",
+        "Version Control",
+        "Commit Practices",
+        "Branch Strategy",
+        "Tooling and Automation",
+        "Continuous Integration",
+        "Development Environment"
+      ],
+      "corrections": [
+        "Removed rigid function/layer/interface/branch/tool mandates.",
+        "Qualified generic sanitization, automatic logging identifiers and blanket circuit-breaker/pool/cache choices."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://google.github.io/eng-practices/review/reviewer/looking-for.html",
+          "checked_claim": "Behavior, tests, design and complexity review"
+        },
+        {
+          "url": "https://owasp.org/www-project-top-ten/",
+          "checked_claim": "Application trust and authorization concerns"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "ghost",
+      "source_sha256": "5592777b7009d32b3715dbe4b33d85cc4995e7f1d0124514b5d33ef2a0c30d0d",
+      "reviewed_source_sections": [
+        "Ghost CMS Theme Development",
+        "Core Principles",
+        "Project Structure",
+        "Handlebars Templating",
+        "Basic Template Structure",
+        "Default Layout (default.hbs)",
+        "Partials",
+        "Ghost Helpers",
+        "Content Helpers",
+        "Conditional Helpers",
+        "Loop Helpers",
+        "Tailwind CSS Integration",
+        "Setup",
+        "Using Ghost Accent Color",
+        "Alpine.js Integration",
+        "Membership Integration",
+        "SEO and Performance",
+        "Meta Tags",
+        "Image Optimization",
+        "Package.json Configuration",
+        "Testing"
+      ],
+      "corrections": [
+        "Corrected external CSS Handlebars interpolation and paid-member-only entitlement assumption.",
+        "Removed unsafe JSON-LD string interpolation and unconditional lazy image/default theme integrations."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.ghost.org/themes/members",
+          "checked_claim": "Post access, visibility and content helper behavior"
+        },
+        {
+          "url": "https://docs.ghost.org/themes/helpers",
+          "checked_claim": "Theme helper contracts"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "git-workflow",
+      "source_sha256": "4f55c9f7e2475b2a12e1b95a318d3d9ec9f4ffb36646111a3fea513fedb64d28",
+      "reviewed_source_sections": [
+        "Git Workflow Best Practices",
+        "Core Principles",
+        "Conventional Commits Format",
+        "Commit Types",
+        "Commit Message Guidelines",
+        "Examples",
+        "Branching Strategy",
+        "Branch Naming Conventions",
+        "Workflow Guidelines",
+        "Git Configuration Best Practices",
+        "Useful Aliases",
+        "Recommended Settings",
+        "Collaboration Guidelines",
+        "Code Review Process",
+        "Merge Strategies",
+        "Conflict Resolution",
+        "Security Best Practices",
+        "Integration with Semantic Versioning"
+      ],
+      "corrections": [
+        "Added breaking-change syntax and removed lowercase-body/fixed-length requirements.",
+        "Removed unconditional global config, rebase/squash and branch deletion commands.",
+        "Clarified gitignore, signing and commit-to-release assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://git-scm.com/docs/gitignore",
+          "checked_claim": "Tracked files are not affected by ignore rules"
+        },
+        {
+          "url": "https://www.conventionalcommits.org/en/v1.0.0/",
+          "checked_claim": "Conventional Commit optional breaking markers and semantics"
+        },
+        {
+          "url": "https://git-scm.com/docs/git-rebase",
+          "checked_claim": "Rebase/history behavior"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "gitflow",
+      "source_sha256": "770d41cf9548facf640a3cedc9fc3fa1f8a9f692bb5287970f4b202d7cdd63c1",
+      "reviewed_source_sections": [
+        "Gitflow",
+        "Workflow for a Feature Change",
+        "Main Branches",
+        "main (or master)",
+        "develop",
+        "Supporting Branches",
+        "feature/*",
+        "release/*",
+        "hotfix/*",
+        "Commit Messages",
+        "Semantic Versioning",
+        "Pull Request Rules",
+        "Branch Protection Rules",
+        "Release Process",
+        "Hotfix Process"
+      ],
+      "corrections": [
+        "Scoped Gitflow to existing explicit adoption and removed automatic protect/tag/delete mutations.",
+        "Qualified fixed approval/naming/version/rebase rules and verified back-merge evidence."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://git-scm.com/docs/gitworkflows",
+          "checked_claim": "Documented integration workflow concepts"
+        },
+        {
+          "url": "https://git-scm.com/docs/git-merge",
+          "checked_claim": "Merge identity and history semantics"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "github-workflow",
+      "source_sha256": "61517bb3619488cc3610e59be49c175ea17e835777fbc661b32881d41e932079",
+      "reviewed_source_sections": [
+        "GitHub Workflow Best Practices",
+        "Core Principles",
+        "Pull Request Best Practices",
+        "Creating Effective Pull Requests",
+        "Stacked Pull Requests",
+        "Code Review Guidelines",
+        "As a Reviewer",
+        "Comment Conventions",
+        "Example Review Comments",
+        "Approval Criteria",
+        "GitHub Actions",
+        "Workflow Best Practices",
+        "Security in Actions",
+        "Issue Management",
+        "Issue Templates",
+        "Labels",
+        "Repository Management",
+        "Branch Protection Rules",
+        "CODEOWNERS File",
+        "Security Best Practices",
+        "Automation Recommendations",
+        "Auto-merge for Dependabot",
+        "Release Automation"
+      ],
+      "corrections": [
+        "Corrected actor-only Dependabot auto-merge example that fails its minor-update claim.",
+        "Removed arbitrary SHA/toolchain/fixed review-count settings and broadened trigger/artifact trust checks."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.github.com/en/actions/reference/security/secure-use",
+          "checked_claim": "Actions trust, SHA pinning and token scope"
+        },
+        {
+          "url": "https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions",
+          "checked_claim": "Dependabot metadata and automation"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "gitlab-workflow",
+      "source_sha256": "91291e4da142847cb49163e58a21d262fb3246134c7213cdc8493782b8231383",
+      "reviewed_source_sections": [
+        "GitLab Workflow Best Practices",
+        "Core Principles",
+        "Merge Request Best Practices",
+        "Creating Effective Merge Requests",
+        "Draft Merge Requests",
+        "CI/CD Pipeline Best Practices",
+        "Basic Pipeline Structure",
+        "Advanced Pipeline Features",
+        "Security Scanning",
+        "Multi-Environment Deployments",
+        "GitLab Flow",
+        "Branch Strategy",
+        "Workflow",
+        "Issue and Project Management",
+        "Issue Templates",
+        "Labels and Boards",
+        "Milestones",
+        "Repository Settings",
+        "Protected Branches",
+        "Merge Request Settings",
+        "Security Best Practices",
+        "CI/CD Variables",
+        "Access Control",
+        "Compliance",
+        "Auto DevOps"
+      ],
+      "corrections": [
+        "Corrected presumed masked/protected variables and guessed security-template job/stage contracts.",
+        "Added workflow/job rules duplicate-pipeline and isolated dependency checks.",
+        "Removed automatic Auto DevOps/settings/deploy activation."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.gitlab.com/ci/jobs/job_rules/",
+          "checked_claim": "Rule timing and duplicate pipelines"
+        },
+        {
+          "url": "https://docs.gitlab.com/ci/variables/",
+          "checked_claim": "Variable protection/masking and trust boundaries"
+        },
+        {
+          "url": "https://docs.gitlab.com/ci/yaml/",
+          "checked_claim": "Expanded CI schema and includes"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "go",
+      "source_sha256": "46d34271ee05d3d278e296823069a8988288960626c371a18b76784bcc1db6a1",
+      "reviewed_source_sections": [
+        "Go (Golang)",
+        "Core Principles",
+        "Code Organization",
+        "API Development",
+        "Error Handling",
+        "Concurrency",
+        "Testing",
+        "DevOps Integration"
+      ],
+      "corrections": [
+        "Corrected Go ServeMux regex-support claim and always-latest/toolchain mandate.",
+        "Qualified context cancellation, channel safety, directory/interface architecture and telemetry guarantees.",
+        "Added bounded JSON parsing, downstream deadlines and worker/resource shutdown."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://go.dev/src/net/http/server.go",
+          "checked_claim": "ServeMux routing semantics"
+        },
+        {
+          "url": "https://pkg.go.dev/net/http",
+          "checked_claim": "HTTP parsing/timeouts/context contracts"
+        },
+        {
+          "url": "https://go.dev/doc/articles/race_detector",
+          "checked_claim": "Race detector scope"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "go-api-development",
+      "source_sha256": "45cae894e054be2f1f9906bbdb6fa2ebd6a592b34f3877d10f2adbcb1fa6246a",
+      "reviewed_source_sections": [
+        "Go API Development with Standard Library",
+        "Core Principles",
+        "API Development Guidelines",
+        "Routing and HTTP Handling",
+        "Error Handling",
+        "Input Validation",
+        "JSON Handling",
+        "Concurrency",
+        "Middleware",
+        "Security",
+        "Logging",
+        "Testing"
+      ],
+      "corrections": [
+        "Corrected Go ServeMux regex-support claim and always-latest/toolchain mandate.",
+        "Qualified context cancellation, channel safety, directory/interface architecture and telemetry guarantees.",
+        "Added bounded JSON parsing, downstream deadlines and worker/resource shutdown."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://go.dev/src/net/http/server.go",
+          "checked_claim": "ServeMux routing semantics"
+        },
+        {
+          "url": "https://pkg.go.dev/net/http",
+          "checked_claim": "HTTP parsing/timeouts/context contracts"
+        },
+        {
+          "url": "https://go.dev/doc/articles/race_detector",
+          "checked_claim": "Race detector scope"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "go-backend-microservices",
+      "source_sha256": "d3e4580c1ef702e1cfb9c8428d2aa5e23a4fec2f25d88801b19e856bef74713b",
+      "reviewed_source_sections": [
+        "Go Backend Development for Microservices",
+        "Core Principles",
+        "Project Structure",
+        "Error Handling",
+        "Context Propagation",
+        "Observability",
+        "Distributed Tracing",
+        "Metrics",
+        "Structured Logging",
+        "Security",
+        "Testing",
+        "Unit Tests",
+        "Integration Tests",
+        "Concurrency",
+        "Documentation",
+        "CI/CD Integration"
+      ],
+      "corrections": [
+        "Corrected Go ServeMux regex-support claim and always-latest/toolchain mandate.",
+        "Qualified context cancellation, channel safety, directory/interface architecture and telemetry guarantees.",
+        "Added bounded JSON parsing, downstream deadlines and worker/resource shutdown."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://go.dev/src/net/http/server.go",
+          "checked_claim": "ServeMux routing semantics"
+        },
+        {
+          "url": "https://pkg.go.dev/net/http",
+          "checked_claim": "HTTP parsing/timeouts/context contracts"
+        },
+        {
+          "url": "https://go.dev/doc/articles/race_detector",
+          "checked_claim": "Race detector scope"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "google-adk",
+      "source_sha256": "0d197b4af58ffefd7b06e0f0070aa4ffd88b0a685472da3b1d5724ec28986d8d",
+      "reviewed_source_sections": [
+        "Google Agent Development Kit (ADK)",
+        "Workflow for Building an ADK Agent",
+        "Agent Design",
+        "Tools",
+        "Example: Defining an Agent with Tools",
+        "Sessions, State, and Memory",
+        "Artifacts",
+        "Evaluation and Deployment",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Corrected session.state mutation/persistence guidance and output_key/schema conflation.",
+        "Qualified deterministic orchestration, built-in tool restrictions, model names and eval trajectory overfitting."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://adk.dev/sessions/state/",
+          "checked_claim": "Managed context/event state updates"
+        },
+        {
+          "url": "https://google.github.io/adk-docs/agents/",
+          "checked_claim": "Version-matched agent/workflow capabilities"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "graalvm",
+      "source_sha256": "5949d43342ab0fb85e44ca6c00d2282105b3b648586b4a982cca21986a93b668",
+      "reviewed_source_sections": [
+        "GraalVM",
+        "Code Style and Structure",
+        "GraalVM Native Image Specifics",
+        "Naming Conventions",
+        "Java and GraalVM Usage",
+        "Native Image Configuration",
+        "Framework Integration",
+        "Quarkus",
+        "Micronaut",
+        "Spring Native",
+        "Testing",
+        "Performance Optimization",
+        "Security Considerations",
+        "Logging and Monitoring",
+        "Build and Deployment",
+        "Troubleshooting Native Builds",
+        "General Best Practices"
+      ],
+      "corrections": [
+        "Replaced obsolete Spring Native/@NativeHint guidance with current Spring AOT hints.",
+        "Qualified build-time initialization secrets/host capture, tracing completeness and fallback/JVM flag availability."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.graalvm.org/latest/reference-manual/native-image/metadata/",
+          "checked_claim": "Reachability metadata and dynamic features"
+        },
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/core/aot.html",
+          "checked_claim": "Spring AOT RuntimeHints"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "graphql",
+      "source_sha256": "2d4c14e9d8eb9eda59ac5d882778af136a79099efeb5c4c668acbe0d8da58b02",
+      "reviewed_source_sections": [
+        "GraphQL",
+        "Core Principles",
+        "Schema Design",
+        "Query Optimization",
+        "Mutations",
+        "Client Integration",
+        "Gatsby",
+        "Modern Web Apps",
+        "Security",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected atomic-mutation implication and DataLoader authorization scope.",
+        "Removed mandatory Genql/Gatsby filename/persisted-query/versioning choices.",
+        "Distinguished persisted allowlists from automatic query caching and authorization."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://graphql.org/learn/mutations/",
+          "checked_claim": "Serial mutations versus database transactions"
+        },
+        {
+          "url": "https://graphql.org/learn/security/",
+          "checked_claim": "Authorization and bounded query work"
+        },
+        {
+          "url": "https://github.com/graphql/dataloader",
+          "checked_claim": "Per-request cache and key-order contract"
+        }
+      ],
+      "verification_limits": [
+        "Source and primary documentation reviewed; no target application, paid API, hardware, or production deployment was executed."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    }
+  ]
+}

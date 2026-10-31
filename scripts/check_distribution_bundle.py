@@ -45,6 +45,7 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "mindrally-skills": 265,
     "local-translation": 20,
     "camofox-mcp": 1,
     "iterating-pr-bot-fixes": 1,
