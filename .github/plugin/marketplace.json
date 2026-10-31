@@ -96,6 +96,12 @@
       "description": "Coordinate a translation team with separate expert role skills, local Index-Translate drafting, and evidence-bound revision and delivery across target locales.",
       "version": "0.6.0",
       "source": "./plugins/local-translation"
+    },
+    {
+      "name": "mindrally-skills",
+      "description": "265 development skills adapted from Mindrally, with individually reviewed technical guidance and progressive disclosure for Codex and GitHub Copilot.",
+      "version": "0.1.0",
+      "source": "./plugins/mindrally-skills"
     }
   ]
 }

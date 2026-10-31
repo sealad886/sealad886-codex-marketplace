@@ -12,6 +12,17 @@ metadata retained separately.
 
 ## Plugins
 
+### [Mindrally Skills](plugins/mindrally-skills/README.md)
+
+All 265 skills from Mindrally's development library, individually reviewed and
+adapted into concise workflows with conditional technical references. Covers
+languages, frameworks, native and web applications, APIs, databases, AI,
+infrastructure, testing and engineering practices. Skills remain independently
+discoverable in Codex and GitHub Copilot.
+
+**Version:** `0.1.0` · [Skill directory and usage](plugins/mindrally-skills/README.md)
+· [Apache-2.0 provenance](plugins/mindrally-skills/NOTICE.md)
+
 ### [Camofox Browser](plugins/camofox-mcp/README.md)
 
 Give agents a full headless browser with 46 MCP tools, managed server and browser setup, isolated sessions, screenshots, structured extraction, uploads, and downloads. Runs locally on macOS and Linux, or connects to an existing Camofox service.
@@ -145,6 +156,7 @@ codex plugin add web-research@sealad886-codex-marketplace
 codex plugin add repository-guidance@sealad886-codex-marketplace
 codex plugin add camofox-mcp@sealad886-codex-marketplace
 codex plugin add local-translation@sealad886-codex-marketplace
+codex plugin add mindrally-skills@sealad886-codex-marketplace
 ```
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.
@@ -193,4 +205,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for development, validation commands, and
 
 [Sponsor on GitHub](https://github.com/sponsors/sealad886) or [buy me a coffee](https://www.buymeacoffee.com/sealad886).
 
-Maintained by sealad886. [MIT licensed](LICENSE).
+Maintained by sealad886. Marketplace materials are [MIT licensed](LICENSE).
+Mindrally Skills retains its [Apache-2.0 license and notices](plugins/mindrally-skills/NOTICE.md).

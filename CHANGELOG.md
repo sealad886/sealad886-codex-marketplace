@@ -3,6 +3,20 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Mindrally Skills 0.1.0 - 2026-10-31
+
+### Added
+
+- One Apache-2.0 plugin adapting all 265 skills from the pinned Mindrally source
+  into separately discoverable Codex and GitHub Copilot skills.
+- Individual technical review records, source hashes and primary-document links,
+  with corrections for obsolete APIs, incorrect examples and unsafe defaults.
+- Progressive disclosure through concise workflow entry points and directly
+  linked conditional technical references, plus original package artwork.
+- Synchronized portable and Codex manifests, both marketplace catalogs,
+  distribution-count and individual-review coverage validation, and the pinned
+  HOL scanner workflow for the new package.
+
 ## Build Multi-target Tauri Apps 0.2.0 - 2026-10-31
 
 ### Added

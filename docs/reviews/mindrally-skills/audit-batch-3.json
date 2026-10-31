@@ -1,0 +1,3559 @@
+{
+  "source_commit": "7682ca77710e0971eab4e0ae5dddfa281aea0ba5",
+  "records": [
+    {
+      "skill": "react",
+      "source_sha256": "7c8e9af7521d2baadcaeda82a38c35f223e65831b1789449eca9a046d157efcd",
+      "reviewed_source_sections": [
+        "React",
+        "Code Implementation Guidelines",
+        "Component Development",
+        "State & Performance",
+        "Best Practices",
+        "TypeScript Integration"
+      ],
+      "corrections": [
+        "Removed invalid class: JSX advice, contradictory function-versus-const mandates, blanket Tailwind/TypeScript requirements, unconditional memoization, and unqualified Server Component/Suspense advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://react.dev/reference/react/useMemo",
+          "checked_claim": "Memoization is a performance optimization without semantic guarantees."
+        },
+        {
+          "url": "https://react.dev/learn/writing-markup-with-jsx",
+          "checked_claim": "React JSX uses className and JavaScript expressions."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "react-native-cursor-rules",
+      "source_sha256": "ca9c58efdaf1df0dad3310e759a138a56da650d2028d6cd352116856c6e89601",
+      "reviewed_source_sections": [
+        "React Native Cursor Rules",
+        "Code Style and Structure",
+        "Naming Conventions",
+        "TypeScript Usage",
+        "Performance Optimization",
+        "UI and Styling",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Qualified clipping and list tuning, removed compulsory React.FC and image dependency, and distinguished Expo updates from native binary changes."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://reactnative.dev/docs/optimizing-flatlist-configuration",
+          "checked_claim": "FlatList tuning has responsiveness, memory, and clipping tradeoffs."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "react-native-r3f",
+      "source_sha256": "d271db3a5eb510a1815938238d9c3adaccf59480fa29f72500bb6dfffbd7fea8",
+      "reviewed_source_sections": [
+        "React Native R3F (React Three Fiber)",
+        "Core Principles",
+        "JavaScript/TypeScript Standards",
+        "Error Handling",
+        "React-Specific Practices",
+        "React Three Fiber Best Practices",
+        "Example Component Structure"
+      ],
+      "corrections": [
+        "Corrected native imports and removed web-only Vite/Tailwind/Next UI/error.tsx mandates from native guidance."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://r3f.docs.pmnd.rs/getting-started/installation",
+          "checked_claim": "Native Fiber and Drei imports and Expo-backed GL/assets differ from web setup."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "react-query",
+      "source_sha256": "acccecd2b920991d1a20b7ea0a1d8ceab6c2f2cf088efc83a7cdf05f894bed87",
+      "reviewed_source_sections": [
+        "React Query Best Practices",
+        "Core Principles",
+        "Project Structure",
+        "Setup",
+        "Provider Configuration",
+        "Query Patterns",
+        "Basic Query Hook",
+        "Query with Error Handling",
+        "Dependent Queries",
+        "Paginated Queries",
+        "Infinite Scroll",
+        "Mutation Patterns",
+        "Basic Mutation",
+        "Optimistic Updates",
+        "State Management Integration",
+        "Combining with Context/Reducer",
+        "Combining with Zustand (Alternative)",
+        "Performance Optimization",
+        "Query Key Best Practices",
+        "Selective Subscriptions",
+        "Prefetching",
+        "Error Handling Patterns",
+        "Global Error Handler",
+        "Error Boundaries",
+        "Key Conventions",
+        "Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Replaced v3 imports/positional calls with versioned v5 guidance, corrected cacheTime to gcTime, removed v5-incompatible query callbacks and unqualified keepPreviousData advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://tanstack.com/query/latest/docs/framework/react/guides/migrating-to-v5",
+          "checked_claim": "V5 uses object signatures, gcTime, changed pagination, and removed query callbacks."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "react-router-v7",
+      "source_sha256": "f7e9c28a9adb9637727538f6c4b612502334a7933d3c7b9de58ba4140496b6ad",
+      "reviewed_source_sections": [
+        "React Router v7",
+        "Workflow for Building a Route Module",
+        "Route Modules",
+        "Data Loading",
+        "Mutations",
+        "Navigation and State",
+        "TypeScript and Testing",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Corrected assumed filesystem routing, Response-instance error handling, and claims that useFetcher/useSubmit automatically work without JavaScript."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://reactrouter.com/start/framework/routing",
+          "checked_claim": "Framework routing declares route configuration; use the version selector for v7."
+        },
+        {
+          "url": "https://reactrouter.com/how-to/error-boundary",
+          "checked_claim": "Router error responses should be recognized with isRouteErrorResponse."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "readme-best-practices",
+      "source_sha256": "defc65eacaeb720640c6346d96697045421ff6b1987f308166936268cd7757bc",
+      "reviewed_source_sections": [
+        "README Best Practices",
+        "Workflow for Writing a README",
+        "Opening Hook",
+        "Standard Structure",
+        "Feature Presentation",
+        "Quick Start Requirements",
+        "Prose and Formatting",
+        "Badges",
+        "Assets and Links",
+        "Author / Contact Section",
+        "Common Mistakes to Avoid"
+      ],
+      "corrections": [
+        "Removed unsupported attention-span/setup-time assertions and compulsory tables, badges, author cards, and first-screen formatting."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-readmes",
+          "checked_claim": "README purpose, placement, and relative links are documented GitHub behavior."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "redis-best-practices",
+      "source_sha256": "30232bb249839c596680f310a299cadfccf967fc71669b4ee527cff25cf0b16c",
+      "reviewed_source_sections": [
+        "Redis Best Practices",
+        "Core Principles",
+        "Key Naming Conventions",
+        "Good key naming examples",
+        "Data Structures",
+        "Strings",
+        "Simple caching",
+        "Counters",
+        "Atomic operations",
+        "Hashes",
+        "Store user profile",
+        "Get specific fields",
+        "Increment numeric fields",
+        "Get all fields",
+        "Lists",
+        "Message queue",
+        "Blocking pop for workers",
+        "Recent activity (keep last 100)",
+        "Get recent items",
+        "Sets",
+        "User tags/interests",
+        "Check membership",
+        "Find common interests",
+        "Online users tracking",
+        "Sorted Sets",
+        "Leaderboard",
+        "Get top 10",
+        "Get player rank",
+        "Time-based data (score = timestamp)",
+        "Get events in time range",
+        "Streams",
+        "Add events to stream",
+        "Read from stream",
+        "Consumer groups",
+        "Acknowledge processed messages",
+        "Caching Patterns",
+        "Cache-Aside Pattern",
+        "Pseudo-code for cache-aside",
+        "Write-Through Pattern",
+        "Cache Invalidation",
+        "Delete specific cache",
+        "Delete by pattern (use with caution in production)",
+        "Use SCAN instead of KEYS for large datasets",
+        "Tag-based invalidation using sets",
+        "Invalidate all related caches",
+        "Then delete each key",
+        "Expiration and Memory Management",
+        "TTL Best Practices",
+        "Set with expiration",
+        "Set expiration on existing key",
+        "Check TTL",
+        "Persist key (remove expiration)",
+        "Memory Management",
+        "Check memory usage",
+        "Get key memory usage",
+        "Configure max memory policy",
+        "Transactions and Atomicity",
+        "MULTI/EXEC Transactions",
+        "Transaction block",
+        "Watch for optimistic locking",
+        "Lua Scripts",
+        "Execute Lua script",
+        "Pub/Sub and Messaging",
+        "Publisher",
+        "Subscriber",
+        "Pattern subscription",
+        "High Availability",
+        "Replication",
+        "On replica",
+        "Check replication status",
+        "Redis Sentinel",
+        "Redis Cluster",
+        "Hash tags ensure keys go to same slot",
+        "Persistence",
+        "RDB Snapshots",
+        "Manual snapshot",
+        "Configure automatic snapshots",
+        "AOF (Append-Only File)",
+        "Enable AOF",
+        "Rewrite AOF",
+        "Security",
+        "Set password",
+        "Authenticate",
+        "Rename dangerous commands (in redis.conf)",
+        "Monitoring",
+        "Server info",
+        "Memory stats",
+        "Client connections",
+        "Slow log",
+        "Monitor commands (debug only)",
+        "Key count per database",
+        "Connection Management",
+        "Python example with connection pool",
+        "Performance Tips",
+        "Pipeline example (pseudo-code)"
+      ],
+      "corrections": [
+        "Fixed invalid SETNX expiry syntax; distinguished pipelining/transactions and ephemeral Pub/Sub; removed command-renaming security prescription and implied cache-write atomicity."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://redis.io/docs/latest/commands/set/",
+          "checked_claim": "SET supports conditional NX and expiry options."
+        },
+        {
+          "url": "https://redis.io/docs/latest/develop/pubsub/",
+          "checked_claim": "Redis Pub/Sub has at-most-once delivery semantics."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "redux-toolkit",
+      "source_sha256": "3d21837ba9a72df2b4a24b49a6ab85b439adb7c7a71f3d424071ba5622bf96ce",
+      "reviewed_source_sections": [
+        "Redux Toolkit",
+        "Development Philosophy",
+        "Redux State Management",
+        "Core Principles",
+        "Slice Structure",
+        "Naming Conventions",
+        "Prefixes",
+        "TypeScript Integration",
+        "Async Operations",
+        "RTK Query",
+        "createAsyncThunk",
+        "Performance Optimization",
+        "Selectors",
+        "Error Handling",
+        "Testing"
+      ],
+      "corrections": [
+        "Removed mandatory global Redux/memoization/inline-function rules and unsafe catch(error).message assumption; added request-scoped SSR ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://redux-toolkit.js.org/usage/usage-guide",
+          "checked_claim": "configureStore, slices, async logic, and cache utilities have distinct responsibilities."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "remix",
+      "source_sha256": "3e5f5e906694c59aeca78812b12594fd302e2997ece720474f75db08818eaa1b",
+      "reviewed_source_sections": [
+        "Remix Development",
+        "Key Principles",
+        "Project Structure",
+        "Loaders",
+        "Basic Loader",
+        "Loader with Authentication",
+        "Actions",
+        "Form Handling",
+        "Using Action Data",
+        "Nested Routes",
+        "Layout Routes",
+        "Pathless Layouts",
+        "useFetcher",
+        "Non-Navigation Fetches",
+        "Optimistic UI",
+        "Error Boundaries",
+        "Resource Routes",
+        "Meta and Links",
+        "Session Management",
+        "Performance",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Qualified Remix generation and route naming; corrected cookie session resumption and open redirects; removed unversioned defer and no-JS claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://v2.remix.run/docs/start/v2/",
+          "checked_claim": "Remix v2 has generation-specific routes and migration conventions."
+        },
+        {
+          "url": "https://v2.remix.run/docs/utils/sessions/",
+          "checked_claim": "Session storage reads request cookies and commits Set-Cookie responses."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "responsive-design",
+      "source_sha256": "e191d465645294001ea84c4b526023daf0c794bfe8ea8d2f81d5533818274878",
+      "reviewed_source_sections": [
+        "Responsive Design Guidelines",
+        "Core Principles",
+        "Mobile-First Approach",
+        "Strategy",
+        "Benefits",
+        "Flexible Layouts",
+        "Flexbox",
+        "CSS Grid",
+        "Container Queries",
+        "Responsive Typography",
+        "Fluid Typography",
+        "Units",
+        "Responsive Images",
+        "Srcset and Sizes",
+        "Picture Element",
+        "Performance",
+        "Media Queries",
+        "Common Breakpoints",
+        "Feature Queries",
+        "Preference Queries",
+        "Touch Targets",
+        "Sizing",
+        "Interaction",
+        "Viewport Configuration",
+        "Meta Tag",
+        "Best Practices",
+        "Testing",
+        "Tools",
+        "Checklist",
+        "Performance Considerations",
+        "Critical CSS",
+        "Asset Optimization"
+      ],
+      "corrections": [
+        "Removed blanket inline-style/ARIA rules, fixed potentially overflowing grid advice, and qualified 44px target claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/CSS_layout/Responsive_Design",
+          "checked_claim": "Responsive layout combines flexible sizing, media queries, and viewport configuration."
+        },
+        {
+          "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+          "checked_claim": "WCAG target-size minimum and exceptions differ from the enhanced criterion."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "rest-api-django",
+      "source_sha256": "fa38d91b60523b25b78e0905c56e350c6aa1168aa163f43d23aaad2e83788ad4",
+      "reviewed_source_sections": [
+        "REST API Development with Django",
+        "Core Principles",
+        "Project Structure",
+        "Application Structure",
+        "API Structure",
+        "Development Guidelines",
+        "Views and API Design",
+        "Models and Database",
+        "Serializers and Validation",
+        "Authentication and Authorization",
+        "Performance Optimization",
+        "Error Handling"
+      ],
+      "corrections": [
+        "Removed mandatory JWT, APIView, all-ORM, model-only logic, and infrastructure prescriptions; clarified authentication versus authorization and session CSRF."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.django-rest-framework.org/api-guide/authentication/",
+          "checked_claim": "DRF supports multiple authentication schemes and session authentication requires CSRF handling."
+        },
+        {
+          "url": "https://www.django-rest-framework.org/api-guide/permissions/",
+          "checked_claim": "Endpoint and object permissions require explicit enforcement."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "robocorp-cursor-rules",
+      "source_sha256": "470a0c40c46ec3ba33ecab9824be88d5568634e09011b89e3e36c073cfcbd1b7",
+      "reviewed_source_sections": [
+        "RoboCorp Python Development",
+        "Core Guidelines",
+        "Key Principles",
+        "Python/RoboCorp Standards",
+        "Error Handling and Validation",
+        "RoboCorp-Specific Guidelines",
+        "Performance Optimization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Removed invented universal dependency injection/middleware, React terminology, compulsory Pydantic/async database access, and unverified RPA.HTTP.HTTPException."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://sema4.ai/docs/automation/python/robocorp/robocorp-tasks",
+          "checked_claim": "robocorp-tasks uses decorated Python task functions and a task runner."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "rollup-bundler",
+      "source_sha256": "c983f881e546fb5dd09028e1d307e6ed5d2dc1dbe57e1030d6f7afdbd4a5dfe4",
+      "reviewed_source_sections": [
+        "Rollup Bundler",
+        "Core Principles",
+        "Project Structure",
+        "Configuration Basics",
+        "Basic Configuration",
+        "Multiple Output Formats",
+        "Output Formats",
+        "ES Modules (esm)",
+        "CommonJS (cjs)",
+        "UMD (Universal Module Definition)",
+        "IIFE (Immediately Invoked Function Expression)",
+        "ES Modules Best Practices",
+        "Use Named Exports",
+        "Static Imports",
+        "Essential Plugins",
+        "Node Resolve",
+        "CommonJS Conversion",
+        "Babel Transpilation",
+        "TypeScript Support",
+        "Minification",
+        "Environment Variables",
+        "External Dependencies",
+        "Marking Dependencies as External",
+        "Peer Dependencies Pattern",
+        "Code Splitting",
+        "Multiple Entry Points",
+        "Dynamic Imports",
+        "Tree Shaking Optimization",
+        "Pure Function Annotations",
+        "Side Effects Configuration",
+        "Watch Mode",
+        "Package.json Configuration",
+        "Best Practices",
+        "Do",
+        "Avoid",
+        "Common Configuration Patterns",
+        "Library Configuration",
+        "Debugging and Analysis"
+      ],
+      "corrections": [
+        "Removed unsupported --configDebug, blanket dependency externalization, and unconditional sideEffects:false; qualified JSON imports and multi-chunk outputs."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://rollupjs.org/command-line-interface/",
+          "checked_claim": "Rollup CLI flags and config loading follow documented Node/module behavior."
+        },
+        {
+          "url": "https://rollupjs.org/configuration-options/",
+          "checked_claim": "Output formats, externals, and tree-shaking options have explicit constraints."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "ros2-robotics",
+      "source_sha256": "33a36d0518374378a42b6e6133cd2ce7ae61b3648d4028f7b9a6bc512e26316d",
+      "reviewed_source_sections": [
+        "ROS 2 Robotics Development",
+        "Workflow for Building a ROS 2 Package",
+        "Package Structure",
+        "Nodes and Interfaces",
+        "Example: A Minimal rclpy Publisher Node",
+        "Timing and Frames",
+        "Build and Test",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Corrected custom-interface generation in Python packages, unvalidated timer-rate example, executor concurrency assumptions, and unsupported safety implication of clamping."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/ros2/rosidl",
+          "checked_claim": "ROS interfaces are generated through rosidl with CMake integration."
+        }
+      ],
+      "verification_limits": [
+        "ROS documentation site denied automated access; upstream rosidl source documentation used for interface-generation check.",
+        "No ROS build, simulation, or physical robot execution performed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "rspec",
+      "source_sha256": "1754ffcb1a72f6534219669f22dd404d2dc8d976cbae9dd0417a6c2e46a8989f",
+      "reviewed_source_sections": [
+        "RSpec Testing Best Practices",
+        "Key Principles",
+        "Comprehensive Coverage",
+        "Readability and Clarity",
+        "Test Organization",
+        "Test Data Management",
+        "Test Isolation",
+        "Reduce Duplication",
+        "Example Structure"
+      ],
+      "corrections": [
+        "Identified Shoulda matcher dependency in source example and removed universal FactoryBot/fixture and all-service-mocking mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/rspec/rspec-core",
+          "checked_claim": "RSpec core provides examples, shared examples, metadata, and per-example execution scopes."
+        }
+      ],
+      "verification_limits": [
+        "RSpec feature-documentation URL was unavailable; upstream rspec-core documentation used.",
+        "No target Ruby/Rails test suite was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "rtl-internationalization",
+      "source_sha256": "edc5b1ab509814821e72c27d042f8d8c72aea3b613637be982eac79dcbe9a522",
+      "reviewed_source_sections": [
+        "RTL (Right-to-Left) Internationalization",
+        "Workflow for Making a UI RTL-Safe",
+        "Logical CSS Properties",
+        "Tailwind CSS Logical Classes",
+        "React Native Logical Properties",
+        "Bidirectional Text Safety",
+        "Directional Icons and Components",
+        "Internationalization Fundamentals",
+        "Testing",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Removed blanket chart/control mirroring, universal physical-to-logical replacement, incomplete ar/he-only locale detection, and direction-driven DOM/tab reversal implications."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.w3.org/International/questions/qa-html-dir",
+          "checked_claim": "HTML dir establishes base direction; logical properties follow direction but physical positioning may remain intentional."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "ruby",
+      "source_sha256": "9bf0066368acb45b9e3769dc322d3b9dbfa2320ed1fe9b31a7e803cd751ae85a",
+      "reviewed_source_sections": [
+        "Ruby Development",
+        "Code Style and Structure",
+        "Ruby Language Features",
+        "Syntax and Formatting",
+        "Error Handling",
+        "Object-Oriented Design",
+        "Testing Best Practices",
+        "RSpec Guidelines",
+        "Test Structure",
+        "Performance Optimization",
+        "Security"
+      ],
+      "corrections": [
+        "Removed compulsory RSpec/FactoryBot and quote-style mandates; qualified Ruby 3 feature support and exception handling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.ruby-lang.org/en/master/syntax/modules_and_classes_rdoc.html",
+          "checked_claim": "Ruby classes and modules have distinct inheritance and mixin behavior."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "ruby-rails",
+      "source_sha256": "faeaa847f4e121afa32cb907c1ec428693b31bf664a51ba55eb865c1786faddb",
+      "reviewed_source_sections": [
+        "Ruby on Rails",
+        "Core Principles",
+        "Naming Conventions",
+        "Architecture & Performance",
+        "Rails 8 Defaults",
+        "Frontend & UI",
+        "Security",
+        "Testing",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected authentication-versus-authorization tools and removed compulsory database/frontend/test dependencies and conflicting Sidekiq defaults."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://guides.rubyonrails.org/8_0_release_notes.html",
+          "checked_claim": "Rails 8 introduces Solid defaults, Propshaft, Kamal changes, and authentication generation."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "rust",
+      "source_sha256": "8c3e1db4a427a5cbd82582fbadc9170184bcbcca3a1aabe8e4b0ac5b9eca1e49",
+      "reviewed_source_sections": [
+        "Rust",
+        "Core Principles",
+        "Code Organization",
+        "Async Programming",
+        "Error Handling",
+        "Performance",
+        "Testing",
+        "Security"
+      ],
+      "corrections": [
+        "Removed mandatory mod.rs, Tokio, RwLock, stack allocation, and Quickcheck choices; added ownership-aware cancellation and lock boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://doc.rust-lang.org/book/ch07-02-defining-modules-to-control-scope-and-privacy.html",
+          "checked_claim": "Rust permits modern module.rs and directory mod.rs layouts."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "salesforce-development",
+      "source_sha256": "786e3d3c058f58b7ca4487734e457e1829bffc9d11ffa4c41a0f1200755a58f2",
+      "reviewed_source_sections": [
+        "Salesforce Development",
+        "Apex Code Guidelines",
+        "Apex Triggers Standards",
+        "Lightning Web Component Requirements",
+        "Metadata Generation",
+        "Code Generation Best Practices",
+        "SOQL Best Practices",
+        "Testing Requirements"
+      ],
+      "corrections": [
+        "Replaced Aura APIs mislabelled as LWC, corrected CRUD/FLS versus sharing, and removed unsafe universal static-boolean trigger recursion advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.salesforce.com/docs/platform/lwc/guide/targets-lightning-flow-screen.html",
+          "checked_claim": "LWC Flow exposure uses lightning__FlowScreen metadata."
+        },
+        {
+          "url": "https://developer.salesforce.com/docs/platform/lwc/guide/use-navigate",
+          "checked_claim": "LWC navigation is provided through platform navigation services."
+        }
+      ],
+      "verification_limits": [
+        "Some Salesforce rendered documentation exposed only abbreviated text; Flow metadata and CLI claims were cross-checked through official indexed documentation.",
+        "No Salesforce org tests or deployments performed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "salesforce-dx",
+      "source_sha256": "0bf8a6fd2a3467847df3b92c22df6298cfa8574290b6cb8ac5fac698c1937b58",
+      "reviewed_source_sections": [
+        "Salesforce DX Development",
+        "Apex Code Standards",
+        "Apex Triggers",
+        "Lightning Web Components",
+        "Metadata & Code Generation",
+        "SFDX CLI Best Practices",
+        "Project Structure",
+        "Scratch Org Configuration",
+        "Version Control Integration",
+        "Package Development"
+      ],
+      "corrections": [
+        "Updated deprecated sfdx command family, removed universal GitFlow/package mandates, and corrected copied Aura-versus-LWC guidance."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/salesforcecli/plugin-deploy-retrieve",
+          "checked_claim": "Current official deploy/retrieve plugin documents sf project deploy/retrieve command families."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "sanity",
+      "source_sha256": "c0bb65ad2515d707162660e2da72b5279f08b4de6049dff7e8632cd6c846a3b6",
+      "reviewed_source_sections": [
+        "Sanity CMS Development",
+        "Core Principles",
+        "Project Structure",
+        "Schema Definition",
+        "Document Types",
+        "Object Types",
+        "GROQ Queries",
+        "Basic Queries",
+        "Advanced GROQ",
+        "Client Setup",
+        "TypeScript Integration",
+        "Validation",
+        "Custom Components",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected missing schema fields/import assumptions and clarified Studio validation, public configuration, secret tokens, and CDN/preview semantics."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.sanity.io/docs/studio/schema-types",
+          "checked_claim": "Schema types are explicitly registered and field validation rules are type-specific."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "sass-best-practices",
+      "source_sha256": "4edae933f42e22cab2030cf857d1c4e957edf99149058710e4174759820d63c4",
+      "reviewed_source_sections": [
+        "Sass Best Practices",
+        "Key Principles",
+        "Sass vs SCSS",
+        "File Organization",
+        "Project Structure",
+        "Main Manifest",
+        "Variables",
+        "Naming and Organization",
+        "Using Maps",
+        "Mixins",
+        "Responsive Design",
+        "Flexbox Utilities",
+        "Typography",
+        "Accessibility",
+        "Button Styles",
+        "BEM Naming Convention",
+        "Nesting Guidelines",
+        "Keep Nesting Shallow",
+        "Acceptable Nesting",
+        "Functions",
+        "Placeholders and Extend",
+        "Loops and Iteration",
+        "Generate Utility Classes",
+        "Grid Generation",
+        "Conditionals",
+        "Modern Module System",
+        "Using @use and @forward",
+        "Performance Tips",
+        "Code Style Guidelines",
+        "Property Order"
+      ],
+      "corrections": [
+        "Corrected @use transitive-scope assumptions, deprecated global color/map functions and slash division, and unconditional production sourcemap prohibition."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://sass-lang.com/documentation/breaking-changes/import/",
+          "checked_claim": "Dart Sass deprecates @import and global built-in functions."
+        },
+        {
+          "url": "https://sass-lang.com/documentation/at-rules/use/",
+          "checked_claim": "@use members are scoped to the loading stylesheet."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "scikit-learn-best-practices",
+      "source_sha256": "5f6eeaa5abed48542766c78676fd475fe9240dc49e6cf7fb3f73d07ba72e99ec",
+      "reviewed_source_sections": [
+        "Scikit-learn Best Practices",
+        "Code Style and Structure",
+        "Machine Learning Workflow",
+        "Data Preparation",
+        "Feature Engineering",
+        "Pipelines",
+        "Column Transformers",
+        "Model Selection and Tuning",
+        "Cross-Validation",
+        "Hyperparameter Tuning",
+        "Model Evaluation",
+        "Classification Metrics",
+        "Regression Metrics",
+        "Evaluation Best Practices",
+        "Handling Imbalanced Data",
+        "Feature Selection",
+        "Model Persistence",
+        "Performance Optimization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Corrected LabelEncoder feature use, normality/scaling assumptions, all-core parallelism mandate, and unsafe unqualified joblib loading."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://scikit-learn.org/stable/common_pitfalls.html",
+          "checked_claim": "Preprocessing and feature selection must be fitted only within training boundaries."
+        },
+        {
+          "url": "https://scikit-learn.org/stable/model_persistence.html",
+          "checked_claim": "Persisted estimators have trust and version compatibility constraints."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "scipy-best-practices",
+      "source_sha256": "54e6bc729193a37dd24b44bd7490c7772e9805bfc727f0e318f1835318a768dd",
+      "reviewed_source_sections": [
+        "SciPy Best Practices",
+        "Code Style and Structure",
+        "scipy.optimize - Optimization",
+        "scipy.linalg - Linear Algebra",
+        "scipy.stats - Statistics",
+        "scipy.interpolate - Interpolation",
+        "scipy.integrate - Integration",
+        "scipy.signal - Signal Processing",
+        "scipy.sparse - Sparse Matrices",
+        "Performance Optimization",
+        "Error Handling and Validation",
+        "Testing Scientific Code",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Replaced legacy interpolation defaults and unqualified filtfilt/nonsmooth optimizer guidance with method-selection and stability checks."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.interp1d.html",
+          "checked_claim": "interp1d is legacy and modern interpolation alternatives are recommended."
+        },
+        {
+          "url": "https://docs.scipy.org/doc/scipy/reference/signal.html",
+          "checked_claim": "Signal filtering includes second-order-section and forward-backward APIs with distinct behavior."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "scrapy-web-scraping",
+      "source_sha256": "9c129aa764acc4a95eb958ee652e58d9a002c7c216e0cadfacae0a33cd3ac33d",
+      "reviewed_source_sections": [
+        "Scrapy Web Scraping",
+        "Core Expertise",
+        "Key Principles",
+        "Spider Development",
+        "Project Structure",
+        "Spider Best Practices",
+        "Data Extraction",
+        "Good practice: Using ItemLoader",
+        "Request Handling",
+        "Rate Limiting",
+        "Headers and User Agents",
+        "Proxies",
+        "Item Pipelines",
+        "Error Handling",
+        "Performance Optimization",
+        "Settings Configuration",
+        "Recommended production settings",
+        "Testing",
+        "Key Dependencies",
+        "Ethical Considerations"
+      ],
+      "corrections": [
+        "Updated spider start API, removed compulsory Item/dependency stack and evasion recommendations, and qualified delay/cache/async advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.scrapy.org/en/latest/topics/spiders.html",
+          "checked_claim": "Current spider startup supports async start with version-specific older entrypoints."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "scss-best-practices",
+      "source_sha256": "794cb3c7743a4d1d3d6807f2e8ba2ef39b2625dd555023acd5db489fd9400f8c",
+      "reviewed_source_sections": [
+        "SCSS Best Practices",
+        "Key Principles",
+        "File Organization",
+        "Architecture Pattern (7-1 Pattern)",
+        "Import Order",
+        "Variables",
+        "Naming Convention",
+        "Maps for Related Values",
+        "Mixins",
+        "Responsive Breakpoints",
+        "Flexbox Utilities",
+        "Typography",
+        "Accessibility",
+        "BEM Naming Convention",
+        "Structure",
+        "Nesting Rules",
+        "Maximum Nesting Depth",
+        "Acceptable Nesting",
+        "Functions",
+        "Color Functions",
+        "Unit Conversion",
+        "Spacing Function",
+        "Extend and Placeholders",
+        "Use Placeholders Over Classes",
+        "Loops and Iteration",
+        "Generate Utility Classes",
+        "Performance Best Practices",
+        "Modern SCSS Features",
+        "Module System",
+        "Built-in Modules",
+        "Code Style"
+      ],
+      "corrections": [
+        "Corrected isolated @use scope, deprecated global built-ins and slash division; removed universal architecture/style/sourcemap rules."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://sass-lang.com/documentation/at-rules/use/",
+          "checked_claim": "@use provides file-local namespaced members."
+        },
+        {
+          "url": "https://sass-lang.com/documentation/breaking-changes/import/",
+          "checked_claim": "Current Dart Sass deprecates @import and global built-ins."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "security-best-practices",
+      "source_sha256": "9bee57459bdcfac0a705f1fed8cad04fbe5d1ec3a81c22132020afec542ce35e",
+      "reviewed_source_sections": [
+        "Security Best Practices",
+        "Input Validation and Sanitization",
+        "Authentication and Authorization",
+        "Permission Boundaries",
+        "Resilience and Protection",
+        "Secure Configuration",
+        "Error Handling",
+        "Secrets Management",
+        "SQL Injection Prevention",
+        "Cross-Site Scripting (XSS) Prevention",
+        "Cross-Site Request Forgery (CSRF) Prevention",
+        "API Security",
+        "Dependency Security"
+      ],
+      "corrections": [
+        "Replaced generic sanitization/ORM-escaping claims with context encoding and parameter binding; qualified retries, CSRF, and security-header prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html",
+          "checked_claim": "Parameterized values and allowlisted SQL structure are primary injection defenses."
+        },
+        {
+          "url": "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Request_Forgery_Prevention_Cheat_Sheet.html",
+          "checked_claim": "CSRF controls depend on credential and request context."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "security-devsecops",
+      "source_sha256": "e30278d1f6e2cf056eec68aaf2ca243ea2dcc7203e91d61833072a744cac2eff",
+      "reviewed_source_sections": [
+        "Security / DevSecOps",
+        "Workflow for Adding a New Feature Securely",
+        "General Security Principles",
+        "Unsafe \u2014 string interpolation into a query",
+        "Safe \u2014 parameterized query",
+        "Secret Handling",
+        "Database Security",
+        "Dependency Management",
+        "Node.js",
+        "Python",
+        "Container image",
+        "Authentication & Authorization",
+        "Secure SDLC Practices",
+        "Monitoring & Feedback",
+        "Compliance & Documentation",
+        "Common Vulnerability Classes to Watch For"
+      ],
+      "corrections": [
+        "Removed automatic universal security-tool stack, package-download trust proxy, and implication that JSON.parse alone executes data; added immutable evidence and CI authority boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
+          "checked_claim": "SSDF provides security practices integrated into the development lifecycle."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "selenium-automation",
+      "source_sha256": "687dde9e25916c7d9b9031b002627061e26d8109ad4bd58dbc6d070ccb8fad1b",
+      "reviewed_source_sections": [
+        "Selenium Browser Automation",
+        "Core Expertise",
+        "Key Principles",
+        "Project Structure",
+        "WebDriver Setup",
+        "Driver Factory Pattern",
+        "Pytest Fixtures",
+        "Page Object Model",
+        "Base Page Class",
+        "Page Object Implementation",
+        "Element Location Strategies",
+        "Preferred Order (Most to Least Reliable)",
+        "CSS Selector Best Practices",
+        "Good: Specific, stable selectors",
+        "Avoid: Fragile selectors",
+        "XPath Best Practices",
+        "Use for complex relationships",
+        "Waits and Synchronization",
+        "Explicit Waits (Preferred)",
+        "Wait for element to be clickable",
+        "Wait for element to be visible",
+        "Wait for text to be present",
+        "Custom wait condition",
+        "Common Expected Conditions",
+        "Test Writing Best Practices",
+        "Test Structure",
+        "Test Naming Conventions",
+        "Handling Special Elements",
+        "Dropdowns",
+        "Alerts",
+        "Frames",
+        "Or by element",
+        "Return to main content",
+        "Multiple Windows",
+        "Click link that opens new window",
+        "Return to original",
+        "Performance and Reliability",
+        "Key Dependencies",
+        "Configuration",
+        "pytest.ini",
+        "Debugging Tips"
+      ],
+      "corrections": [
+        "Removed default --no-sandbox, unnecessary driver-manager dependency, mixed wait configuration, absolute locator ranking, and retries-as-reliability advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.selenium.dev/documentation/webdriver/waits/",
+          "checked_claim": "Mixing implicit and explicit waits creates unpredictable timeout behavior."
+        },
+        {
+          "url": "https://www.selenium.dev/documentation/selenium_manager/",
+          "checked_claim": "Selenium Manager provides supported automated driver management."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "seo-best-practices",
+      "source_sha256": "f26a4c11c9591b1369efb72c6663c5665dbff7f1a1e87b31707770d23440ba39",
+      "reviewed_source_sections": [
+        "SEO Best Practices",
+        "Core SEO Principles",
+        "Metadata Implementation",
+        "Next.js Applications",
+        "Nuxt.js Applications",
+        "Technical SEO Requirements",
+        "Performance Optimization",
+        "Content Structure",
+        "URL and Routing",
+        "Mobile and Accessibility",
+        "Image SEO",
+        "Content Guidelines",
+        "Monitoring and Testing"
+      ],
+      "corrections": [
+        "Replaced FID with INP, removed retired Mobile-Friendly Test and blanket SSR/RSC mandates, qualified metadata length and image-alt rules."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developers.google.com/search/docs/appearance/core-web-vitals",
+          "checked_claim": "Google identifies LCP, INP, and CLS as current Core Web Vitals."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "sequelize",
+      "source_sha256": "3735699ac2d1d228ce24fa9c574c7bfc0279e40dcc762a6798ad944268260be0",
+      "reviewed_source_sections": [
+        "Sequelize Development Guidelines",
+        "Core Principles",
+        "Database Connection",
+        "Basic Setup",
+        "Model Definition",
+        "Basic Model with TypeScript",
+        "Data Types Reference",
+        "Associations",
+        "One-to-One",
+        "One-to-Many",
+        "Many-to-Many",
+        "Querying",
+        "Basic Queries",
+        "Advanced Queries with Operators",
+        "Eager Loading (Include)",
+        "Pagination and Ordering",
+        "Aggregations",
+        "CRUD Operations",
+        "Create",
+        "Update",
+        "Delete",
+        "Transactions",
+        "Hooks",
+        "Hook with Transaction Access",
+        "Validations",
+        "Migrations",
+        "Creating Migrations",
+        "Generate migration",
+        "Run migrations",
+        "Undo last migration",
+        "Undo all migrations",
+        "Migration File Structure",
+        "Best Practices",
+        "Use Eager Loading to Avoid N+1",
+        "Always Use Migrations in Production",
+        "Use Aliases for Associations",
+        "Validate in Bulk Operations",
+        "Use Transactions for Data Integrity",
+        "Scope Common Queries"
+      ],
+      "corrections": [
+        "Fixed race-prone uniqueness-as-validation guidance, pre-create ID assumption, and pre-commit external side effects; qualified version/dialect and bulk hook semantics."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://sequelize.org/docs/v6/other-topics/transactions/",
+          "checked_claim": "Transactions propagate through query options and support afterCommit hooks."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "serverless",
+      "source_sha256": "00b96c47125d6128d0a5d8178421480442dfb5890be593e9e173286ff8aa718a",
+      "reviewed_source_sections": [
+        "Serverless and Microservices Development",
+        "Core Principles",
+        "Microservices and API Integration",
+        "Serverless and Cloud-Native Patterns",
+        "Security and Middleware",
+        "Performance Optimization",
+        "Monitoring and Observability",
+        "Architecture Best Practices",
+        "Testing Strategies"
+      ],
+      "corrections": [
+        "Removed mandatory infrastructure stack, unsupported standalone-binary implication, and unqualified async/background-worker advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.aws.amazon.com/lambda/latest/dg/best-practices.html",
+          "checked_claim": "Lambda guidance requires duplicate-aware idempotent handlers and resource-aware implementation."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "shopify",
+      "source_sha256": "fbe567d395beeb29fe7b68674c47b8022aae6b11b31478f273117f7acbaa0081",
+      "reviewed_source_sections": [
+        "Shopify Theme Development",
+        "Core Principles",
+        "Liquid Templating",
+        "Best Practices",
+        "Common Patterns",
+        "Online Store 2.0",
+        "Section Architecture",
+        "Section Schema",
+        "JSON Templates",
+        "JavaScript Best Practices",
+        "Theme JavaScript",
+        "Cart Functionality",
+        "CSS and Styling",
+        "Performance Optimization",
+        "Image Optimization",
+        "Accessibility",
+        "Theme Settings",
+        "Metafields",
+        "Testing",
+        "File Structure"
+      ],
+      "corrections": [
+        "Removed nonexistent general cache tag, updated FID, corrected cart failure/locale handling, and qualified metafield/checkout authority."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://shopify.dev/docs/api/liquid",
+          "checked_claim": "Official theme Liquid reference defines supported tags and filters."
+        },
+        {
+          "url": "https://shopify.dev/docs/storefronts/themes/architecture",
+          "checked_claim": "Theme architecture defines layout, templates, sections, blocks, and supporting directories."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "shopify-theme-development-guidelines",
+      "source_sha256": "a519cb64154c0fb09f86b4a225c95564b52bdabbe022cbbad4bad3e3b330e795",
+      "reviewed_source_sections": [
+        "Shopify Theme Development Guidelines",
+        "Liquid Development",
+        "Valid Filters",
+        "Valid Tags",
+        "Validation Rules",
+        "Theme Architecture",
+        "Directory Structure",
+        "UX Principles",
+        "HTML Standards",
+        "CSS Guidelines",
+        "JavaScript Principles",
+        "Performance Optimization",
+        "Example Section Schema"
+      ],
+      "corrections": [
+        "Corrected layouts/ directory, removed arbitrary CSS/JS/ID mandates, and narrowed invented generic filter categories to documented APIs."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://shopify.dev/docs/storefronts/themes/architecture",
+          "checked_claim": "Shopify specifies supported theme directories and component composition."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "snowflake-cortex-ai",
+      "source_sha256": "4437da5c5de154f082170e1ccadb651ffcdfb70557d5bfba1c3ec04eb04b94b4",
+      "reviewed_source_sections": [
+        "Snowflake Cortex AI",
+        "Workflow for Building a Cortex-Powered Feature",
+        "Cortex AI Functions",
+        "AI_COMPLETE \u2014 the primary function",
+        "Classification, filtering, and aggregation",
+        "Other functions",
+        "Privileges",
+        "Cortex Search \u2014 Hybrid Vector + Keyword Search",
+        "Single-index service",
+        "Multi-index service (text + vector across columns)",
+        "Querying \u2014 Python API (recommended for applications)",
+        "Querying \u2014 REST API",
+        "Filter syntax",
+        "Tuning relevance",
+        "RAG pattern",
+        "Best Practices",
+        "Anti-Patterns"
+      ],
+      "corrections": [
+        "Removed incorrect AI_FILTER/AI_EXTRACT examples, JSON-cast guarantee, unbounded aggregation/cost claims, fixed warehouse cap, default privilege assumptions, and unconditional data-residency promises."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.snowflake.com/en/sql-reference/functions/ai_filter",
+          "checked_claim": "Text AI_FILTER syntax takes input/PROMPT rather than the source\u2019s two arbitrary text arguments."
+        },
+        {
+          "url": "https://docs.snowflake.com/en/sql-reference/functions/ai_extract",
+          "checked_claim": "AI_EXTRACT takes text/file and responseFormat."
+        },
+        {
+          "url": "https://docs.snowflake.com/en/user-guide/snowflake-cortex/aisql",
+          "checked_claim": "Cortex capabilities and availability must be selected from current documented functions."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "snowflake-data-engineering",
+      "source_sha256": "aae5e978d060c92b4f82112411b44feed88a322572a9ed9f61c6369f732ce98d",
+      "reviewed_source_sections": [
+        "Snowflake Data Engineering",
+        "Workflow for Building a Snowflake Pipeline",
+        "SQL and Semi-Structured Data",
+        "SQL coding standards",
+        "Performance Optimization",
+        "Data Pipelines",
+        "Dynamic Tables",
+        "Streams (CDC)",
+        "Tasks (scheduled/triggered)",
+        "Snowpipe",
+        "Time Travel and Data Protection",
+        "Snowflake Postgres",
+        "Warehouse and Cost Management",
+        "Access Control",
+        "Data Sharing and Iceberg",
+        "Anti-Patterns"
+      ],
+      "corrections": [
+        "Corrected JSON-null representation, automatic subcolumnarization explanation, cloning/cost-monitor guarantees, CREATE OR REPLACE safety, and unverified Snowflake Postgres DDL."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.snowflake.com/en/user-guide/semistructured-considerations",
+          "checked_claim": "VARIANT distinguishes JSON null, SQL NULL, and missing values."
+        },
+        {
+          "url": "https://docs.snowflake.com/en/user-guide/resource-monitors",
+          "checked_claim": "Resource monitor coverage and limitations must be assessed for the service involved."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "snowflake-snowpark-dbt",
+      "source_sha256": "e214036f0801190e074f38ada7ea0f34794c020835fd4c9b78a955bcac76f891",
+      "reviewed_source_sections": [
+        "Snowflake Snowpark Python & dbt",
+        "Workflow for a Snowpark or dbt Transformation",
+        "Snowpark Python",
+        "Session",
+        "DataFrame API",
+        "Scalar UDFs",
+        "Vectorized UDFs",
+        "UDTFs (return multiple rows per input)",
+        "Stored procedures",
+        "Packages and file access",
+        "dbt with the Snowflake Adapter",
+        "profiles.yml",
+        "Materializations",
+        "Dynamic Tables in dbt",
+        "Incremental models",
+        "Snowflake-specific configs",
+        "Sources with freshness checks",
+        "Testing",
+        "Key commands",
+        "Custom schema naming",
+        "Best Practices",
+        "Anti-Patterns"
+      ],
+      "corrections": [
+        "Corrected no-data-movement promise, broken vectorized UDF/artifact example, unmeasured speedup, late/empty incremental failure, destructive schema drift defaults, and unsafe custom-schema macro."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.snowflake.com/en/developer-guide/snowpark/python/working-with-dataframes",
+          "checked_claim": "Snowpark actions execute plans and collect results."
+        },
+        {
+          "url": "https://docs.snowflake.com/en/developer-guide/snowpark/python/creating-udfs",
+          "checked_claim": "Vectorized UDFs use documented batched input/output annotations."
+        },
+        {
+          "url": "https://docs.getdbt.com/docs/build/custom-schemas",
+          "checked_claim": "Removing target.schema from custom schema generation can cause developer and CI collisions."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "solana",
+      "source_sha256": "9ad71ce9e56f679db29556f2b7088e4e84d3bfc0123f1afd405bc92e0b9097c8",
+      "reviewed_source_sections": [
+        "Solana Development",
+        "Core Principles",
+        "Rust & Anchor Development",
+        "Security Requirements",
+        "Key Practices",
+        "On-Chain Data Integration",
+        "Performance Optimization",
+        "Testing & Deployment",
+        "Documentation"
+      ],
+      "corrections": [
+        "Removed inappropriate on-chain Rust concurrency advice and blanket ecosystem dependency recommendations; strengthened account and transaction-finality boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://solana.com/docs/core/programs",
+          "checked_claim": "Solana programs are executable accounts and mutable state resides in separate data accounts."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "solidity",
+      "source_sha256": "b7f7de33e917fa86495f9584685bc651955912d6e5dde603ac364cb24c4bffbc",
+      "reviewed_source_sections": [
+        "Solidity",
+        "Core Principles",
+        "Code Structure & Security",
+        "Security Best Practices",
+        "Gas Optimization",
+        "Tools & Analysis",
+        "Advanced Patterns",
+        "Testing & Quality",
+        "Web3 Frontend Integration"
+      ],
+      "corrections": [
+        "Removed default-proxy prescription and obsolete ERC20Snapshot recommendation; qualified overflow, reentrancy, and transaction simulation guarantees."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.soliditylang.org/en/latest/security-considerations.html",
+          "checked_claim": "External calls and cross-contract state require deliberate reentrancy analysis."
+        },
+        {
+          "url": "https://docs.openzeppelin.com/contracts/5.x/changelog",
+          "checked_claim": "OpenZeppelin v5 removed ERC20Snapshot and changed supported APIs."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "spring-boot",
+      "source_sha256": "864f1088b5bef278937549ffc5621b1cde3b6ecc69541089fc1acd2f9ba608b9",
+      "reviewed_source_sections": [
+        "Spring Boot",
+        "Code Style and Structure",
+        "Spring Boot Specifics",
+        "Naming Conventions",
+        "Java and Spring Boot Usage",
+        "Configuration and Properties",
+        "Dependency Injection",
+        "Testing",
+        "Performance and Scalability",
+        "Security",
+        "Logging and Monitoring",
+        "API Documentation",
+        "Build and Deployment",
+        "General Best Practices"
+      ],
+      "corrections": [
+        "Corrected @Async nonblocking claim, CDI terminology, @Value typing, and hardcoded Boot/Java/dependency assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/integration/scheduling.html",
+          "checked_claim": "Async annotations use executor/proxy interception and same-class calls are not intercepted."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "spring-framework",
+      "source_sha256": "c923f157737ba51c618408198a05d7276d4ce2d4a24388a6f1cb99f26b5901a3",
+      "reviewed_source_sections": [
+        "Spring Framework",
+        "Code Style and Structure",
+        "Spring Boot Specifics",
+        "Naming Conventions",
+        "Java and Spring Boot Usage",
+        "Dependency Injection",
+        "Testing",
+        "Performance and Scalability",
+        "Security",
+        "Logging and Monitoring",
+        "API Documentation",
+        "Configuration Management",
+        "Build and Deployment",
+        "General Best Practices"
+      ],
+      "corrections": [
+        "Separated Spring Framework from copied Boot-specific requirements and corrected async/proxy assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/integration/scheduling.html",
+          "checked_claim": "Task execution and proxy interception define @Async behavior."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "sql-best-practices",
+      "source_sha256": "fbdc1f8892d28f47e9c15e76cc64ca3e27a1c08b92e646eea1236174c535e7b9",
+      "reviewed_source_sections": [
+        "SQL Best Practices",
+        "Core Principles",
+        "Query Writing Standards",
+        "Formatting and Style",
+        "Column Selection",
+        "Filtering and Conditions",
+        "Join Best Practices",
+        "Performance Optimization",
+        "Indexing Guidelines",
+        "Query Optimization",
+        "Aggregation Best Practices",
+        "Transaction Management",
+        "Security Best Practices",
+        "Data Modification Best Practices",
+        "INSERT Operations",
+        "UPDATE Operations",
+        "DELETE Operations",
+        "Naming Conventions",
+        "Documentation",
+        "Error Handling"
+      ],
+      "corrections": [
+        "Removed false predicate/join ordering and universal EXISTS optimization rules, unsafe mixed-dialect transaction example, and unqualified EXPLAIN ANALYZE advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.postgresql.org/docs/current/using-explain.html",
+          "checked_claim": "Plans expose optimizer choices and EXPLAIN ANALYZE actually executes the query."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "storybook",
+      "source_sha256": "ef018fa42917ff3b7212e4db391bd1ce3f4c14cad0fc8ac338262090d0fbf450",
+      "reviewed_source_sections": [
+        "Storybook Best Practices",
+        "Project Structure",
+        "Directory Organization",
+        "File Naming",
+        "Writing Stories",
+        "Story Structure",
+        "Story Best Practices",
+        "Component Documentation",
+        "Autodocs",
+        "Custom Documentation",
+        "Args and Controls",
+        "ArgTypes Configuration",
+        "Args Best Practices",
+        "Decorators and Parameters",
+        "Decorators",
+        "Parameters",
+        "Testing with Storybook",
+        "Interaction Testing",
+        "Visual Testing",
+        "Accessibility Testing",
+        "Addons and Configuration",
+        "Essential Addons",
+        "Configuration",
+        "Design System Integration",
+        "Design Tokens",
+        "Theme Support",
+        "Performance",
+        "Build Optimization",
+        "Story Performance",
+        "Best Practices Summary"
+      ],
+      "corrections": [
+        "Updated obsolete test imports, versioned addon/config assumptions, and removed click-guarantees-focus example."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://storybook.js.org/docs/writing-tests/interaction-testing",
+          "checked_claim": "Current interaction examples use storybook/test utilities and explicit fn callback spies."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "stripe",
+      "source_sha256": "d4fa0055f611233210704f79f7ee6511c2678e5e426cdcbc9450960eacd651ad",
+      "reviewed_source_sections": [
+        "Stripe Integration",
+        "Core Principles",
+        "Server-Side Setup",
+        "Stripe Client Configuration",
+        "Create Payment Intent",
+        "Client-Side Integration",
+        "Stripe Elements Setup",
+        "Payment Form Component",
+        "Subscription Management",
+        "Create Subscription",
+        "Cancel Subscription",
+        "Webhook Handling",
+        "Customer Management",
+        "Security Best Practices",
+        "Error Handling",
+        "Testing"
+      ],
+      "corrections": [
+        "Fixed client-authoritative amount vulnerability and email-based customer ownership, incomplete Elements setup, stale API examples, and insufficient webhook/fulfillment lifecycle handling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.stripe.com/payments/payment-intents",
+          "checked_claim": "PaymentIntent lifecycle and idempotency must be tied to the purchase."
+        },
+        {
+          "url": "https://docs.stripe.com/webhooks",
+          "checked_claim": "Webhook signatures, duplicate handling, and delivery semantics require explicit processing."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "styled-components-best-practices",
+      "source_sha256": "f5e27a7af68796d8c1133062eb37b2ff859c23eb97e3a3683d51313fa79c2e39",
+      "reviewed_source_sections": [
+        "styled-components Best Practices",
+        "Key Principles",
+        "Basic Setup",
+        "Installation",
+        "Basic Usage",
+        "Project Structure",
+        "File Organization",
+        "Component Style File",
+        "Theming",
+        "Theme Definition",
+        "TypeScript Theme Typing",
+        "Theme Provider Setup",
+        "Global Styles",
+        "Dynamic Styling",
+        "Props-Based Styling",
+        "Using CSS Helper",
+        "Extending Components",
+        "Extending Styled Components",
+        "Extending Third-Party Components",
+        "Responsive Design",
+        "Media Query Helpers",
+        "Responsive Component",
+        "Animations",
+        "Keyframes",
+        "Transition Groups",
+        "Performance Optimization",
+        "Avoid Interpolation in Static Styles",
+        "Use Transient Props",
+        "Memoize Complex Components",
+        "SSR Configuration",
+        "Best Practices",
+        "Naming Conventions",
+        "Composition Over Inheritance",
+        "Use attrs for Static Props",
+        "Accessibility",
+        "Testing",
+        "Testing Styled Components",
+        "Code Style"
+      ],
+      "corrections": [
+        "Removed unnecessary v6 @types dependency and false constant-interpolation class churn claim; corrected prop leakage, SSR assumptions, and focus-outline example."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://styled-components.com/docs/faqs",
+          "checked_claim": "Styled-components v6 is written in TypeScript and has generation-specific migration behavior."
+        },
+        {
+          "url": "https://styled-components.com/docs/api",
+          "checked_claim": "Transient props and style collection have explicit APIs."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "supabase",
+      "source_sha256": "40b06ac4e380a09d9874573feef0806c7db76b6b9313bb67010a850f10a39d83",
+      "reviewed_source_sections": [
+        "Supabase",
+        "Core Principles",
+        "Authentication",
+        "Database",
+        "Real-time",
+        "Storage",
+        "Edge Functions",
+        "Client Integration",
+        "Next.js",
+        "SvelteKit",
+        "Security Best Practices"
+      ],
+      "corrections": [
+        "Qualified RLS bypass and blanket policies, removed claim that client alone supplies prepared-statement safety, and separated auth, storage, realtime, and CORS controls."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "checked_claim": "Privileged secret/service-role requests can bypass RLS; keys must remain server-side."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "supabase-development",
+      "source_sha256": "c59bcef8fe460a1a8346c48f701ba9fa72b7042e90d719caa86ee67307e89249",
+      "reviewed_source_sections": [
+        "Supabase Development",
+        "Core Principles",
+        "Database Design",
+        "Schema Best Practices",
+        "Row Level Security",
+        "Authentication",
+        "Real-Time Features",
+        "Edge Functions",
+        "Storage",
+        "Integration Patterns",
+        "Next.js",
+        "SvelteKit",
+        "Performance"
+      ],
+      "corrections": [
+        "Replaced obsolete @supabase/auth-helpers-sveltekit default with supported SSR migration guidance; removed all-database-client mandate and middleware-only protection implication."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://supabase.com/docs/guides/auth/server-side/migrating-to-ssr-from-auth-helpers",
+          "checked_claim": "Supabase documents migration from auth helpers to the SSR package."
+        },
+        {
+          "url": "https://supabase.com/docs/guides/database/postgres/row-level-security",
+          "checked_claim": "RLS behavior depends on operation, role, and request authorization."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "svelte",
+      "source_sha256": "6ceeb237de216fc3e9ab0585a399cf09318113b05133e04c2c4f44fac720f720",
+      "reviewed_source_sections": [
+        "Svelte / SvelteKit",
+        "Core Principles",
+        "Svelte 5 Runes",
+        "Svelte 4 vs. Svelte 5",
+        "Styling",
+        "State Management",
+        "SvelteKit Features",
+        "Performance",
+        "Internationalization",
+        "Testing",
+        "Accessibility"
+      ],
+      "corrections": [
+        "Qualified $effect versus derived/server behavior, legacy event/slot support, exported-rune reassignment restrictions, and per-user SSR state."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://svelte.dev/docs/svelte/$state",
+          "checked_claim": "Shared reactive state cannot be directly exported when reassigned."
+        },
+        {
+          "url": "https://svelte.dev/docs/svelte/$effect",
+          "checked_claim": "Effects have browser/runtime and cleanup semantics distinct from derived state."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "sveltekit",
+      "source_sha256": "0362edf5bc6c6022776b1eefcaa6c4f413c8101839aee5e00305f429b7664a9e",
+      "reviewed_source_sections": [
+        "SvelteKit Development",
+        "Key Principles",
+        "Project Structure",
+        "Component Development",
+        "Script Setup with TypeScript",
+        "Props and Events",
+        "Routing",
+        "File-Based Routes",
+        "Dynamic Routes",
+        "Load Functions",
+        "SSR and SSG",
+        "Server-Side Rendering",
+        "Static Generation",
+        "Prerendering Dynamic Routes",
+        "Form Actions",
+        "State Management",
+        "Svelte Stores",
+        "Page Store",
+        "API Routes",
+        "Styling with Tailwind",
+        "Error Handling",
+        "Performance Optimization",
+        "Testing",
+        "Accessibility"
+      ],
+      "corrections": [
+        "Qualified legacy Svelte examples and $app/stores, corrected validation failure status and DOM measurement timing, removed unconditional keyed-remount and styling mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://svelte.dev/docs/kit/page-options",
+          "checked_claim": "Rendering/prerender settings are page/layout options with adapter and route behavior."
+        },
+        {
+          "url": "https://svelte.dev/docs/kit/form-actions",
+          "checked_claim": "Form actions support typed failures and progressive enhancement."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "swift",
+      "source_sha256": "7668483d1e6598f5c3b7b84f9711f7d58508c2447896f1b21a1203e558da4b31",
+      "reviewed_source_sections": [
+        "Swift / SwiftUI",
+        "Core Principles",
+        "Architecture",
+        "SwiftUI Best Practices",
+        "Security",
+        "Testing",
+        "App Store Compliance",
+        "Performance"
+      ],
+      "corrections": [
+        "Removed mandatory newest Swift/MVVM/SwiftUI/XCTest assumptions and absolute bug-free claims; added version, actor, and cancellation boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.swift.org/latest/documentation/the-swift-programming-language/concurrency/",
+          "checked_claim": "Swift cancellation is cooperative and unstructured tasks require explicit lifetime management."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "swiftui-development",
+      "source_sha256": "f000b8f4701298c6f668c94564203804e21bc2a8c61e454c558a1d404ce21173",
+      "reviewed_source_sections": [
+        "SwiftUI Development",
+        "Key Principles",
+        "Architecture",
+        "SwiftUI View Structure",
+        "State Management",
+        "Naming Conventions",
+        "SwiftUI Best Practices",
+        "Layout and Styling",
+        "Animations and Transitions",
+        "Swift 6 Concurrency & Data Flow",
+        "Memory Management & Safety",
+        "Performance Optimization",
+        "Accessibility",
+        "Testing and Previews",
+        "Code Quality",
+        "Common Patterns",
+        "View with @Observable ViewModel (iOS 17+)",
+        "View with ObservableObject ViewModel (pre-iOS 17 / legacy)",
+        "Reusable View Modifier"
+      ],
+      "corrections": [
+        "Fixed @State reference ownership, task(id:items.count) refetch loop, automatic-cancellation claim, and blanket detached-task/weak-self/nonisolated advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.swift.org/latest/documentation/observation/observable/",
+          "checked_claim": "Observation requires the @Observable macro rather than protocol conformance alone."
+        },
+        {
+          "url": "https://docs.swift.org/latest/documentation/the-swift-programming-language/concurrency/",
+          "checked_claim": "Cancellation and task lifetime are cooperative and explicit."
+        }
+      ],
+      "verification_limits": [
+        "Apple rendered SwiftUI pages exposed limited automated text; Swift official Observation/concurrency documentation checked.",
+        "No SwiftUI build or device execution performed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "swr",
+      "source_sha256": "13efde8973f058ffe2d7003bf63b1641e7e1b9aece9a404255fd01c7372846ec",
+      "reviewed_source_sections": [
+        "SWR Best Practices",
+        "Core Principles",
+        "Key Features",
+        "Project Structure",
+        "Setup and Configuration",
+        "Global Configuration",
+        "Custom Fetcher",
+        "Basic Usage",
+        "useSWR Hook",
+        "Conditional Fetching",
+        "Revalidation Strategies",
+        "Automatic Revalidation",
+        "Manual Revalidation",
+        "Polling / Interval Refresh",
+        "Mutation Patterns",
+        "Optimistic Updates",
+        "Bound Mutate",
+        "Pagination",
+        "Basic Pagination",
+        "Infinite Loading with useSWRInfinite",
+        "Cursor-Based Pagination",
+        "Error Handling",
+        "Component-Level Error Handling",
+        "Global Error Handler",
+        "Prefetching",
+        "Key Conventions",
+        "Integration with Next.js",
+        "Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Corrected falsely conditional function-key example, missing mutation response checks, incomplete rollback, global mutate scope, and unconditional mount-revalidation claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://swr.vercel.app/docs/conditional-fetching",
+          "checked_claim": "Function keys skip requests only on falsy values or thrown missing-dependency access."
+        },
+        {
+          "url": "https://swr.vercel.app/docs/mutation",
+          "checked_claim": "Mutation options support optimistic data, rollback, and cache population."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "systemverilog",
+      "source_sha256": "6e7d23dbb7385265f5f1066b5665fe41eafb0fd04dc4904287db93028ec71f62",
+      "reviewed_source_sections": [
+        "SystemVerilog Development",
+        "Modular Design & Code Organization",
+        "Synchronous Design Principles",
+        "Timing Closure & Constraints",
+        "Resource Utilization & Optimization",
+        "Power Optimization",
+        "Verification & Debugging",
+        "Testbenches",
+        "Simulation",
+        "Advanced Techniques",
+        "Clock Domain Crossing",
+        "Interface Optimization",
+        "Pipelining"
+      ],
+      "corrections": [
+        "Removed unsafe generic FPGA clock-gating advice, reg[] RAM guarantee, universal XDC/reset choices, and simplistic multi-bit CDC assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.amd.com/r/en-US/conversion-methodology/Clocking-RTL-Best-Practices",
+          "checked_claim": "AMD FPGA clocking guidance discourages gated fabric clocks and recommends dedicated resources/enables."
+        }
+      ],
+      "verification_limits": [
+        "Initial Intel documentation URL was unavailable; current AMD vendor clocking guidance checked instead.",
+        "No simulator, synthesis, board, or ASIC flow executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "tailwindcss",
+      "source_sha256": "1f3687cbd2066432bbce423b0275f909532603f9b76b8b06a193b6267668ce29",
+      "reviewed_source_sections": [
+        "TailwindCSS",
+        "Core Principles",
+        "Usage Guidelines",
+        "Component Styling",
+        "Best Practices",
+        "Integration Patterns",
+        "With React/Next.js",
+        "With Vue",
+        "With Alpine.js",
+        "Responsive Design"
+      ],
+      "corrections": [
+        "Removed false @apply prohibition and obsolete universal JIT/configuration advice; qualified container and dark-mode behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://tailwindcss.com/docs/upgrade-guide",
+          "checked_claim": "Tailwind v4 changes configuration, utilities, and integration from v3."
+        },
+        {
+          "url": "https://tailwindcss.com/docs/functions-and-directives",
+          "checked_claim": "@apply is a supported Tailwind directive."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "tanstack-query",
+      "source_sha256": "d7388dd92233629937c2f5955c551900bcef10fa220ba81855a96a426d4d50fb",
+      "reviewed_source_sections": [
+        "TanStack Query Best Practices",
+        "Core Principles",
+        "v5 Breaking Changes to Watch For",
+        "Project Structure",
+        "Setup and Configuration",
+        "Query Client Configuration",
+        "Query Best Practices",
+        "1. Query Key Organization",
+        "2. queryOptions Helper (v5)",
+        "3. Custom Query Hooks",
+        "4. Dependent Queries",
+        "5. Parallel Queries",
+        "Mutation Best Practices",
+        "1. Basic Mutations",
+        "2. Optimistic Updates",
+        "3. Cache Invalidation",
+        "Error Handling",
+        "1. Global Error Handler",
+        "2. Component-Level Error Handling",
+        "3. Conditional Retry Logic",
+        "4. Suspense Mode (v5)",
+        "Performance Optimization",
+        "1. Select and Transform Data",
+        "2. Prefetching",
+        "3. Infinite Queries",
+        "TypeScript Tips",
+        "Key Conventions",
+        "Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Removed false ban on component-created stable clients/inline options, mandatory mutation retry, overly broad key-reuse advice, and mistyped select wrapper."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://tanstack.com/query/latest/docs/framework/react/guides/query-options",
+          "checked_claim": "queryOptions co-locates reusable typed keys/functions/options."
+        },
+        {
+          "url": "https://tanstack.com/query/latest/docs/framework/react/guides/important-defaults",
+          "checked_claim": "Freshness, retry, garbage collection, and structural sharing have configurable defaults."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "tanstack-router",
+      "source_sha256": "8564e47fde95e8992a7d78999ec2a1fa985ac52b738131b6a918061ed6f57c42",
+      "reviewed_source_sections": [
+        "TanStack Router",
+        "Workflow for Adding a New Route",
+        "Core Principles",
+        "File-Based Route Conventions",
+        "Route Definition",
+        "Type-Safe Search Params",
+        "Navigation",
+        "Loaders + TanStack Query Integration",
+        "Router Context for Dependency Injection",
+        "Auth Guards",
+        "Performance",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Removed 100%-runtime-safety and compulsory file/Zod claims, guard-as-authorization implication, and unconditional ensureQueryData-over-fetchQuery advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://tanstack.com/router/latest/docs/framework/react/guide/authenticated-routes",
+          "checked_claim": "beforeLoad guards UI; server data endpoints still require authorization."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "tanstack-start",
+      "source_sha256": "31559129b4ba1d0e4559941342a2fd8f108c3de7a3c12954d262be13169b23d4",
+      "reviewed_source_sections": [
+        "TanStack Start",
+        "Workflow for Building a TanStack Start Feature",
+        "Core Principles",
+        "Configuration",
+        "app.config.ts",
+        "Root Route HTML Shell",
+        "Server Functions",
+        "Using Server Functions in Routes",
+        "Mutations with Server Functions",
+        "API Routes",
+        "Streaming with defer()",
+        "Environment Variables",
+        "Deployment Targets",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Replaced stale @tanstack/start/app.config.ts assumptions with installed-generation APIs; corrected default-GET mutation and raw-webhook parsing examples and missing server authorization."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://tanstack.com/start/latest/docs/framework/react/guide/server-functions",
+          "checked_claim": "Current server functions use @tanstack/react-start with method, validation, and handler semantics."
+        },
+        {
+          "url": "https://tanstack.com/start/latest/docs/framework/react/migrate-from-release-candidate",
+          "checked_claim": "Current migration docs change builder methods including inputValidator back to validator."
+        },
+        {
+          "url": "https://tanstack.com/start/latest/docs/framework/react/guide/static-prerendering",
+          "checked_claim": "Current Start integrates through tanstackStart in vite.config.ts."
+        }
+      ],
+      "verification_limits": [
+        "Direct server-function page timed out; Context7 retrieved current official Start documentation and migration examples.",
+        "No target Start application build or server executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "tauri-development",
+      "source_sha256": "7a9ad7f8e947c4c807c71e641579c3558b962596929cf8cc70f547e472b0bb66",
+      "reviewed_source_sections": [
+        "Tauri Development Guidelines",
+        "Core Principles",
+        "Technology Stack",
+        "Project Structure",
+        "TypeScript Guidelines",
+        "Code Style",
+        "Tauri Integration",
+        "Rust Guidelines",
+        "Command Definitions",
+        "Error Handling",
+        "Security",
+        "UI Development",
+        "TailwindCSS",
+        "ShadCN-UI Components",
+        "State Management",
+        "File System Operations",
+        "Building and Distribution",
+        "Performance",
+        "Testing"
+      ],
+      "corrections": [
+        "Updated v1/v2 IPC/permission distinctions, removed unrestricted filesystem command examples, added event cleanup and static frontend constraints."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://v2.tauri.app/develop/calling-rust/",
+          "checked_claim": "V2 invoke comes from api/core and event listeners require lifecycle cleanup."
+        },
+        {
+          "url": "https://v2.tauri.app/security/capabilities/",
+          "checked_claim": "V2 capabilities constrain frontend access to supported native permissions."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "technical-writing",
+      "source_sha256": "978efb8b24344fffff7f912496d41f6f1c6c1d2966dff455158820a6652d625d",
+      "reviewed_source_sections": [
+        "Technical Writing",
+        "Writing Style and Content",
+        "Code Examples",
+        "Language and Structure",
+        "Conclusions",
+        "Overall Approach"
+      ],
+      "corrections": [
+        "Removed arbitrary bans on bullets/sentence openings, unique-adjective mandate, fixed conclusion limits, and compulsory oversized examples."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developers.google.com/style/highlights",
+          "checked_claim": "Developer documentation guidance supports active language, accessible content, descriptive links, and lists for sequences."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "tensorflow-deep-learning",
+      "source_sha256": "28c6716dad0d7764275aaa3d8e1c8130add30b34e3adf4e5a3180f4169df154d",
+      "reviewed_source_sections": [
+        "TensorFlow and Deep Learning",
+        "Workflow for Training and Shipping a Model",
+        "Project Structure",
+        "Input Pipeline (tf.data)",
+        "Model Development",
+        "Training",
+        "Evaluation",
+        "Deployment",
+        "Or with an explicit serving signature:",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Qualified AUTOTUNE/tiny-loss mandates and aligned checkpoint-selection semantics; versioned Keras save/export and device guarantees."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://keras.io/guides/migrating_to_keras_3/",
+          "checked_claim": "Keras 3 uses model.export for SavedModel export and changed persistence/loading behavior."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "terraform",
+      "source_sha256": "1ce7f57fc984917a79b6f4293a74599cd4a6b0571e106c619762a6cd09ab11da",
+      "reviewed_source_sections": [
+        "Terraform",
+        "Core Principles",
+        "Code Structure",
+        "State Management",
+        "Best Practices",
+        "Security",
+        "Collaboration & Production"
+      ],
+      "corrections": [
+        "Removed routine targeting optimization and implied guaranteed rollback/workspace isolation; clarified state/plan secrecy and mutation authority."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.hashicorp.com/terraform/cli/commands/plan",
+          "checked_claim": "Resource targeting is an exceptional planning option and plan behavior is explicit."
+        },
+        {
+          "url": "https://developer.hashicorp.com/terraform/language/state/sensitive-data",
+          "checked_claim": "State can contain sensitive data requiring secure handling."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "testing",
+      "source_sha256": "9e30f8eed1fb51a9e43711074f26423efd12bd2a4bb253c422f3f9555c97c666",
+      "reviewed_source_sections": [
+        "Testing Best Practices",
+        "Core Testing Principles",
+        "Unit Testing",
+        "Test Organization",
+        "Test Isolation",
+        "Test Data",
+        "Comprehensive Coverage",
+        "Code Quality in Tests",
+        "Assertions"
+      ],
+      "corrections": [
+        "Removed every-export coverage requirement, factory-over-fixture mandate, automatic mock/parallel preferences, and blanket rejection of generic assertions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://testing-library.com/docs/guiding-principles/",
+          "checked_claim": "Tests should resemble real usage and focus on user-observable behavior."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "three-js",
+      "source_sha256": "dff396f8dae7810653e84a53bbb68a66ffe645a6609ee13a7c52e3bf3b078e41",
+      "reviewed_source_sections": [
+        "Three.js Development",
+        "Key Principles",
+        "JavaScript/TypeScript Standards",
+        "Error Handling and Validation",
+        "React Best Practices",
+        "Component Guidelines",
+        "Performance Optimization",
+        "Three.js Specific Guidelines",
+        "Scene Management",
+        "Performance",
+        "React Three Fiber"
+      ],
+      "corrections": [
+        "Removed React/UI/style mandates and clarified scene removal versus separate geometry/material/texture disposal and shared ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://threejs.org/manual/pages/how-to-dispose-of-objects.html",
+          "checked_claim": "GPU resources require explicit disposal; material and texture lifetimes are separate."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "transformers-huggingface",
+      "source_sha256": "ff9f201b60e6e9c82ce69257f99dfe8a541638e5032110931d41924507edfa7d",
+      "reviewed_source_sections": [
+        "Transformers and Hugging Face Development",
+        "Key Principles",
+        "Model Loading and Configuration",
+        "Tokenization Best Practices",
+        "Example tokenization pattern",
+        "Fine-tuning with Trainer API",
+        "Example Trainer setup",
+        "Dataset Handling",
+        "Efficient Fine-tuning Techniques",
+        "Inference Optimization",
+        "Example inference pattern",
+        "Model Hub Integration",
+        "Text Generation",
+        "Example generation pattern",
+        "Multi-modal Models",
+        "Error Handling and Validation",
+        "Dependencies",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Updated stale Trainer argument guidance, removed universal quantization/Flash Attention/dependency mandates, and qualified tokenizer/model/device behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://huggingface.co/docs/transformers/en/main_classes/trainer",
+          "checked_claim": "Current Trainer documents eval_strategy, checkpoint selection requirements, and versioned constructor fields."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "trpc",
+      "source_sha256": "81f13da0f6b2a89f8d9f6bd3d594ba5bd8084bb9bf4e643e340fb3422d01a38c",
+      "reviewed_source_sections": [
+        "tRPC Best Practices",
+        "Requirements",
+        "Project Structure",
+        "Server-Side Setup",
+        "Initialize tRPC Backend",
+        "Create Feature Routers",
+        "Main App Router",
+        "Client-Side Setup",
+        "Configure tRPC Client",
+        "Key Best Practices",
+        "1. Input Validation",
+        "2. Router Organization",
+        "3. Middleware Implementation",
+        "4. Error Handling",
+        "5. Data Transformers",
+        "6. React Query Integration",
+        "7. Context Creation",
+        "8. Type Exports",
+        "9. Authorization Levels",
+        "10. Performance Optimization",
+        "Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Removed no-runtime-errors/schema-free claim and mandatory Zod/Next Pages layout; corrected v11 client transformer placement and public data access example."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://trpc.io/docs/migrate-from-v10-to-v11",
+          "checked_claim": "V11 moves client transformers into links and documents current TypeScript requirements."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "turbopack-bundler",
+      "source_sha256": "3df2e3d7ab169fae692b038023a04d6790c06531835e2f991209680793191c93",
+      "reviewed_source_sections": [
+        "Turbopack Bundler",
+        "Core Principles",
+        "Project Structure",
+        "Enabling Turbopack",
+        "Development Mode",
+        "Next.js 13.4+",
+        "Or in package.json",
+        "Next.js Configuration",
+        "Configuration Options",
+        "Custom Loaders",
+        "Resolve Aliases",
+        "Resolve Extensions",
+        "Built-in Support",
+        "TypeScript Configuration",
+        "Recommended tsconfig.json",
+        "Path Aliases",
+        "Code Organization",
+        "Atomic Design Pattern",
+        "Component Structure",
+        "Code Splitting",
+        "Dynamic Imports",
+        "Route-Based Splitting",
+        "Manual Splitting",
+        "Caching Strategy",
+        "Turbo Engine Caching",
+        "Optimizing for Cache",
+        "Performance Best Practices",
+        "Module Organization",
+        "Import Optimization",
+        "Static Analysis",
+        "CSS Handling",
+        "CSS Modules",
+        "Global CSS",
+        "Tailwind CSS",
+        "Environment Variables",
+        "Next.js Environment Variables",
+        ".env.local",
+        "Testing",
+        "Test Organization",
+        "Testing Best Practices",
+        "Common Pitfalls",
+        "Configuration Issues",
+        "Caching Problems",
+        "Clear Turbopack cache if issues arise",
+        "Compatibility",
+        "Migration from Webpack",
+        "What Changes",
+        "What Stays the Same",
+        "Best Practices Summary",
+        "Do",
+        "Avoid",
+        "Debugging",
+        "Verbose Logging",
+        "Build Analysis",
+        "Check build output",
+        "Common Issues"
+      ],
+      "corrections": [
+        "Versioned experimental/current config and flags; removed as-const tree-shaking claim, invented diagnostic defaults, universal persistent-cache assumptions, and destructive cache deletion recipe."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack",
+          "checked_claim": "Turbopack has versioned configuration and constrained webpack loader compatibility."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "turborepo",
+      "source_sha256": "fc090b340b80ee9a57c5866c2fed712940ae119fa027035e8b539f7733a851c2",
+      "reviewed_source_sections": [
+        "Turborepo Development",
+        "Project Structure",
+        "Workspace Configuration",
+        "turbo.json Configuration",
+        "Caching Strategy",
+        "Task Dependencies",
+        "Shared Configurations",
+        "Development Workflow",
+        "CI/CD Integration",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Qualified package-manager workspace definitions and protocol support, remote-cache authority, environment hashing, and mandatory directory assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://turborepo.com/docs/crafting-your-repository/caching",
+          "checked_claim": "Turbo caches task outputs based on declared inputs/environment and needs deterministic task behavior."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "typeorm",
+      "source_sha256": "0f1f55f6129fa56d6e1873f69942506e1487fb434d915ebaf7afbd5426748a79",
+      "reviewed_source_sections": [
+        "TypeORM Development Guidelines",
+        "Core Principles",
+        "TypeScript Configuration",
+        "Entity Definition",
+        "Basic Entity",
+        "Primary Key Options",
+        "Column Decorators",
+        "Relationships",
+        "One-to-One",
+        "One-to-Many / Many-to-One",
+        "Many-to-Many",
+        "Repository Pattern",
+        "Basic Repository Usage",
+        "Custom Repository",
+        "Query Builder",
+        "Data Source Configuration",
+        "Migrations",
+        "Creating Migrations",
+        "Generate migration from entity changes",
+        "Create empty migration",
+        "Run migrations",
+        "Revert last migration",
+        "Migration File Structure",
+        "Transactions",
+        "NestJS Integration",
+        "Best Practices",
+        "Use Migrations in Production",
+        "Eager vs Lazy Loading",
+        "Avoid N+1 Queries",
+        "Use Indexes",
+        "Cascade Operations",
+        "Naming Strategies"
+      ],
+      "corrections": [
+        "Removed production TLS verification bypass, corrected transaction repository scope, potential duplicate FK columns, precision typings, and oversimplified cascade/lazy-loading claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://dev.typeorm.io/docs/transactions/",
+          "checked_claim": "TypeORM transactions require the provided transactional manager and scoped repositories."
+        },
+        {
+          "url": "https://typeorm.io/docs/drivers/postgres/",
+          "checked_claim": "Driver/data-source options define TLS and database-specific behavior."
+        }
+      ],
+      "verification_limits": [
+        "Initial TypeORM rendered transaction page and old upstream paths were unavailable; current official development docs and Postgres driver docs were located and checked.",
+        "No target database/TypeORM runtime executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "typescript",
+      "source_sha256": "c14f97e42b3916411c3f118965d5f13ab48ee986d40d053315cc2493a9315eb0",
+      "reviewed_source_sections": [
+        "TypeScript",
+        "Core Principles",
+        "Code Style & Structure",
+        "Naming Conventions",
+        "TypeScript Usage",
+        "Functions & Methods",
+        "Data & Classes",
+        "Error Handling",
+        "Documentation"
+      ],
+      "corrections": [
+        "Removed arbitrary syntax/size/architecture mandates and clarified type erasure, shallow readonly, as const, and default-parameter semantics."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.typescriptlang.org/docs/handbook/2/narrowing.html",
+          "checked_claim": "Control-flow checks narrow runtime values into usable static types."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "ui-design",
+      "source_sha256": "3c149eb6fa65a978b72fdf29fc63eef2cbcf5392445a43a21db06dfdee40d207",
+      "reviewed_source_sections": [
+        "UI Design Best Practices",
+        "Visual Design",
+        "Interaction Design",
+        "Accessibility Standards",
+        "Performance Optimization",
+        "User Feedback",
+        "Information Architecture",
+        "Mobile-First Approach",
+        "Design Consistency",
+        "Testing and Iteration",
+        "Technical Implementation",
+        "Navigation and Forms",
+        "Testing Requirements"
+      ],
+      "corrections": [
+        "Updated FID to INP, corrected 44px conformance claim, and removed automatic analytics/experimentation/gesture and all-relative-unit mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html",
+          "checked_claim": "WCAG 2.2 minimum target size is 24 CSS pixels with defined exceptions."
+        },
+        {
+          "url": "https://developers.google.com/search/docs/appearance/core-web-vitals",
+          "checked_claim": "Current responsiveness metric is INP."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "unity",
+      "source_sha256": "0af490bca316adcd6649bc85c1f7d592d6785d859d495ccf3e1ef81b51972e8f",
+      "reviewed_source_sections": [
+        "Unity",
+        "Core Principles",
+        "C# Standards",
+        "Naming Conventions",
+        "Game Systems",
+        "Performance Optimization",
+        "Error Handling",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Removed always-TextMeshPro and naming mandates, qualified TryGetComponent safety, and added lifecycle/measurement boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.unity3d.com/2023.2/Documentation/Manual/UIElements.html",
+          "checked_claim": "Unity provides UI Toolkit alongside uGUI/IMGUI for different project needs."
+        }
+      ],
+      "verification_limits": [
+        "Current unversioned Unity manual redirected to an inaccessible host; versioned official manual used for UI-system distinction.",
+        "No Unity editor or player build executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "ux-design",
+      "source_sha256": "66590503dd63ddafc105cdc45b487f672c4079e27b6ee2e4e2793829d0bf1f66",
+      "reviewed_source_sections": [
+        "UX Design Best Practices",
+        "User Research",
+        "Information Architecture",
+        "Interaction Design",
+        "Visual Design",
+        "Accessibility",
+        "Performance Optimization",
+        "User Feedback",
+        "Mobile-First Design",
+        "Consistency",
+        "Testing and Iteration",
+        "Documentation",
+        "Responsive Layouts",
+        "Content Strategy",
+        "Cognitive Load Management",
+        "Emotional Design"
+      ],
+      "corrections": [
+        "Removed automatic analytics/recording/A-B-test mandates, universal mobile-first/search assumptions, and stale FID reference."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.w3.org/WAI/standards-guidelines/wcag/",
+          "checked_claim": "WCAG versions and conformance targets must be chosen explicitly and verified."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "vercel-development",
+      "source_sha256": "b466075f141ce666b5a8aeca4e668ea0577cbfda2a22689e92ed758445772322",
+      "reviewed_source_sections": [
+        "Vercel Development Best Practices",
+        "Overview",
+        "Core Principles",
+        "Project Structure",
+        "Next.js App Router Guidelines",
+        "File Naming Conventions",
+        "Server Components (Default)",
+        "Client Components (When Needed)",
+        "TypeScript Standards",
+        "Type Definitions",
+        "Component Props",
+        "API Routes",
+        "Route Handlers",
+        "Edge Runtime",
+        "Vercel AI SDK Integration",
+        "Streaming Chat UI",
+        "AI API Route",
+        "Error Handling for AI",
+        "Data Fetching",
+        "Server-Side Data Fetching",
+        "URL State Management",
+        "Performance Optimization",
+        "Image Optimization",
+        "Dynamic Imports",
+        "Suspense Boundaries",
+        "Error Handling",
+        "Error Boundaries",
+        "Global Error Handler",
+        "Vercel Configuration",
+        "vercel.json",
+        "Environment Variables",
+        "Deployment",
+        "Preview Deployments",
+        "Production Deployment",
+        "Connect repo to Vercel (one-click from GitHub)",
+        "Or use Vercel CLI",
+        "Edge Config",
+        "UI and Styling",
+        "Tailwind CSS Setup",
+        "Shadcn UI Components",
+        "Accessibility",
+        "Best Practices",
+        "Common Pitfalls to Avoid"
+      ],
+      "corrections": [
+        "Removed obsolete AI SDK snippets/model defaults, unauthenticated route/cron and wildcard-CORS examples, and automatic-preview/edge assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://vercel.com/docs/functions/runtimes",
+          "checked_claim": "Function runtimes have platform-specific capabilities and maximum lifetimes."
+        },
+        {
+          "url": "https://ai-sdk.dev/docs/migration-guides",
+          "checked_claim": "AI SDK client/server APIs and protocols change across major releases."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "viewcomfy-api-rules",
+      "source_sha256": "ae80c0885693ef35998b38d07415a33756876f045ae33f282de32c0db49a34a9",
+      "reviewed_source_sections": [
+        "ViewComfy API Rules",
+        "Key Technical Context",
+        "Important Operational Considerations",
+        "Cold Start & Performance",
+        "Parameter Requirements",
+        "API Response Format",
+        "Implementation Workflow",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Removed unsupported nonempty-params/automatic-seed mutation rule and direct returned-filename writes; distinguished helper functions from endpoints and added bounded credential/output handling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.viewcomfy.com/blog/integrate-comfyui-workflows-into-your-apps-via-api",
+          "checked_claim": "Official examples distinguish infer/infer_with_logs helpers and describe prompt result fields."
+        },
+        {
+          "url": "https://www.viewcomfy.com/deploy-comfyui",
+          "checked_claim": "Current provider material shows endpoint credentials and parameterized workflow requests."
+        }
+      ],
+      "verification_limits": [
+        "No deployed workflow or credentials supplied; actual schema, billing, latency, and inference quality were not runtime-verified."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "vite",
+      "source_sha256": "9425ffe8ba0f7b80a7b7dc04a92222e64b3e5274e0bfba0cbdab19cb988b260d",
+      "reviewed_source_sections": [
+        "Vite Development",
+        "Key Principles",
+        "Project Setup",
+        "Basic Configuration",
+        "Path Aliases",
+        "Environment Variables",
+        "Usage",
+        "Type Definitions",
+        "Hot Module Replacement",
+        "Manual HMR",
+        "Asset Handling",
+        "Static Assets",
+        "Public Directory",
+        "Framework Integrations",
+        "React",
+        "Vue",
+        "Svelte",
+        "Build Optimization",
+        "Code Splitting",
+        "Chunk Size Optimization",
+        "CSS Handling",
+        "CSS Modules",
+        "PostCSS",
+        "Preprocessors",
+        "Proxy Configuration",
+        "Plugin Development",
+        "Testing with Vitest",
+        "SSR Configuration",
+        "Library Mode",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected transpile-versus-type-check behavior, ESM dirname assumptions, outdated plugin/config examples, brittle package chunking, and preview-server scope."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://vite.dev/guide/features.html",
+          "checked_claim": "Vite transforms TypeScript without performing type checking."
+        },
+        {
+          "url": "https://vite.dev/plugins/",
+          "checked_claim": "Official framework plugin capabilities and implementations are version-specific."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "vue-pinia",
+      "source_sha256": "0978f35c0675887570848ff7671bf82357e9777f2363e84a64a66ca9231b4681",
+      "reviewed_source_sections": [
+        "Vue + Pinia",
+        "Workflow for Adding a Pinia Store",
+        "State Ownership",
+        "Store Structure",
+        "Component Usage",
+        "TypeScript",
+        "Actions and Side Effects",
+        "SSR, Nuxt, and Router Guards",
+        "Persistence",
+        "Testing and Tooling",
+        "Anti-Patterns"
+      ],
+      "corrections": [
+        "Removed React-style unconditional-call mandate, clarified action stubbing, and qualified draft-cart totals/quantity validation."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://pinia.vuejs.org/cookbook/testing.html",
+          "checked_claim": "createTestingPinia stubs actions unless stubActions:false is selected."
+        },
+        {
+          "url": "https://pinia.vuejs.org/core-concepts/outside-component-usage.html",
+          "checked_claim": "Outside-component store access depends on correct active Pinia and SSR scope."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "vue-typescript",
+      "source_sha256": "2a6ec11efebb03f94c5a045345f3c7dc8135e801ef9b2d29be9f511fc80e391e",
+      "reviewed_source_sections": [
+        "Vue.js TypeScript",
+        "Code Style & Structure",
+        "Naming Conventions",
+        "TypeScript Standards",
+        "Syntax & Formatting",
+        "UI & Styling",
+        "Performance Optimization",
+        "Web Vitals"
+      ],
+      "corrections": [
+        "Removed mandatory component/style/dependency stack, qualified experimental Suspense, and replaced FID with INP."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://vuejs.org/guide/typescript/overview.html",
+          "checked_claim": "Vue supports SFC-aware vue-tsc and typed Options API as well as Composition API."
+        },
+        {
+          "url": "https://vuejs.org/guide/built-ins/suspense.html",
+          "checked_claim": "Vue Suspense remains experimental and targets async dependencies."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "vuejs-typescript-best-practices",
+      "source_sha256": "c88fe4091eb66868996ecf3d2dbc10ba10cd869058b2d1895971ea9d5960b123",
+      "reviewed_source_sections": [
+        "Vue.js TypeScript Best Practices",
+        "Code Style and Structure",
+        "Naming Conventions",
+        "TypeScript Usage",
+        "Syntax and Formatting",
+        "UI and Styling",
+        "Performance Optimization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Removed overlapping arbitrary syntax/style/dependency mandates, qualified Suspense, and updated obsolete FID metric."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://vuejs.org/guide/typescript/overview.html",
+          "checked_claim": "Vue TypeScript tooling and supported component styles require version-aware checking."
+        },
+        {
+          "url": "https://vuejs.org/guide/built-ins/suspense.html",
+          "checked_claim": "Suspense supports specific async dependencies and remains experimental."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "web-development",
+      "source_sha256": "d23d869c090ae6c02fa2249456f93d7742a4e11520426ff95f4e29b8d50b9685",
+      "reviewed_source_sections": [
+        "Web Development Guidelines",
+        "Bootstrap Development",
+        "Core Principles",
+        "Grid System",
+        "Components",
+        "Customization",
+        "Django Development",
+        "Project Structure",
+        "Views",
+        "Models",
+        "Forms",
+        "HTMX Development",
+        "Core Concepts",
+        "Basic Usage",
+        "Triggers",
+        "Swap Options",
+        "Loading States",
+        "General Best Practices",
+        "Performance",
+        "Security",
+        "Accessibility",
+        "SEO"
+      ],
+      "corrections": [
+        "Corrected missing HTMX CSRF/form-name behavior and fragment/JSON expectations; qualified unrestricted Django retrieval and Bootstrap version assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://htmx.org/docs/",
+          "checked_claim": "HTMX requests require deliberate response swapping and backend CSRF integration."
+        },
+        {
+          "url": "https://docs.djangoproject.com/en/stable/topics/security/",
+          "checked_claim": "Django security primitives require correct application use."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "web-scraping",
+      "source_sha256": "ec3ca653acc84f5d2db1c822245532d62315900571f39afab87ad4c9f07222a3",
+      "reviewed_source_sections": [
+        "Web Scraping",
+        "Core Tools",
+        "Static Sites",
+        "Dynamic Content",
+        "Large-Scale Extraction",
+        "Complex Workflows",
+        "Best Practices",
+        "Error Handling",
+        "Ethical Considerations",
+        "Data Processing"
+      ],
+      "corrections": [
+        "Removed unqualified obsolete/external-service tool mandates and added request time-budget, scope, provenance, and privacy distinctions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.python-requests.org/en/latest/user/quickstart/",
+          "checked_claim": "Requests requires explicit timeouts and distinguishes timeout from whole-download duration."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "webpack-bundler",
+      "source_sha256": "79de4d298492825f4397d3bea9d3ea2f72d11464fa2b56fc23d161a002816d68",
+      "reviewed_source_sections": [
+        "Webpack Bundler",
+        "Core Principles",
+        "Project Structure",
+        "Configuration Best Practices",
+        "Entry and Output",
+        "Mode Configuration",
+        "Code Splitting",
+        "Dynamic Imports",
+        "SplitChunks Configuration",
+        "Tree Shaking",
+        "Enable Tree Shaking",
+        "Babel Configuration for Tree Shaking",
+        "Loaders",
+        "Common Loader Configuration",
+        "Plugins",
+        "Essential Plugins",
+        "Performance Optimization",
+        "Bundle Size Optimization",
+        "Build Performance",
+        "Production Optimization",
+        "Development Server",
+        "Environment Variables",
+        "Common Anti-Patterns to Avoid",
+        "Testing and Debugging",
+        "Security Considerations",
+        "Integration with CI/CD"
+      ],
+      "corrections": [
+        "Qualified blanket sideEffects:false, plugin/extraction mismatch, old dev-server syntax, mandatory splitting, and output.clean ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://webpack.js.org/guides/tree-shaking/",
+          "checked_claim": "Required CSS and initialization side effects must be preserved during production tree shaking."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "websocket-development",
+      "source_sha256": "ff6c51d663a7bd4b29ec42077601e55b767465b54c298b72eda4add2edd722c1",
+      "reviewed_source_sections": [
+        "WebSocket Development",
+        "Core Principles",
+        "Connection Management",
+        "Establishing Connections",
+        "Connection Lifecycle",
+        "Message Handling",
+        "Message Design",
+        "Error Handling",
+        "Scalability Patterns",
+        "Horizontal Scaling",
+        "Performance Optimization",
+        "Security Best Practices",
+        "Authentication",
+        "Authorization",
+        "Framework-Specific Guidelines",
+        "Node.js Native WebSocket (v21+)",
+        "Bun Runtime",
+        "Browser Clients",
+        "Testing Strategies",
+        "Unit Testing",
+        "Integration Testing",
+        "Monitoring and Observability",
+        "Common Patterns",
+        "Pub/Sub Pattern",
+        "Request/Response Pattern",
+        "Broadcast Pattern"
+      ],
+      "corrections": [
+        "Qualified runtime-version and generic heartbeat assumptions, added browser backpressure/header constraints, and removed implied broker/buffer delivery guarantees."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebSocket",
+          "checked_claim": "The browser WebSocket API lacks automatic backpressure."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "woocommerce",
+      "source_sha256": "db7da69c9233009ee2c8dc1da7d425474fd3fee6d4c8de36b460720cd75006bd",
+      "reviewed_source_sections": [
+        "WooCommerce Development",
+        "Core Principles",
+        "PHP Best Practices",
+        "Coding Standards",
+        "Namespacing",
+        "WooCommerce Hooks",
+        "Action Hooks",
+        "Filter Hooks",
+        "Security",
+        "Data Validation",
+        "Nonce Verification",
+        "Capability Checks",
+        "Custom Product Types",
+        "REST API Extensions",
+        "Database Operations",
+        "Performance",
+        "Caching",
+        "Plugin Structure",
+        "Testing"
+      ],
+      "corrections": [
+        "Removed physical order-table query assumptions, qualified classic checkout hook scope, corrected nonce authorization and direct internal REST objects."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.woocommerce.com/docs/features/high-performance-order-storage/",
+          "checked_claim": "HPOS uses WooCommerce CRUD/data stores over configurable order storage."
+        },
+        {
+          "url": "https://developer.wordpress.org/apis/security/nonces/",
+          "checked_claim": "WordPress nonces are not authentication or authorization."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "wordpress",
+      "source_sha256": "5f5ddc9c45c88f07f3609e0696f0cd9bae8325d7ee980dcb18a21dc7b40b2bed",
+      "reviewed_source_sections": [
+        "WordPress",
+        "Core Principles",
+        "PHP/WordPress Standards",
+        "Security",
+        "Best Practices",
+        "WooCommerce",
+        "Testing"
+      ],
+      "corrections": [
+        "Corrected WooCommerce override location, nonce authorization, WP-Cron guarantees, dbDelta scope, and unsupported PHP 7.4/current-version assumption."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.wordpress.org/apis/security/nonces/",
+          "checked_claim": "Nonces must not replace authentication/capability authorization."
+        },
+        {
+          "url": "https://developer.woocommerce.com/docs/theming/theme-development/template-structure/",
+          "checked_claim": "Classic template overrides use child-theme woocommerce paths and differ from block themes."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "zod-schema-validation",
+      "source_sha256": "7dde79eb8825c5d449bb15af0cdffe3c6922683716279025702360ee24a6db46",
+      "reviewed_source_sections": [
+        "Zod Schema Validation",
+        "Core Principles",
+        "Schema Design",
+        "Basic Schema",
+        "Best Practices",
+        "Validation Patterns",
+        "Safe Parsing",
+        "Transform and Refine",
+        "Form Integration",
+        "API Validation",
+        "Error Handling",
+        "Advanced Patterns",
+        "Discriminated Unions",
+        "Recursive Schemas",
+        "Performance"
+      ],
+      "corrections": [
+        "Corrected .infer wording, JSON Date mismatch, stale v3 error formatting, undefined precompile recommendation, and partial-update authorization assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://zod.dev/v4/changelog",
+          "checked_claim": "Zod 4 changes APIs and deprecates instance error.format in favor of top-level formatting."
+        }
+      ],
+      "verification_limits": [
+        "Primary documentation and source review only; no target application or service runtime was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    },
+    {
+      "skill": "zustand-state-management",
+      "source_sha256": "929757a68d338de342f26401572a90542346b30a1aa41eb05061dfe6165566be",
+      "reviewed_source_sections": [
+        "Zustand State Management",
+        "State Ownership",
+        "Store Design",
+        "Component Usage & Performance",
+        "TypeScript",
+        "Middleware",
+        "Updates",
+        "Persistence",
+        "DevTools",
+        "Non-React Subscriptions",
+        "Async Actions & Error Handling",
+        "SSR and React Server Components",
+        "Testing",
+        "Anti-Patterns"
+      ],
+      "corrections": [
+        "Strengthened v5 selector-output requirement from rerender optimization to possible update-loop correctness; removed arbitrary architecture and automatic mocking mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/pmndrs/zustand/blob/main/docs/reference/migrations/migrating-to-v5.md",
+          "checked_claim": "Zustand v5 requires stable selector outputs and changes persistence/replace typing behavior."
+        }
+      ],
+      "verification_limits": [
+        "Old Zustand documentation path returned 404; current upstream reference/migrations path was located and checked.",
+        "No target React application or persisted user store was executed."
+      ],
+      "references": [
+        "references/patterns.md"
+      ]
+    }
+  ]
+}

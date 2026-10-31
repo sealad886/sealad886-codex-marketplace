@@ -1,0 +1,3836 @@
+{
+  "source_commit": "7682ca77710e0971eab4e0ae5dddfa281aea0ba5",
+  "records": [
+    {
+      "skill": "graphql-development",
+      "source_sha256": "10a067ee37f0748de2aa9cc5187b5d6612e424df68e0e928cfd648b4d0cd14af",
+      "reviewed_source_sections": [
+        "GraphQL Development",
+        "Core Principles",
+        "Schema Design",
+        "Types and Fields",
+        "Relationships",
+        "Query Optimization",
+        "Type-Safe Clients",
+        "Genql",
+        "Apollo Client",
+        "urql",
+        "Integration Patterns",
+        "React",
+        "Next.js",
+        "Error Handling",
+        "Security",
+        "Testing"
+      ],
+      "corrections": [
+        "Qualified mandatory type-safe-client and Server Component prescriptions as project-specific choices.",
+        "Clarified that field resolvers call centralized business authorization rather than duplicating policy."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://graphql.org/learn/authorization/",
+          "checked_claim": "Authorization belongs in the business layer and remains necessary after authentication."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "grpc-development",
+      "source_sha256": "7cfa351589ea90b7860ed0e41eac88f02876ee1a5f5ecdad9a2a875364fad7be",
+      "reviewed_source_sections": [
+        "gRPC Development",
+        "Workflow for Building a gRPC Service",
+        "Core Principles",
+        "Protocol Buffer Best Practices",
+        "File Organization (1-1-1 Pattern)",
+        "Message Design",
+        "Field Guidelines",
+        "Enum Best Practices",
+        "Style Guidelines",
+        "Service Design",
+        "RPC Patterns",
+        "Example: Proto Definition",
+        "Example: Go Server Implementation",
+        "API Design",
+        "Performance Optimization",
+        "Channel Management",
+        "Message Optimization",
+        "Error Handling",
+        "Status Codes",
+        "Retry Logic",
+        "Security",
+        "Authentication",
+        "Authorization",
+        "Interceptors and Middleware",
+        "Server Interceptors",
+        "Client Interceptors",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "Observability",
+        "Distributed Tracing",
+        "Metrics",
+        "Logging",
+        "Language-Specific Guidelines",
+        "Go",
+        "Python",
+        "Node.js/TypeScript"
+      ],
+      "corrections": [
+        "Corrected nonexistent grpcio-aio package guidance to grpc.aio in grpcio.",
+        "Removed universal 1-1-1 file and no-message-reuse mandates and automatic channel pooling.",
+        "Removed non-compiling illustrative service types and timestamp ID generator; replaced with contract guidance."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://grpc.io/docs/languages/python/basics/",
+          "checked_claim": "grpcio-tools generates client/server interfaces from protobuf definitions."
+        },
+        {
+          "url": "https://grpc.github.io/grpc/python/grpc_asyncio.html",
+          "checked_claim": "grpc.aio exposes asynchronous channels and calls within gRPC Python."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "gsap",
+      "source_sha256": "03bb97ae505f595e9309c45522f55002e7f8437c55a01de76bf15121b3c378d1",
+      "reviewed_source_sections": [
+        "GSAP Animation Guidelines",
+        "Core Principles",
+        "Import and Setup",
+        "Use gsap.to(), gsap.from(), and gsap.fromTo()",
+        "Performance Optimization",
+        "Leverage Hardware Acceleration",
+        "Use will-change Wisely",
+        "Stagger for Multiple Elements",
+        "Use Lag Smoothing",
+        "Timeline Best Practices",
+        "Use Timelines for Complex Sequences",
+        "Use Labels for Organization",
+        "Control Timelines",
+        "ScrollTrigger Best Practices",
+        "Basic ScrollTrigger Setup",
+        "Pin Elements Properly",
+        "Batch ScrollTriggers for Performance",
+        "React Integration",
+        "Use useGSAP Hook",
+        "Cleanup Animations",
+        "Selector Optimization",
+        "Cache DOM Selectors",
+        "Use gsap.utils for Efficiency",
+        "Easing",
+        "Use Appropriate Eases",
+        "SVG Animation",
+        "Animate SVG Properties",
+        "Complex Animations",
+        "Use MotionPath for Path Animation",
+        "Debugging",
+        "Use Markers During Development",
+        "Debug Timeline Progress",
+        "Best Practices Summary"
+      ],
+      "corrections": [
+        "Removed claims that force3D ensures GPU acceleration and that stagger/transforms/lag smoothing are universally required.",
+        "Clarified useGSAP context cleanup, dependency updates, and late callback ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://gsap.com/resources/React/",
+          "checked_claim": "useGSAP context cleanup, contextSafe, and revertOnUpdate lifecycle semantics."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "harmony-arkts",
+      "source_sha256": "1f3265b17e46645bb1b5480aeb63cc376a730f46ead5eec297ecc707c08770e6",
+      "reviewed_source_sections": [
+        "HarmonyOS ArkTS Development",
+        "Workflow for Building an ArkTS Component",
+        "Component Structure",
+        "State and Data Flow",
+        "Example: A Component with State, Props, and Lifecycle",
+        "Layout and Styling",
+        "Events and Lifecycle",
+        "Resources and Accessibility",
+        "Common Mistakes"
+      ],
+      "corrections": [
+        "Added ArkTS language/API-level and state-management-generation restrictions omitted upstream.",
+        "Qualified page lifecycle and V1 decorator semantics; removed universal method ordering and 40vp accessibility assertion."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developer.huawei.com/consumer/en/doc/harmonyos-guides/arkts-get-started",
+          "checked_claim": "ArkTS strengthens static checks and constrains runtime object layout compared with TypeScript."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "hono-typescript",
+      "source_sha256": "5a1006d51db3c831c363c37899166cb26b597ac78c517ef48a8fba31af2b87eb",
+      "reviewed_source_sections": [
+        "Hono TypeScript Development",
+        "TypeScript General Guidelines",
+        "Basic Principles",
+        "Nomenclature",
+        "Functions",
+        "Types and Interfaces",
+        "Hono-Specific Guidelines",
+        "Project Structure",
+        "App Initialization",
+        "Routing",
+        "Middleware",
+        "Request Validation with Zod",
+        "Context and Response Handling",
+        "Error Handling",
+        "Cloudflare Workers Integration",
+        "Testing",
+        "Performance",
+        "Security",
+        "Multi-Runtime Support"
+      ],
+      "corrections": [
+        "Removed hardcoded JWT secret example and public role-selection authorization risk.",
+        "Qualified runtime-specific APIs and fixed the assumption that separately declared routes always preserve typed testClient paths."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://hono.dev/docs/getting-started/basic",
+          "checked_claim": "Hono supports distinct runtime adapters and standard Request/Response routing."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "html",
+      "source_sha256": "62238f2a52761ccd0dc62662c6d6ba8258dc9fa4ca0a22b8023686468a8d9d83",
+      "reviewed_source_sections": [
+        "HTML Development Guidelines",
+        "Core Principles",
+        "Semantic Elements",
+        "Document Structure",
+        "Content Sections",
+        "Text Content",
+        "Interactive Elements",
+        "Buttons and Links",
+        "Forms",
+        "Media Elements",
+        "Images",
+        "Video and Audio",
+        "Accessibility (ARIA)",
+        "When to Use ARIA",
+        "Common ARIA Attributes",
+        "Landmarks",
+        "Best Practices",
+        "Document Meta",
+        "Code Quality",
+        "Deprecated Elements",
+        "HTMX Integration",
+        "Bootstrap Integration",
+        "Performance"
+      ],
+      "corrections": [
+        "Corrected classification of b/i as deprecated and universal one-h1 validity assertion.",
+        "Replaced self-closing-all-tags instruction with HTML void-element rules."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://html.spec.whatwg.org/multipage/semantics.html",
+          "checked_claim": "Document semantics and metadata are defined by the current HTML standard."
+        },
+        {
+          "url": "https://html.spec.whatwg.org/multipage/text-level-semantics.html",
+          "checked_claim": "The b and i elements retain defined text-level semantics."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "htmx",
+      "source_sha256": "ed2783172efe070a470e727087d286c5f124ae343c60310a17e41706afc1e64a",
+      "reviewed_source_sections": [
+        "HTMX Development",
+        "Core Principles",
+        "HTMX Usage Guidelines",
+        "Request Attributes",
+        "DOM Manipulation",
+        "URL Management",
+        "Best Practices",
+        "Request Handling",
+        "Error Handling",
+        "User Confirmation",
+        "Performance Optimization",
+        "Integration Patterns",
+        "With CSS Frameworks",
+        "Template Organization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Corrected the claim that hx-swap by itself customizes rendering of HTTP error bodies.",
+        "Added explicit request synchronization and server-side CSRF/authorization boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://htmx.org/docs/",
+          "checked_claim": "Request/swap semantics, configurable response handling, history, and security behavior."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "internationalization-i18n",
+      "source_sha256": "7885f8018a234cbd2ace7b4099146cde247b3dc615a9ba758e2aecc4191488a8",
+      "reviewed_source_sections": [
+        "Internationalization (i18n)",
+        "Core Principles",
+        "Web Application i18n",
+        "React/Next.js Applications",
+        "Implementation Pattern",
+        "Nuxt.js Applications",
+        "React Native/Expo Applications",
+        "Mobile i18n Setup",
+        "Mobile-Specific Considerations",
+        "Translation File Organization",
+        "File Structure",
+        "Translation Keys Best Practices",
+        "Locale-Aware Formatting",
+        "Date and Time",
+        "Numbers and Currency",
+        "Sorting and Comparison",
+        "RTL (Right-to-Left) Support",
+        "Layout Considerations",
+        "Implementation",
+        "Best Practices",
+        "Development Guidelines",
+        "Content Considerations",
+        "Testing Requirements",
+        "State Management for i18n",
+        "Storing User Preferences",
+        "Data Fetching",
+        "Error Handling"
+      ],
+      "corrections": [
+        "Removed deprecated react-native-i18n and mandatory framework/state-library prescriptions.",
+        "Qualified UTC storage to instants, distinguishing date-only values and user currency/time-zone choices."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.w3.org/International/questions/qa-lang-why",
+          "checked_claim": "Document/fragment language metadata enables language-sensitive browser and assistive behavior."
+        },
+        {
+          "url": "https://docs.expo.dev/guides/localization/",
+          "checked_claim": "Device locale detection and translated message libraries are distinct capabilities."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "ionic",
+      "source_sha256": "cc34736b2822e75613cc48193ba2b243b3b290acae2458b21444509e6b2a9762",
+      "reviewed_source_sections": [
+        "Ionic Development",
+        "Core Principles",
+        "Project Structure",
+        "Feature-Based Organization",
+        "Ionic Components",
+        "Navigation",
+        "UI Components",
+        "Styling",
+        "Performance",
+        "Lazy Loading",
+        "Optimization",
+        "Native Integration",
+        "Cordova/Capacitor Plugins",
+        "Firebase Integration",
+        "Environment Configuration",
+        "Testing"
+      ],
+      "corrections": [
+        "Replaced deprecated @ionic-native/camera guidance with supported Capacitor selection.",
+        "Qualified Angular-only patterns and removed implicit recommendation of retired Ionic virtual scrolling."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://ionicframework.com/docs/angular/overview",
+          "checked_claim": "Capacitor is Ionic Angular\u2019s official native runtime; integration versions are framework-specific."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "java",
+      "source_sha256": "a1949d0896a6a12626befc8dd5998045e6c1bdd1a1454a003ff99549582cf460",
+      "reviewed_source_sections": [
+        "Java",
+        "Core Principles",
+        "Spring Boot",
+        "Code Structure",
+        "Quarkus (Alternative)",
+        "Testing",
+        "Performance",
+        "Error Handling",
+        "Dependencies"
+      ],
+      "corrections": [
+        "Removed fixed Java 17+/Spring Boot 3.x assumptions and mandatory enterprise dependencies from general Java guidance.",
+        "Made newer language features conditional on the configured release."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.oracle.com/en/java/javase/25/language/index.html",
+          "checked_claim": "Language features have documented release-specific availability."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "java-quarkus-development",
+      "source_sha256": "a4c2b0dbb2f78703e5044a2bc6331901bc590dcb095048bc04fa8d0500d6b0b3",
+      "reviewed_source_sections": [
+        "Java Quarkus Development Best Practices",
+        "Core Principles",
+        "Development Workflow",
+        "Quarkus Dev Mode",
+        "Configuration",
+        "Type-Safe Configuration",
+        "Profile-Based Configuration",
+        "Dependency Injection",
+        "CDI Annotations",
+        "Bean Discovery",
+        "REST API Development",
+        "RESTEasy Reactive",
+        "Reactive Patterns",
+        "Data Access",
+        "Hibernate ORM with Panache",
+        "Database Operations",
+        "Testing",
+        "JUnit 5 Integration",
+        "REST Endpoint Testing",
+        "Performance Optimization",
+        "Native Image Optimization",
+        "Memory and Startup",
+        "Observability",
+        "Health Checks",
+        "Metrics",
+        "Distributed Tracing",
+        "Security",
+        "Containerization"
+      ],
+      "corrections": [
+        "Updated outdated MicroProfile Metrics/OpenTracing prescriptions to supported observability choices.",
+        "Corrected @QuarkusIntegrationTest being exclusively native-image testing."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://quarkus.io/guides/opentelemetry/",
+          "checked_claim": "Current OpenTelemetry extensions and migration from OpenTracing are documented."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "java-spring-development",
+      "source_sha256": "19b87e3103e9b4f735b810b5a31def5508f88cb1a1115f74a9cbe8ebc098522e",
+      "reviewed_source_sections": [
+        "Java Spring Development Best Practices",
+        "Core Principles",
+        "Project Structure",
+        "Dependency Injection",
+        "REST API Design",
+        "Data Access",
+        "Spring Data JPA",
+        "Database Migrations",
+        "Security",
+        "Spring Security",
+        "Secure Coding",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "Performance",
+        "Caching",
+        "Async Processing",
+        "Logging and Monitoring",
+        "Logging",
+        "Monitoring",
+        "API Documentation"
+      ],
+      "corrections": [
+        "Corrected @Async non-blocking claim and added executor/proxy boundary.",
+        "Removed fixed Boot 3.x, Lombok, and universal microservices prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.spring.io/spring-framework/reference/integration/scheduling.html",
+          "checked_claim": "@Async executes work through TaskExecutor and supports Future/CompletableFuture results."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "jax-best-practices",
+      "source_sha256": "1ef7fa7b63b86905d92efc8b1e8eba60cacd7adb1260aba74c7f2ad8437a53ac",
+      "reviewed_source_sections": [
+        "JAX Best Practices",
+        "Core Principles",
+        "Key Transformations",
+        "jax.jit",
+        "jax.vmap",
+        "jax.grad",
+        "Best Practices",
+        "Performance",
+        "Common Patterns"
+      ],
+      "corrections": [
+        "Added essential asynchronous-dispatch synchronization omitted by upstream performance guidance.",
+        "Qualified avoid-all-loops and blanket transformation recommendations through tracing/control-flow and measured needs."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.jax.dev/en/latest/benchmarking.html",
+          "checked_claim": "JAX benchmarks separate compilation/transfer and synchronize results with block_until_ready."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "jest",
+      "source_sha256": "aac448009682f7509b576349d2847ed40b6de65a7cb7afe50f531ae7b083a649",
+      "reviewed_source_sections": [
+        "Jest Testing Best Practices",
+        "Core Principles",
+        "Test Structure",
+        "Setup and Teardown",
+        "Mocking",
+        "Assertions",
+        "Async Testing",
+        "Coverage",
+        "Best Practices",
+        "Example Patterns"
+      ],
+      "corrections": [
+        "Distinguished clearing, resetting, and restoring mocks; source only recommended clearAllMocks for isolation.",
+        "Made module mocking conditional on ESM/CommonJS configuration."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://jestjs.io/docs/jest-object",
+          "checked_claim": "clearAllMocks, resetAllMocks, and restoreAllMocks have different effects."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "julia",
+      "source_sha256": "8a204e76bef510f12f42bdd4461fdde0a000f3c0d73980842651086430366918",
+      "reviewed_source_sections": [
+        "Julia Development",
+        "Core Principles",
+        "Naming Conventions",
+        "Function Guidelines",
+        "Struct Definitions",
+        "Error Handling",
+        "Performance Optimization",
+        "Testing Structure",
+        "Code Organization"
+      ],
+      "corrections": [
+        "Corrected blanket type-annotation optimization advice and dump-based show recommendation.",
+        "Removed mandatory StaticArrays, naming, and docstring prescriptions unrelated to technical correctness."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.julialang.org/en/v1/manual/performance-tips/",
+          "checked_claim": "Performance depends on type stability and function boundaries; annotations are not inherently speedups."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "jwt-security",
+      "source_sha256": "c25fe6c45b2cef734b47da98ed7cf97730559295152fb4d86377168db2a4144c",
+      "reviewed_source_sections": [
+        "JWT Security",
+        "Core Principles",
+        "Token Structure",
+        "Header Best Practices",
+        "Payload Best Practices",
+        "Signing Algorithm Selection",
+        "Recommended: Asymmetric Algorithms",
+        "When Symmetric is Required",
+        "Token Creation",
+        "Using RS256 (Recommended)",
+        "Token Lifetime Guidelines",
+        "Token Validation",
+        "Complete Validation Example",
+        "Validation Checklist",
+        "Security Vulnerabilities to Prevent",
+        "1. Algorithm Confusion Attack",
+        "2. None Algorithm Attack",
+        "3. Key Confusion (RS256 vs HS256)",
+        "4. Weak HMAC Secrets",
+        "Token Storage",
+        "Browser Storage Security",
+        "Token Transmission",
+        "Refresh Token Implementation",
+        "Token Revocation",
+        "Key Rotation",
+        "Express Middleware Example",
+        "Testing",
+        "Common Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Corrected universal required claims, three-part token assertion, EdDSA ranking, exp boundary, and always-use-header contradiction.",
+        "Replaced racy refresh-token rotation and outdated middleware snippets with explicit verifier/profile boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc8725.html",
+          "checked_claim": "JWT best current practice requires algorithm verification, audience/issuer validation, explicit typing where useful, and mutually exclusive validation rules."
+        },
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc7519.html",
+          "checked_claim": "Registered claim requirements are application-specific and expiration is invalid at or after exp."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "kafka-development",
+      "source_sha256": "4d15cefbc9b6329226335c6f3d59c925c780dafa711bcba1ccd35a21e27f3cc4",
+      "reviewed_source_sections": [
+        "Kafka Development",
+        "Core Principles",
+        "Workflow: Setting Up a Kafka Producer-Consumer Pipeline",
+        "Architecture Overview",
+        "Core Components",
+        "Key Concepts",
+        "Topic Design",
+        "Partitioning Strategy",
+        "Partition Count",
+        "Topic Configuration",
+        "Producer Best Practices",
+        "Reliability Settings",
+        "Performance Tuning",
+        "Error Handling",
+        "Example: Java Producer with Idempotence and Error Handling",
+        "Partitioner",
+        "Consumer Best Practices",
+        "Offset Management",
+        "Consumer Groups",
+        "Processing Patterns",
+        "Example: Java Consumer with Manual Offset Commit",
+        "Timeouts and Failures",
+        "Error Handling and Retry",
+        "Retry Strategy",
+        "Dead Letter Topics",
+        "Schema Management",
+        "Schema Registry",
+        "Schema Evolution",
+        "Kafka Streams",
+        "State Management",
+        "Windowing Operations",
+        "Security",
+        "Authentication",
+        "Authorization",
+        "Monitoring and Observability",
+        "Key Metrics",
+        "Lag Monitoring",
+        "Distributed Tracing",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "Performance Testing",
+        "Common Patterns",
+        "Event Sourcing",
+        "CQRS (Command Query Responsibility Segregation)",
+        "Saga Pattern",
+        "Change Data Capture (CDC)"
+      ],
+      "corrections": [
+        "Corrected acks=all, null-key round robin, fixed defaults, and manual-commit exactly-once claims.",
+        "Removed sample consumer that commits failed records after unconfirmed DLT writes and advice to skip data for throughput."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://kafka.apache.org/41/configuration/producer-configs/",
+          "checked_claim": "Producer acknowledgments, idempotence, partitioner behavior, delivery timeouts and batching are separately configured."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "koa-typescript",
+      "source_sha256": "f32f8b32e11182f143309548d8aa2d33ca982d01d9ea1020ea3319fbb0055783",
+      "reviewed_source_sections": [
+        "Koa TypeScript Development",
+        "TypeScript General Guidelines",
+        "Basic Principles",
+        "Nomenclature",
+        "Functions",
+        "Koa-Specific Guidelines",
+        "Project Structure",
+        "Middleware Patterns",
+        "Context (ctx) Best Practices",
+        "Application Setup",
+        "Routing with koa-router",
+        "Error Handling",
+        "Request Validation",
+        "Authentication",
+        "Security",
+        "Testing",
+        "Performance",
+        "Environment Configuration"
+      ],
+      "corrections": [
+        "Resolved conflicting koa-router versus @koa/router instructions.",
+        "Removed incomplete router setup and version-sensitive Zod/JWT snippets; clarified intended ctx.state mutation."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://koajs.com/",
+          "checked_claim": "Koa uses async onion middleware, per-request context/state, and separately supplied middleware."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "kotlin-development",
+      "source_sha256": "6395e3a280ebe9ad2176fb9daf146b1e31f440697f6c2a4a42aff1511c0e9e05",
+      "reviewed_source_sections": [
+        "Kotlin Development Best Practices",
+        "General Principles",
+        "Naming Conventions",
+        "Case Standards",
+        "Naming Guidelines",
+        "Function Design",
+        "Size and Responsibility",
+        "Naming Functions",
+        "Reducing Nesting",
+        "Parameters",
+        "Data Handling",
+        "Data Classes",
+        "Immutability",
+        "Classes and Objects",
+        "Size Guidelines",
+        "Design Principles",
+        "Exception Handling",
+        "When to Use Exceptions",
+        "Best Practices",
+        "Testing",
+        "Unit Tests",
+        "Acceptance Tests",
+        "Code Organization"
+      ],
+      "corrections": [
+        "Corrected TypeScript any/arrow terminology imported into Kotlin.",
+        "Clarified val/read-only collection immutability and removed arbitrary size/style mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://kotlinlang.org/docs/coroutines-basics.html",
+          "checked_claim": "Kotlin coroutines suspend computations and run on managed threads with structured lifetimes."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "kubernetes",
+      "source_sha256": "2df9cf762208255c3a0f5f561a7e678e5d1c8ecaca2bb7a703f7750b273ea82d",
+      "reviewed_source_sections": [
+        "Kubernetes / DevOps",
+        "Core Principles",
+        "Kubernetes",
+        "Bash Scripting",
+        "Ansible",
+        "CI/CD Pipelines",
+        "Cloud Platforms"
+      ],
+      "corrections": [
+        "Qualified blanket StatefulSet preference and namespace isolation.",
+        "Separated manifest validation from live deployment and removed unrelated universal POSIX/Ansible mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/",
+          "checked_claim": "StatefulSets serve stable identity/storage and ordered deployment needs and are not required for all persistent workloads."
+        },
+        {
+          "url": "https://kubernetes.io/docs/concepts/workloads/pods/probes/",
+          "checked_claim": "Startup, readiness and liveness probes have different behavior and purposes."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "kysely",
+      "source_sha256": "8e742dad7abd22155a7750297e2d100f3cf4edf3d81e524c10cc21b6a18c9532",
+      "reviewed_source_sections": [
+        "Kysely Development Guidelines",
+        "Core Principles",
+        "Database Interface Definition",
+        "Define Your Database Schema",
+        "Generated vs ColumnType",
+        "Database Connection",
+        "PostgreSQL Setup",
+        "MySQL Setup",
+        "SQLite Setup",
+        "Query Patterns",
+        "Select Queries",
+        "Column Aliases",
+        "Joins",
+        "Subqueries",
+        "Insert Operations",
+        "Update Operations",
+        "Delete Operations",
+        "Transactions",
+        "Type Generation with kysely-codegen",
+        "Install",
+        "Generate types (reads from DATABASE_URL environment variable)",
+        "Specify output file",
+        "Plugins",
+        "CamelCase Plugin",
+        "Custom Plugins",
+        "Advanced Patterns",
+        "Dynamic Query Building",
+        "Raw SQL",
+        "Common Table Expressions (CTEs)",
+        "Best Practices",
+        "TypeScript Configuration",
+        "Performance Tips",
+        "Error Handling",
+        "Query Composability",
+        "Migration Management"
+      ],
+      "corrections": [
+        "Corrected automatic prepared-statement and full runtime type-safety claims.",
+        "Qualified dialect-specific returning/upsert syntax and aggregate runtime type behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://kysely.dev/docs/recipes/data-types",
+          "checked_claim": "Kysely distinguishes TypeScript types from driver-provided runtime values and does not transform them automatically."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "langchain-development",
+      "source_sha256": "a978f1d6341b9e63c81002224ddd985b1bf40cdf1fc10ed26e6e58545552c6b8",
+      "reviewed_source_sections": [
+        "LangChain Development",
+        "Key Principles",
+        "Code Organization",
+        "Directory Structure",
+        "Naming Conventions",
+        "LangChain Expression Language (LCEL)",
+        "Chain Composition",
+        "Best Practices",
+        "Agents and Tools",
+        "Tool Development",
+        "Agent Configuration",
+        "Memory and State Management",
+        "Conversation Memory",
+        "LangGraph State",
+        "RAG (Retrieval-Augmented Generation)",
+        "Document Processing",
+        "Vector Stores",
+        "Retrieval Strategies",
+        "LangSmith Integration",
+        "Monitoring",
+        "Debugging",
+        "Error Handling",
+        "Performance Optimization",
+        "Testing",
+        "Dependencies"
+      ],
+      "corrections": [
+        "Updated deprecated agent/memory recipes to generation-aware v1 create_agent and checkpoint state.",
+        "Removed undefined example tools and assumed dependencies; made tracing data export explicit."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.langchain.com/oss/python/releases/langchain-v1",
+          "checked_claim": "LangChain v1 introduces create_agent and moves legacy functionality to langchain-classic."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "laravel",
+      "source_sha256": "8aeb48ef1900e9876cbcc8a92930f06684baed90e6b25629b8d561b01569544e",
+      "reviewed_source_sections": [
+        "Laravel",
+        "Core Principles",
+        "PHP/Laravel Standards",
+        "Architecture",
+        "Core Practices",
+        "API Development",
+        "Testing",
+        "Performance"
+      ],
+      "corrections": [
+        "Removed mandatory Repository layer, fixed PHP baseline assumptions, and universal ORM-only/testing prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://laravel.com/docs/13.x/eloquent-relationships",
+          "checked_claim": "Eloquent supports explicit relationships and eager loading to manage related-query behavior."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "laravel-development",
+      "source_sha256": "8622c79651e7714acffde0a4912fa0783e0d28e7b059644c2366d4cd3eadc260",
+      "reviewed_source_sections": [
+        "Laravel Development",
+        "Key Principles",
+        "PHP/Laravel",
+        "Laravel Best Practices",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Replaced blanket Laravel Mix guidance with installed-pipeline selection and current Vite documentation.",
+        "Removed mandatory repository abstraction and fixed framework/runtime assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://laravel.com/docs/13.x/vite",
+          "checked_claim": "Laravel documents Vite as the current asset bundling integration."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "lerna",
+      "source_sha256": "ba82a077fff617aed629c4a0aa7daad7b9bbc14419ec1542f17141603cafe6d7",
+      "reviewed_source_sections": [
+        "Lerna Monorepo Development",
+        "Project Structure",
+        "Lerna Configuration",
+        "Workspaces Integration",
+        "Task Execution",
+        "Versioning Workflow",
+        "Publishing Packages",
+        "Change Detection",
+        "Conventional Commits",
+        "Dependency Management",
+        "CI/CD Integration",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Removed obsolete useWorkspaces option and corrected modern package-manager/Lerna responsibility.",
+        "Made automatic commit/tag/push effects explicit authority boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://lerna.js.org/docs/legacy-package-management",
+          "checked_claim": "Lerna removed legacy package-management commands/options and delegates to workspaces."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "less-best-practices",
+      "source_sha256": "751f855996bc4e4b2c36a5dee5a02a5eb30faf44794655d53e00965f9f5f929b",
+      "reviewed_source_sections": [
+        "Less CSS Best Practices",
+        "Key Principles",
+        "File Organization",
+        "Project Structure",
+        "Main Manifest",
+        "Variables",
+        "Naming Convention",
+        "Variable Interpolation",
+        "Mixins",
+        "Basic Mixins",
+        "Parametric Mixins",
+        "Responsive Mixins",
+        "Typography Mixins",
+        "Accessibility Mixins",
+        "BEM Naming Convention",
+        "Nesting Rules",
+        "Keep Nesting Shallow",
+        "Acceptable Nesting Patterns",
+        "Functions",
+        "Built-in Functions",
+        "Custom Functions (Using Mixins)",
+        "Loops",
+        "Generating Classes",
+        "Loop Over Lists",
+        "Guards (Conditionals)",
+        "Namespacing",
+        "Performance Best Practices",
+        "Code Style Guidelines",
+        "Property Order"
+      ],
+      "corrections": [
+        "Corrected Less custom-function claim and division expressions under Less 4 math modes.",
+        "Removed universal compression/style mandates and replaced token-color assumptions with rendered checks."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://lesscss.org/usage/",
+          "checked_claim": "Less compiler math modes, plugins and command options are version-specific."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "llamaindex-development",
+      "source_sha256": "a19352859003acd4e3c5736af03ff93461d0fc86cf552d5301ef462fd73898a9",
+      "reviewed_source_sections": [
+        "LlamaIndex Development",
+        "Key Principles",
+        "Code Organization",
+        "Directory Structure",
+        "Naming Conventions",
+        "Document Loading",
+        "Using Document Loaders",
+        "Load from directory",
+        "Load specific file types",
+        "Custom Loaders",
+        "Text Splitting and Processing",
+        "Node Parsing",
+        "Simple sentence splitting",
+        "Semantic splitting (preserves meaning)",
+        "Markdown-aware splitting",
+        "Best Practices for Chunking",
+        "Vector Stores and Indexing",
+        "Creating Indexes",
+        "In-memory index",
+        "With persistent vector store",
+        "Supported Vector Stores",
+        "Index Persistence",
+        "Persist index",
+        "Load index",
+        "Query Engines",
+        "Basic Query Engine",
+        "Response Modes",
+        "Advanced Query Engine",
+        "Retrievers",
+        "Custom Retrievers",
+        "Basic retriever",
+        "Retrieve nodes",
+        "Hybrid Search",
+        "Combine multiple retrieval strategies",
+        "Embeddings",
+        "Embedding Models",
+        "OpenAI embeddings",
+        "Local embeddings",
+        "LLM Configuration",
+        "Setting Up LLMs",
+        "OpenAI",
+        "Anthropic",
+        "Agents",
+        "Building Agents",
+        "Create tools from query engines",
+        "Create agent",
+        "Performance Optimization",
+        "Caching",
+        "Enable LLM response caching",
+        "Async Operations",
+        "Use async for better performance",
+        "Batch processing",
+        "Embedding Optimization",
+        "Error Handling",
+        "Debug handler for troubleshooting",
+        "Testing",
+        "Dependencies"
+      ],
+      "corrections": [
+        "Removed unsupported LLMCache/Settings.llm_cache and obsolete agent recipes.",
+        "Made remote-provider defaults, integration packages, storage semantics and unbounded gather limitations explicit."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developers.llamaindex.ai/python/framework/",
+          "checked_claim": "Current framework documentation separates ingestion, storage, retrieval and workflow-agent integrations."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "llm",
+      "source_sha256": "d5850b41da96bc3dba5ccb67ff967154263898b67cefd75e266addb143e11ede",
+      "reviewed_source_sections": [
+        "LLM Development",
+        "Core Principles",
+        "Model Architecture",
+        "Attention Mechanisms",
+        "Tokenization",
+        "Fine-Tuning Techniques",
+        "Parameter-Efficient Methods",
+        "Full Fine-Tuning",
+        "Training Infrastructure",
+        "Distributed Training",
+        "Memory Optimization",
+        "Evaluation",
+        "Deployment",
+        "Project Structure"
+      ],
+      "corrections": [
+        "Replaced fixed framework and generic perplexity/BLEU acceptance with task-specific evaluation and backend constraints.",
+        "Added tokenizer/template/loss-mask, data provenance and bounded serving obligations missing from broad source guidance."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://huggingface.co/docs/transformers/en/llm_tutorial",
+          "checked_claim": "Text generation depends on model/tokenizer setup, decoding configuration and resource constraints."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "localization-l10n",
+      "source_sha256": "0435e3724c6b9cb2f0c476b9f137ecf186bc44bfdddac4934a3d337aa4159306",
+      "reviewed_source_sections": [
+        "Localization (l10n)",
+        "Core Principles",
+        "Localization Libraries",
+        "Web Applications",
+        "Mobile Applications",
+        "Translation Management",
+        "File Organization",
+        "Regional Variants",
+        "Locale-Specific Formatting",
+        "Date and Time Formatting",
+        "Number Formatting",
+        "Currency Formatting",
+        "Cultural Adaptation",
+        "Content Localization",
+        "Legal and Compliance",
+        "Layout and Typography",
+        "Text Expansion",
+        "RTL Support",
+        "Typography Considerations",
+        "Regional Features",
+        "Address Formats",
+        "Measurement Units",
+        "Calendars and Time",
+        "Testing and Quality Assurance",
+        "Localization Testing",
+        "Automated Checks",
+        "Pseudolocalization",
+        "Content Delivery",
+        "Language Detection",
+        "Performance Optimization",
+        "Integration Best Practices",
+        "State Management",
+        "API Integration"
+      ],
+      "corrections": [
+        "Corrected expo-localization translation claim and removed deprecated react-native-i18n.",
+        "Removed German/Chinese length stereotypes and compliance claims from translation alone."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.w3.org/International/quicktips/",
+          "checked_claim": "Localization needs language metadata, culturally suitable examples, local forms and complete translatable messages."
+        },
+        {
+          "url": "https://docs.expo.dev/guides/localization/",
+          "checked_claim": "Expo localization detection integrates with a separate translation/message library."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "logging-best-practices",
+      "source_sha256": "38067cb5434aa892848f686f8de143f8db66399c39ad4bc1c6559dce83999af3",
+      "reviewed_source_sections": [
+        "Logging Best Practices",
+        "Structured Logging",
+        "Standard Log Fields",
+        "Log Levels",
+        "Context Propagation",
+        "Security and Privacy",
+        "Performance Considerations",
+        "Log Aggregation",
+        "Error Logging",
+        "Best Practices",
+        "Log Message Guidelines",
+        "Environment-Specific Configuration"
+      ],
+      "corrections": [
+        "Removed mandatory IDs on every record and universal JSON/async/centralization prescriptions.",
+        "Qualified full-error-context logging with redaction and bounded queue/durability policy."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://opentelemetry.io/docs/specs/otel/logs/data-model/",
+          "checked_claim": "OpenTelemetry log records have optional trace/span context and structured severity/body/resource fields."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "lottie",
+      "source_sha256": "00fb2ff06737e782b2e82f44d68e3339f0fc42ab6061f1371eb57bad470183d0",
+      "reviewed_source_sections": [
+        "Lottie Animation Guidelines",
+        "Core Principles",
+        "Use dotLottie Format",
+        "Installation",
+        "For React",
+        "For vanilla JS",
+        "React Implementation",
+        "Basic Usage",
+        "Control Animation Playback",
+        "Performance Optimization",
+        "Lazy Loading",
+        "Choose the Right Renderer",
+        "Reduce DOM Elements",
+        "Animation Design Best Practices",
+        "Avoid Performance-Heavy Features",
+        "Optimize Images in Animations",
+        "Interactivity",
+        "Cursor/Mouse Interaction",
+        "Scroll-Linked Animation",
+        "Segment Playback",
+        "Accessibility",
+        "Respect Reduced Motion",
+        "Provide Fallbacks",
+        "Loading Strategy",
+        "Use Preloader for Large Animations",
+        "File Size Guidelines",
+        "Cleanup",
+        "Proper Cleanup in React",
+        "Best Practices Summary"
+      ],
+      "corrections": [
+        "Corrected unsupported renderer/playMode props, DOM-event assumptions, and totalFrames endpoint.",
+        "Removed fixed compression/DOM-count claims and SSR-unsafe reduced-motion example."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/LottieFiles/dotlottie-web/blob/main/packages/react/README.md",
+          "checked_claim": "DotLottieReact props extend canvas props and expose player references/events and supported playback options."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "lua",
+      "source_sha256": "b1604512514feeee69f48be955a37a8fdd1c38136c505870db0694e1a62b04ad",
+      "reviewed_source_sections": [
+        "Lua Development",
+        "Core Principles",
+        "Lua-Specific Practices",
+        "Naming Conventions",
+        "Code Organization",
+        "Error Handling",
+        "Performance Optimization",
+        "Memory Management",
+        "Metatables and OOP",
+        "Game Development",
+        "Testing and Documentation"
+      ],
+      "corrections": [
+        "Qualified one-based indexing and __newindex validation behavior.",
+        "Removed universal table-preallocation claim and host-independent optimization prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.lua.org/manual/5.4/manual.html",
+          "checked_claim": "Lua table keys, sequence length, metatable behavior and protected calls are defined by the language manual."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "machine-learning",
+      "source_sha256": "fd01e868a2f519316eb1c1c5bb7cc99a8f2c197a396f98ac695e4bfc50b49c93",
+      "reviewed_source_sections": [
+        "Machine Learning",
+        "Core Principles",
+        "JAX Fundamentals",
+        "Array Operations",
+        "Control Flow",
+        "Random Numbers",
+        "Best Practices",
+        "Performance",
+        "Memory Management",
+        "Common Patterns",
+        "Model Development"
+      ],
+      "corrections": [
+        "Qualified false blanket prohibition of all Python control flow in jit.",
+        "Added missing task/data evaluation and synchronized performance boundaries while preserving JAX focus."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.jax.dev/en/latest/control-flow.html",
+          "checked_claim": "JAX distinguishes static Python control flow from traced value-dependent control flow."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "matplotlib-best-practices",
+      "source_sha256": "a8e1cd621d12883f15ead33225e6c2bdb7663ed9c274514915bf74fe93e624ff",
+      "reviewed_source_sections": [
+        "Matplotlib Best Practices",
+        "Code Style and Structure",
+        "API Approaches",
+        "Object-Oriented Interface (Recommended)",
+        "Pyplot Interface",
+        "Creating Effective Visualizations",
+        "Plot Types and Selection",
+        "Labels and Annotations",
+        "Color and Style",
+        "Figure Layout and Composition",
+        "Subplots",
+        "Figure Size and Resolution",
+        "Customization",
+        "Style Sheets",
+        "Text and Fonts",
+        "Saving and Exporting",
+        "File Formats",
+        "Export Settings",
+        "Performance Optimization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Removed universal figure sizes/DPI and palette accessibility guarantees.",
+        "Corrected indiscriminate close-all cleanup and distinguished MathText from external TeX."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://matplotlib.org/stable/users/explain/figure/backends.html",
+          "checked_claim": "Matplotlib rendering/export capabilities depend on selected interactive and noninteractive backends."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "medusa-development",
+      "source_sha256": "56fba24d2522509fe6aedde0238a1e2394a56a2665fdb65fc2d27b856131bad1",
+      "reviewed_source_sections": [
+        "Medusa Development",
+        "Workflow for Building a Medusa Feature",
+        "General Rules",
+        "Data Model Rules",
+        "Service Rules",
+        "Workflow Rules",
+        "API Routes and Reading Data",
+        "Subscribers and Scheduled Jobs",
+        "Admin Customization Rules",
+        "Common Mistakes",
+        "Additional Resources"
+      ],
+      "corrections": [
+        "Removed racy balance/compensation and unauthorized redemption examples.",
+        "Corrected order-event/account identity confusion and qualified all-reads/all-errors/all-business-workflows mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.medusajs.com/learn/fundamentals/workflows",
+          "checked_claim": "Workflow constructors describe step graphs and support compensation, conditions, transformation and locking."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "meta-prompt",
+      "source_sha256": "a1e31dd80cb7dc85e656bf58a860ee1b3d0b39eea4e65afe74a5e319ba1eb841",
+      "reviewed_source_sections": [
+        "Meta-Prompt",
+        "Response Quality Evaluator",
+        "Evaluation Fields",
+        "Evaluation Criteria",
+        "Example Usage",
+        "Question-Answering Trajectory Analyzer",
+        "Trajectory Components",
+        "Action Types",
+        "Analysis Guidelines",
+        "Prompt Engineering Patterns",
+        "Chain of Thought",
+        "Few-Shot Learning",
+        "Self-Consistency",
+        "Reflection Prompts",
+        "Quality Metrics",
+        "Response Scoring Rubric",
+        "Trajectory Scoring"
+      ],
+      "corrections": [
+        "Removed private chain-of-thought elicitation and fictional tool availability.",
+        "Replaced self-score/completion assertions with evidence-bound evaluation and calibration."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developers.openai.com/api/docs/guides/evaluation-best-practices",
+          "checked_claim": "Evaluations should use task-specific criteria, representative datasets and calibrated feedback."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "micronaut",
+      "source_sha256": "038a127713f55b26b478dc723a2ee095868875abe1af5542e66b85f70c55bffe",
+      "reviewed_source_sections": [
+        "Micronaut",
+        "Code Style and Structure",
+        "Micronaut Specifics",
+        "Naming Conventions",
+        "Java and Micronaut Usage",
+        "Configuration and Properties",
+        "Dependency Injection and IoC",
+        "Testing",
+        "Performance and Scalability",
+        "Security",
+        "Logging and Monitoring",
+        "API Documentation",
+        "Data Access and ORM",
+        "Build and Deployment",
+        "General Best Practices"
+      ],
+      "corrections": [
+        "Qualified native/AOT/performance guarantees and removed fixed Java 17 baseline.",
+        "Added missing blocking executor/annotation processing distinction and typed configuration scope."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.micronaut.io/5.2.x/core/",
+          "checked_claim": "Micronaut documents compile-time DI, configuration and explicit execution/threading facilities."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "microservices",
+      "source_sha256": "ef9c2de0751742a357bd1837e0aeecb939427454d1ee380441f570edae25d181",
+      "reviewed_source_sections": [
+        "Microservices Development",
+        "Core Principles",
+        "FastAPI Python Microservices",
+        "Asynchronous Processing",
+        "Observability",
+        "Security",
+        "Go Backend Development for Microservices",
+        "Architecture",
+        "Project Structure",
+        "Error Handling",
+        "Concurrency",
+        "Testing",
+        "Resilience"
+      ],
+      "corrections": [
+        "Removed mandatory Redis/gateway/serverless/clean-layer choices.",
+        "Corrected OAuth-as-authentication shorthand and added bounded retries and async task ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://opentelemetry.io/docs/concepts/signals/traces/",
+          "checked_claim": "Distributed traces propagate causal context across service boundaries for end-to-end observation."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "modern-web-development",
+      "source_sha256": "8ddc849fa75a5cf86069601ebaf23f361da7a5749ec654d2ef3ae79c25922f51",
+      "reviewed_source_sections": [
+        "Modern Web Development",
+        "Key Development Principles",
+        "Code Style and Architecture",
+        "JavaScript/TypeScript Standards",
+        "Error Handling",
+        "React and Next.js Guidelines",
+        "Data and State Management",
+        "Supabase and GraphQL",
+        "Styling and Testing",
+        "Styling",
+        "Testing",
+        "Accessibility and Documentation",
+        "Accessibility",
+        "Documentation"
+      ],
+      "corrections": [
+        "Removed obsolete Next.js 14/Vercel KV assumptions and mandatory frontend stack.",
+        "Corrected universal Suspense and blanket avoidance of legitimate client state/effects."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://nextjs.org/docs/app/getting-started/server-and-client-components",
+          "checked_claim": "Server and Client Components are selected by data access and interactive/browser capabilities."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "mongodb-development",
+      "source_sha256": "a211dfd72ceac66060d3ddfa37e6fed53aacbcf5b860012c09859705f7ae796b",
+      "reviewed_source_sections": [
+        "MongoDB Development",
+        "Core Expertise Areas",
+        "Technology Stack",
+        "Key Development Patterns",
+        "Payload CMS Structure",
+        "MongoDB Best Practices",
+        "TypeScript Standards",
+        "Code Quality Guidelines",
+        "Security & Performance"
+      ],
+      "corrections": [
+        "Qualified transactions and removed universal Payload/Express/Mongoose stack assumptions.",
+        "Corrected prohibition of TypeScript unknown and generic sanitize-all guidance."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.mongodb.com/docs/manual/core/transactions/",
+          "checked_claim": "Single-document writes are atomic and multi-document transactions carry deployment/concern and performance considerations."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "monitoring-guidelines",
+      "source_sha256": "2bc867bea0121a26e26f7a95ff31740e5e240099706b23842bb1a58020015c43",
+      "reviewed_source_sections": [
+        "Monitoring Guidelines",
+        "Core Monitoring Principles",
+        "Key Metrics to Monitor",
+        "Application Metrics",
+        "Infrastructure Metrics",
+        "Business Metrics",
+        "Alerting Strategy",
+        "Alert Design Principles",
+        "SLO-Based Alerting",
+        "Alert Configuration",
+        "Dashboard Design",
+        "Effective Dashboards",
+        "Dashboard Content",
+        "Monitoring Tools Integration",
+        "Data Collection",
+        "Data Storage and Retention",
+        "Health Checks and Probes",
+        "Incident Response",
+        "Capacity Planning"
+      ],
+      "corrections": [
+        "Qualified deep dependency health checks and universal SLO review schedules.",
+        "Added low-traffic/missing-data/cardinality alert limitations omitted upstream."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://sre.google/workbook/alerting-on-slos/",
+          "checked_claim": "SLO alert design balances precision, recall, detection/reset time and multi-window burn rates."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "monorepo",
+      "source_sha256": "bcb76c1f827da7b4c8998e1173e7bf7578747f48f15cfb81935c261a8fc0ce46",
+      "reviewed_source_sections": [
+        "Monorepo Development",
+        "Code Style and Structure",
+        "TypeScript and Validation",
+        "State and Data Management",
+        "Monorepo Structure",
+        "Internationalization",
+        "Error Handling and Validation",
+        "Performance Optimization",
+        "Cross-Platform Development",
+        "Backend Integration",
+        "Payments"
+      ],
+      "corrections": [
+        "Removed mandatory Turbo/Zustand/Supabase/Stripe stack from general monorepo guidance.",
+        "Corrected expo-localization capability and added dependency/export/cache boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository",
+          "checked_claim": "Workspace boundaries, package declarations and task graph structure govern Turborepo repositories."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "monorepo-tamagui",
+      "source_sha256": "be9a73ca0c23ad83895774ddd09411b7f03d4fd153a9b513e0a218118e1ba7f6",
+      "reviewed_source_sections": [
+        "Monorepo using Tamagui",
+        "Code Style and Structure",
+        "TypeScript and Validation",
+        "UI and Styling",
+        "State Management",
+        "Internationalization",
+        "Error Handling",
+        "Performance Optimization",
+        "Monorepo Structure",
+        "Cross-Platform Development",
+        "Stripe Integration"
+      ],
+      "corrections": [
+        "Removed fixed optional stack and implicit SolitoImage/expo-localization capability claims.",
+        "Added version-aligned Tamagui compiler/provider and per-platform validation boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://tamagui.dev/docs/intro/introduction",
+          "checked_claim": "Tamagui provides cross-platform components, themes and compiler/bundler integrations with versioned setup."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "motion",
+      "source_sha256": "66c2708bf32126f78a2586b2055b24c829a87f44c12f8510b0e143ed5a78e149",
+      "reviewed_source_sections": [
+        "Motion Animation Guidelines",
+        "Core Principles",
+        "About Motion",
+        "Installation",
+        "Basic Import",
+        "Basic Animations",
+        "Simple Animation",
+        "Keyframes",
+        "Performance Optimization",
+        "Animate Transform Properties",
+        "Use will-change",
+        "Hardware Acceleration",
+        "Timeline Animations",
+        "Create Timelines",
+        "Timeline Controls",
+        "Scroll Animations",
+        "Basic Scroll Animation",
+        "Scroll-Linked Animation",
+        "Scroll with Container",
+        "In-View Animations",
+        "Trigger on Visibility",
+        "With Options",
+        "Stagger Animations",
+        "Stagger Multiple Elements",
+        "Stagger from Center",
+        "Stagger with Easing",
+        "Spring Animations",
+        "Use Springs for Natural Motion",
+        "Spring Options",
+        "Easing Functions",
+        "Built-in Easings",
+        "Animation Controls",
+        "Control Playback",
+        "Animation Events",
+        "Accessibility",
+        "Respect Reduced Motion",
+        "Create Accessible Wrapper",
+        "Integration with Frameworks",
+        "Vanilla JavaScript",
+        "With Event Listeners",
+        "Cleanup",
+        "Cancel Animations",
+        "Cleanup Pattern",
+        "Best Practices Summary"
+      ],
+      "corrections": [
+        "Corrected obsolete timeline/easing/defaultOptions/currentTime/finished assumptions and inView callback signature.",
+        "Removed per-scroll new animations and automatic GPU-acceleration claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://motion.dev/docs/animate",
+          "checked_claim": "Current animate supports sequences, ease, defaultTransition and documented playback controls."
+        },
+        {
+          "url": "https://motion.dev/docs/inview",
+          "checked_claim": "inView callbacks receive an element and intersection entry and return lifecycle cleanup."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "mqtt-development",
+      "source_sha256": "c6e869278569be3c0031381f6388369a43c110e372972e1a0bb3090dd76295c3",
+      "reviewed_source_sections": [
+        "MQTT Development",
+        "Core Principles",
+        "Architecture Overview",
+        "Components",
+        "Topic Design Best Practices",
+        "Topic Structure",
+        "Topic Naming Conventions",
+        "Wildcard Usage",
+        "Quality of Service (QoS) Levels",
+        "QoS 0 - At Most Once",
+        "QoS 1 - At Least Once",
+        "QoS 2 - Exactly Once",
+        "Choosing QoS",
+        "Session Management",
+        "Clean Sessions",
+        "Persistent Sessions",
+        "Keep-Alive",
+        "Last Will and Testament (LWT)",
+        "Security Best Practices",
+        "Transport Security",
+        "Authentication",
+        "Authorization",
+        "Message Design",
+        "Payload Format",
+        "Message Properties",
+        "Client Implementation",
+        "Connection Handling",
+        "Subscription Management",
+        "Publishing Best Practices",
+        "Broker Configuration",
+        "Scalability",
+        "Monitoring",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "Common Patterns",
+        "Request/Response",
+        "Device Shadow/Twin",
+        "Command and Control"
+      ],
+      "corrections": [
+        "Removed unsupported fixed 80 percent bandwidth and universal AWS topic-depth assertions.",
+        "Qualified QoS exactly-once/guaranteed delivery and separated MQTT 3.1.1/5 sessions and properties."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.oasis-open.org/mqtt/mqtt/v5.0/mqtt-v5.0.html",
+          "checked_claim": "MQTT 5 defines QoS exchanges, Clean Start/Session Expiry, retained messages and protocol properties."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "mysql-best-practices",
+      "source_sha256": "07a6412858a18e189c20ef94f887b258da8c1dc70e870eb4b409f43f72f22ac3",
+      "reviewed_source_sections": [
+        "MySQL Best Practices",
+        "Core Principles",
+        "Schema Design",
+        "Storage Engine Selection",
+        "Data Types",
+        "Primary Keys",
+        "Indexing Strategies",
+        "Index Types",
+        "Index Guidelines",
+        "Query Optimization",
+        "EXPLAIN Analysis",
+        "Query Best Practices",
+        "Avoiding Common Pitfalls",
+        "JSON Support",
+        "Transaction Management",
+        "Replication and High Availability",
+        "Read Replicas",
+        "Security",
+        "Maintenance",
+        "Regular Maintenance Tasks",
+        "Monitoring Queries",
+        "Configuration Recommendations",
+        "my.cnf recommended settings",
+        "InnoDB settings",
+        "Connection settings",
+        "Query cache (disabled in MySQL 8.0+)",
+        "Slow query log"
+      ],
+      "corrections": [
+        "Removed invalid RAM placeholder and removed-query-cache option.",
+        "Corrected universal index ordering, FULLTEXT equivalence, replication diagnostics and unsafe administration examples."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://dev.mysql.com/doc/refman/8.4/en/added-deprecated-removed.html",
+          "checked_claim": "MySQL configuration and replication options have version-specific additions, deprecations and removals."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nestjs-clean-typescript",
+      "source_sha256": "29c871063e626cd6cd20f9b18120840469ac5f339dd68e3d0e26cb1948338eca",
+      "reviewed_source_sections": [
+        "NestJS Clean TypeScript",
+        "TypeScript General Principles",
+        "Naming Conventions",
+        "Function Design",
+        "Data and Classes",
+        "NestJS Specific Guidelines",
+        "Testing"
+      ],
+      "corrections": [
+        "Removed mandatory MikroORM/service-per-entity and arbitrary size/style rules.",
+        "Clarified runtime DTO validation and readonly immutability limitations."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.nestjs.com/techniques/validation",
+          "checked_claim": "Nest validation depends on runtime DTO metadata and ValidationPipe configuration."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "netlify-development",
+      "source_sha256": "49932aef27a39b57ad713a527388d478069bbde8746446ad17fb267a259331c7",
+      "reviewed_source_sections": [
+        "Netlify Development Best Practices",
+        "Overview",
+        "Core Principles",
+        "Function Types Overview",
+        "Serverless Functions",
+        "Basic Structure",
+        "Configuration Options",
+        "Path Conventions",
+        "The Context Argument",
+        "The `Netlify` Global Object",
+        "Edge Functions",
+        "Use Cases",
+        "Implementation",
+        "Response Modification",
+        "Runtime and Module Support",
+        "Extra Config Options",
+        "Ordering Multiple Edge Functions",
+        "Limits and Incompatibilities",
+        "Background Functions",
+        "Key Characteristics",
+        "Implementation",
+        "Retrieving Background Results",
+        "Scheduled Functions",
+        "Key Characteristics",
+        "Configuration",
+        "Schedule Patterns",
+        "Netlify Blobs",
+        "Consistency and Storage Scopes",
+        "Basic Usage",
+        "Binary Data",
+        "Deploy-specific vs Site-wide",
+        "Netlify Image CDN",
+        "Usage",
+        "Parameters",
+        "Programmatic Usage",
+        "Remote Images, Custom Routes, and Caching",
+        "Environment Variables",
+        "Access in Functions",
+        "Context Variables",
+        "Managing Variables",
+        "Build Configuration",
+        "netlify.toml",
+        "File-based Uploads",
+        "Direct Upload to Functions",
+        "Site Management",
+        "Creating and Linking Sites",
+        "Initialize new site",
+        "Link existing site",
+        "Deploy manually",
+        "Deploy to production",
+        "Local Development",
+        "Netlify Dev",
+        "Start local development server",
+        "With specific port",
+        "With live reload",
+        "Testing Functions Locally",
+        "Invoke function directly",
+        "Serve functions only",
+        "Error Handling Best Practices",
+        "Structured Error Responses",
+        "Security Guidelines",
+        "Input Validation",
+        "Authentication",
+        "Common Pitfalls to Avoid"
+      ],
+      "corrections": [
+        "Removed stale fixed limits and unsupported Blob constructor/concurrency assumptions.",
+        "Corrected remotePatterns-as-CDN proof and env mutation/persistence ambiguity; removed unauthenticated upload/status recipes."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.netlify.com/build/functions/overview/",
+          "checked_claim": "Netlify distinguishes function execution types, configuration and current platform limits."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "network-troubleshooting",
+      "source_sha256": "212b37bdd4f6db920d651414b08ab5fb12a0ad615e9f45aed294622922320072",
+      "reviewed_source_sections": [
+        "Network Troubleshooting",
+        "Safety Boundaries",
+        "Workflow",
+        "Error Classification",
+        "Safe Target-Scoped Checks",
+        "Connectivity",
+        "DNS",
+        "HTTP",
+        "TLS",
+        "Proxy and Package Managers",
+        "User-Approved Remediation Options",
+        "Verification"
+      ],
+      "corrections": [
+        "Removed verbose curl diagnostics that contradicted credential-redaction boundaries.",
+        "Corrected CORS/CLI, ping/HEAD, certificate-inspection and immutable-skill-authority overclaims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://curl.se/docs/manpage.html",
+          "checked_claim": "curl documents timeout, TLS verification, write-out and verbose-output behavior."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nextauth-authentication",
+      "source_sha256": "72842b3928c82916b136dfe90af20b91d0fa2ace8737f9d7b02d9a17013bfb78",
+      "reviewed_source_sections": [
+        "NextAuth Authentication",
+        "Core Principles",
+        "Installation",
+        "Environment Variables",
+        "Required",
+        "Provider credentials (auto-detected if named correctly)",
+        "Optional: Custom URL (auto-detected in most environments)",
+        "Basic Configuration",
+        "auth.ts (Root Configuration)",
+        "Route Handlers (app/api/auth/[...nextauth]/route.ts)",
+        "Middleware (middleware.ts)",
+        "Session Strategies",
+        "JWT Strategy (Default without adapter)",
+        "Database Strategy",
+        "Split Configuration for Edge + Database",
+        "Authentication in Components",
+        "Server Components",
+        "Client Components",
+        "Session Provider Setup",
+        "Server Actions",
+        "API Route Protection",
+        "Role-Based Access Control",
+        "Type Extensions",
+        "Role Check Utility",
+        "OAuth Providers Configuration",
+        "GitHub",
+        "Google",
+        "Credentials Provider",
+        "Security Best Practices",
+        "1. Always Use AUTH_SECRET in Production",
+        "Generate a secure secret",
+        "2. Cookie Configuration",
+        "3. CSRF Protection",
+        "4. Validate Sessions Server-Side",
+        "Session Refresh and Polling",
+        "Error Handling",
+        "Custom Error Page",
+        "Testing",
+        "Common Issues and Solutions",
+        "Session Disappears on Refresh",
+        "Edge Runtime Compatibility",
+        "Type Errors with Custom Properties",
+        "Common Anti-Patterns to Avoid"
+      ],
+      "corrections": [
+        "Corrected split-config JWT omission and blanket database/Edge/session invalidation claims.",
+        "Removed fixed @beta installation and NEXTAUTH-prefix prohibition; qualified cookie and custom action protections."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://authjs.dev/guides/edge-compatibility",
+          "checked_claim": "Edge support depends on adapter/driver compatibility; split configuration uses a deliberate JWT session strategy."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nextjs-react-redux-typescript-cursor-rules",
+      "source_sha256": "158bb34692398fe4c0797de0f9b167c5353b2ce57d85c87bdf1155fb3f8fc15e",
+      "reviewed_source_sections": [
+        "Next.js React Redux TypeScript Cursor Rules",
+        "Development Philosophy",
+        "Code Style Standards",
+        "Naming Conventions",
+        "Prefixes",
+        "React Best Practices",
+        "Components",
+        "Performance",
+        "Next.js Best Practices",
+        "Core",
+        "Components",
+        "Server Components",
+        "TypeScript Implementation",
+        "UI and Styling",
+        "Libraries",
+        "Styling",
+        "State Management",
+        "Local State",
+        "Global State (Redux Toolkit)",
+        "Error Handling and Validation",
+        "Forms",
+        "Error Boundaries",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "Accessibility (a11y)",
+        "Security",
+        "Internationalization (i18n)",
+        "Documentation"
+      ],
+      "corrections": [
+        "Added missing request-safe Redux store ownership and RSC restrictions.",
+        "Corrected mixed App/Pages Head guidance and universal memoization/style/library mandates."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://redux.js.org/usage/nextjs",
+          "checked_claim": "Redux\u2019s Next.js guidance requires request-local stores, client providers and no RSC store reads/writes."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nextjs-react-typescript",
+      "source_sha256": "d1ef4ed65005cdd19510d0d199d4e60bf3d9a3c5e35f3a7676c2916576ac335c",
+      "reviewed_source_sections": [
+        "Next.js React TypeScript",
+        "Code Style and Structure",
+        "Naming Conventions",
+        "TypeScript Usage",
+        "Syntax and Formatting",
+        "UI and Styling",
+        "Performance Optimization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Corrected prohibition on client state management and universal Suspense wrappers.",
+        "Updated FID to INP and removed fixed styling/nuqs requirements."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://nextjs.org/docs/app/getting-started/server-and-client-components",
+          "checked_claim": "Client Components support state/events/browser APIs while server capabilities stay in Server Components."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nextjs-typescript-tailwindcss-supabase",
+      "source_sha256": "ea0093a6f47d5e80b74b5ac2f488978a176843e797142b0d944c108bdc68ccc4",
+      "reviewed_source_sections": [
+        "Next.js TypeScript TailwindCSS Supabase",
+        "Technical Preferences",
+        "General Preferences"
+      ],
+      "corrections": [
+        "Removed stale latest-Next.js-14 and unprovable bug-free/security claims.",
+        "Added missing SSR client, cookie verification, RLS and privileged-key boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://supabase.com/docs/guides/auth/server-side/creating-a-client?queryGroups=framework&framework=nextjs",
+          "checked_claim": "Supabase SSR uses separate browser/server client setup and documented server identity/cookie handling."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nlp-natural-language-processing",
+      "source_sha256": "ea7ab9569cc203a9cd9f9c5961d39ba18a12b3daee07e89dcea3812b4feea57a",
+      "reviewed_source_sections": [
+        "Natural Language Processing (NLP) Development",
+        "Key Principles",
+        "Text Preprocessing",
+        "Tokenization and Encoding",
+        "Text Classification",
+        "Named Entity Recognition (NER)",
+        "Text Generation",
+        "Embeddings and Semantic Search",
+        "Sequence-to-Sequence Tasks",
+        "Performance Optimization",
+        "Error Handling and Validation",
+        "Dependencies",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Qualified destructive text-cleaning and fixed special-token assumptions.",
+        "Replaced blanket model/backend/dependency choices with task-specific evaluation and provenance."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://huggingface.co/docs/transformers/en/main_classes/tokenizer",
+          "checked_claim": "Tokenizer special tokens, padding, truncation and offsets are model/API-dependent."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nodejs-development",
+      "source_sha256": "ba5bdbbe54cfd673caa4ea70107f20c9a892d2334f8d2c78f196f09edaecd8ad",
+      "reviewed_source_sections": [
+        "Node.js Development Guidelines",
+        "Payload CMS with Next.js",
+        "Project Setup",
+        "Collection Definition",
+        "API Routes",
+        "Vue.js with TypeScript",
+        "Component Structure",
+        "Composables",
+        "Pinia Store",
+        "TypeScript with Zod",
+        "Schema Definition",
+        "Validation",
+        "API Validation Middleware",
+        "General Best Practices",
+        "Error Handling",
+        "Async Patterns",
+        "Testing"
+      ],
+      "corrections": [
+        "Corrected Payload Local API access bypass and outdated type-import assumption.",
+        "Removed client-selected privileged role recipe and added fetch/schema/concurrency boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://payloadcms.com/docs/local-api/overview",
+          "checked_claim": "Payload Local API requires deliberate overrideAccess and user/request context to enforce access policies."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "numpy-best-practices",
+      "source_sha256": "9d5be37898ec1f239723aab0c2749c81ee6e2d2ba70d497b58a88fee237afc50",
+      "reviewed_source_sections": [
+        "NumPy Best Practices",
+        "Code Style and Structure",
+        "Array Creation and Manipulation",
+        "Indexing and Slicing",
+        "Data Types",
+        "Performance Optimization",
+        "Vectorization",
+        "Memory Management",
+        "Computation Efficiency",
+        "Error Handling and Validation",
+        "Random Number Generation",
+        "Linear Algebra",
+        "Testing and Documentation",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Corrected universal vectorization/view/copy assumptions and assert-based external validation.",
+        "Replaced fixed decimal almost-equal recommendation with justified tolerances and mutation ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://numpy.org/doc/stable/user/basics.copies.html",
+          "checked_claim": "Basic/advanced indexing and shape/layout operations have distinct view/copy semantics."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nuxtjs-vue-typescript",
+      "source_sha256": "89af87d330d46e50bb6b215eb1697a8f3eebbf9fa70f59e2e26310eb01060e5f",
+      "reviewed_source_sections": [
+        "NuxtJS Vue TypeScript Development",
+        "Code Style and Structure",
+        "Naming Conventions",
+        "TypeScript Usage",
+        "Syntax and Formatting",
+        "UI and Styling",
+        "Performance",
+        "Key Conventions",
+        "Nuxt-Specific Guidelines",
+        "Vue 3 Composition API Best Practices"
+      ],
+      "corrections": [
+        "Qualified Nuxt 3 directory assumptions and optional library/style mandates.",
+        "Updated FID and clarified runtimeConfig exposure and SSR data ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/nuxt/nuxt/blob/main/docs/4.api/2.composables/use-runtime-config.md",
+          "checked_claim": "Nuxt private runtimeConfig stays server-side while public keys are exposed to the client."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "nx",
+      "source_sha256": "b04145c8c13174a1c9a8c11cff0a77bf2a2d6ef8ca8bb3374cd3aa1ef8e11e1e",
+      "reviewed_source_sections": [
+        "Nx Monorepo Development",
+        "Project Structure",
+        "Workspace Configuration",
+        "Project Configuration",
+        "Code Generation",
+        "Module Boundaries",
+        "Caching and Performance",
+        "Task Execution",
+        "Testing Strategy",
+        "CI/CD Integration",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected mandatory project.json and deprecated affected command assumptions.",
+        "Qualified automatic Nx Cloud setup and tag-only boundary enforcement."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://nx.dev/docs/reference/project-configuration",
+          "checked_claim": "Nx combines inferred tasks, targetDefaults and package/project configuration into effective project settings."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "oauth-implementation",
+      "source_sha256": "589043a74c4ac2a074e264832b9905677d33b2bfc2deda4b70fb6d75e57f83f4",
+      "reviewed_source_sections": [
+        "OAuth Implementation",
+        "Core Principles",
+        "OAuth 2.1 Key Requirements",
+        "Authorization Code Flow with PKCE",
+        "Step 1: Generate PKCE Parameters",
+        "Step 2: Authorization Request",
+        "Step 3: Handle Callback and Token Exchange",
+        "Server-Side Implementation",
+        "Confidential Client Token Exchange",
+        "Token Security Best Practices",
+        "Access Token Validation",
+        "Refresh Token Rotation",
+        "Security Requirements",
+        "Redirect URI Validation",
+        "Scope Management",
+        "Common Vulnerabilities to Prevent",
+        "1. Authorization Code Injection",
+        "2. CSRF Attacks",
+        "3. Open Redirect",
+        "4. Token Leakage",
+        "Token Storage Recommendations",
+        "Browser Applications",
+        "Server Applications",
+        "Error Handling",
+        "Testing Checklist"
+      ],
+      "corrections": [
+        "Corrected OAuth-as-authentication and universal OAuth2.1 finality/requirements framing.",
+        "Removed null-equals-null state bypass and incomplete token exchange/validation snippets."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.rfc-editor.org/rfc/rfc9700.html",
+          "checked_claim": "OAuth security BCP covers PKCE, redirect validation, token replay and transaction-bound CSRF protections."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "observability-guidelines",
+      "source_sha256": "c218ce9098392b1b8c2ae1b0b43c23d38985c823d6c61b7ee21bee31a50022de",
+      "reviewed_source_sections": [
+        "Observability Guidelines",
+        "Core Observability Principles",
+        "OpenTelemetry Integration",
+        "Distributed Tracing",
+        "Metrics Collection",
+        "Structured Logging",
+        "Architecture Patterns",
+        "Correlation and Context",
+        "Alerting and Dashboards",
+        "Instrumentation Best Practices",
+        "Production Considerations"
+      ],
+      "corrections": [
+        "Corrected universal otel API syntax and mandatory architecture requirements.",
+        "Qualified tail/head sampling guarantees and optional context IDs, cardinality and privacy behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://opentelemetry.io/docs/concepts/sampling/",
+          "checked_claim": "Head/tail sampling have different decision timing, retained evidence and operational costs."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "odoo-development",
+      "source_sha256": "41c373d8e412eb60f4fdb1db5553e7490ebbaaa9b86734b178115e88c24b34b3",
+      "reviewed_source_sections": [
+        "Odoo Development",
+        "Key Development Principles",
+        "Code Quality & Architecture",
+        "Structural Organization",
+        "ORM & Python Implementation",
+        "Error Management & Validation",
+        "Security & Access Control",
+        "Internationalization & Automation",
+        "Performance Optimization",
+        "Guiding Conventions",
+        "Module Structure Best Practices",
+        "Model Definition Example",
+        "View Definition Example"
+      ],
+      "corrections": [
+        "Removed obsolete @api.multi guidance and distinguished onchange from server invariants.",
+        "Added versioned view syntax and sudo/raw-SQL/record-rule boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/odoo/documentation/blob/20.0/content/developer/tutorials/server_framework_101/08_compute_onchange.rst",
+          "checked_claim": "Official Odoo documentation distinguishes depends-driven recomputation from form-only onchange behavior; apply within the installed version."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "onchainkit",
+      "source_sha256": "ef971485f3c5adad12bc1c04803773662a72226bdcfe6fea2c7a3cc1265699b9",
+      "reviewed_source_sections": [
+        "OnchainKit",
+        "Key Principles",
+        "Component Knowledge Areas",
+        "Identity Components",
+        "Wallet Components",
+        "Transaction Components",
+        "Swap Components",
+        "Frame Components",
+        "Implementation Best Practices",
+        "Error Handling Strategy",
+        "Key Conventions",
+        "Example Implementation"
+      ],
+      "corrections": [
+        "Qualified obsolete Frames component list and mandatory universal provider recipe.",
+        "Added transaction approval/chain/quote boundaries absent from generic source security advice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://raw.githubusercontent.com/coinbase/onchainkit/main/README.md",
+          "checked_claim": "Official OnchainKit source identifies supported React/TypeScript component tooling and current documentation entrypoints."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "openai-api-development",
+      "source_sha256": "93cf9f443b535033290568a4ba1c0d5bec238d35a288de2d298463bebc0c5b57",
+      "reviewed_source_sections": [
+        "OpenAI API Development",
+        "Key Principles",
+        "Setup and Configuration",
+        "Environment Setup",
+        "Always use environment variables for API keys",
+        "Best Practices",
+        "Chat Completions API",
+        "Basic Usage",
+        "Streaming Responses",
+        "Model Selection",
+        "Function Calling",
+        "Defining Functions",
+        "Handling Tool Calls",
+        "Assistants API",
+        "Creating an Assistant",
+        "Managing Threads",
+        "Create a thread",
+        "Add a message",
+        "Run the assistant",
+        "Get messages",
+        "Embeddings",
+        "Generating Embeddings",
+        "Best Practices for Embeddings",
+        "Vision and Multimodal",
+        "Image Analysis",
+        "Error Handling",
+        "Retry Logic",
+        "Common Error Types",
+        "Cost Optimization",
+        "Security Best Practices",
+        "Dependencies"
+      ],
+      "corrections": [
+        "Replaced obsolete Assistants/model recommendations with current endpoint/model verification.",
+        "Corrected old SDK error, unbounded tool execution, blanket retry and fixed embedding-quality claims."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://developers.openai.com/api/docs/guides/migrate-to-responses",
+          "checked_claim": "Responses is recommended for new projects while Chat Completions remains supported with different interfaces."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "optimized-nextjs-typescript",
+      "source_sha256": "1ad00f7be1ec57e6622851b13bc02a5d7a4cfaab950af29b734742079126607b",
+      "reviewed_source_sections": [
+        "Optimized Next.js TypeScript Best Practices",
+        "Code Style and Structure",
+        "Optimization Best Practices",
+        "Error Handling and Validation",
+        "UI and Styling",
+        "State and Data Management",
+        "Security and Performance",
+        "Testing and Documentation"
+      ],
+      "corrections": [
+        "Removed fixed library/style requirements and unconditional client minimization.",
+        "Made optimization evidence-based with hydration/cache isolation and critical-image boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://nextjs.org/docs/app/guides/production-checklist",
+          "checked_claim": "Next.js production checks cover rendering, caching, assets, security and measured performance."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "pandas-best-practices",
+      "source_sha256": "7105bf8c13d083756d2a19f8633e893a7c32824f77d33f8c3483f5669931b9e3",
+      "reviewed_source_sections": [
+        "Pandas Best Practices",
+        "Code Style and Structure",
+        "DataFrame Creation and I/O",
+        "Data Selection",
+        "Method Chaining",
+        "Data Cleaning and Validation",
+        "Missing Data",
+        "Data Quality Checks",
+        "Type Conversion",
+        "Grouping and Aggregation",
+        "GroupBy Operations",
+        "Pivot Tables and Reshaping",
+        "Performance Optimization",
+        "Memory Efficiency",
+        "Computation Speed",
+        "Avoiding Common Pitfalls",
+        "Time Series Operations",
+        "Merging and Joining",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Updated SettingWithCopyWarning-era advice to pandas3 Copy-on-Write semantics.",
+        "Qualified coerce-as-safe, NumPy zero-copy, joins/nulls and chunked-memory assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://pandas.pydata.org/docs/user_guide/migration.html",
+          "checked_claim": "pandas3 Copy-on-Write disallows parent mutation through chained assignments and can expose read-only underlying arrays."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "parcel-bundler",
+      "source_sha256": "3a42c35e3004f2f0074101aebae72b3e80de491747ab8225a5daa2f04f897b9c",
+      "reviewed_source_sections": [
+        "Parcel Bundler",
+        "Core Principles",
+        "Project Structure",
+        "Getting Started",
+        "Basic Usage",
+        "Development with hot reload",
+        "Production build",
+        "Package.json Scripts",
+        "Entry Points",
+        "HTML Entry",
+        "JavaScript Entry",
+        "Multiple Entry Points",
+        "Supported Languages and File Types",
+        "Configuration (When Needed)",
+        ".parcelrc",
+        "package.json Targets",
+        "TypeScript Support",
+        "Automatic Configuration",
+        "tsconfig.json",
+        "React Support",
+        "Automatic JSX",
+        "CSS and Styling",
+        "CSS Imports",
+        "CSS Modules",
+        "Sass/SCSS",
+        "Asset Handling",
+        "Importing Assets",
+        "URL References",
+        "Code Splitting",
+        "Dynamic Imports",
+        "Shared Bundles",
+        "Environment Variables",
+        ".env Files",
+        ".env",
+        ".env.production",
+        "Usage in Code",
+        "Defining in package.json",
+        "Development Server",
+        "Default Configuration",
+        "Serves at http://localhost:1234",
+        "Custom Port",
+        "HTTPS",
+        "Proxy API Requests",
+        "Production Build",
+        "Basic Build",
+        "Output Configuration",
+        "No Source Maps",
+        "Optimization",
+        "Automatic Optimizations",
+        "Bundle Analysis",
+        "Add to .parcelrc",
+        "Caching",
+        "Clear cache",
+        "Or",
+        "Plugin Development",
+        "Plugin Types",
+        "Plugin Rules",
+        "Library Development",
+        "Package.json Configuration",
+        "Best Practices",
+        "Do",
+        "Avoid",
+        "Common Patterns",
+        "Single Page Application",
+        "Static Site",
+        "Web Worker",
+        "Troubleshooting",
+        "Clear Cache",
+        "Verbose Output",
+        "Debug Mode",
+        "Migration from Other Bundlers"
+      ],
+      "corrections": [
+        "Corrected devServer.proxy, asset-import and TypeScript-checking assumptions.",
+        "Removed destructive cleanup/migration recipes and automatic dependency installation as unconditional best practice."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://parceljs.org/features/development/",
+          "checked_claim": "Parcel development documentation defines supported proxy configuration, dependency handling and development behavior."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "performance-optimization",
+      "source_sha256": "35fbee42dfe1852afbc6888a7d70194a19611df7019a6b3e2a6a6e60c79dacaa",
+      "reviewed_source_sections": [
+        "Performance Optimization",
+        "Core Performance Principles",
+        "Server-Side Rendering",
+        "CSS Best Practices",
+        "Selector Efficiency",
+        "CSS Organization",
+        "Layout Performance",
+        "JavaScript Optimization",
+        "Code Organization",
+        "Loading Strategies",
+        "Runtime Performance",
+        "Asset Optimization",
+        "Images",
+        "Fonts",
+        "Caching Strategies",
+        "Architecture Patterns",
+        "Theme and Component Architecture",
+        "Configuration and Settings",
+        "Internationalization Performance",
+        "Measurement and Monitoring",
+        "Database Performance"
+      ],
+      "corrections": [
+        "Updated FID/TTI and removed universal SSR/GPU/style-performance prescriptions.",
+        "Added equivalent measurement, cache identity and critical-resource correctness requirements."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://web.dev/articles/vitals",
+          "checked_claim": "Core Web Vitals currently covers LCP, INP and CLS and distinguishes field and laboratory measurement."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "phoenix",
+      "source_sha256": "1609d678529898fb914ab0c3d1385020a0334474d1ab6273198cc75db0af7764",
+      "reviewed_source_sections": [
+        "Phoenix Framework Development",
+        "Code Style and Structure",
+        "Naming Standards",
+        "Elixir and Phoenix Implementation",
+        "Syntax and Formatting",
+        "Error Handling",
+        "UI and Styling",
+        "Performance Optimization",
+        "Architecture Patterns",
+        "Testing",
+        "Security"
+      ],
+      "corrections": [
+        "Qualified let-it-crash and GenServer/background-task prescriptions.",
+        "Removed Rails strong-parameters terminology and fixed auth/template library assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://phoenix.hexdocs.pm/live_view.html",
+          "checked_claim": "Phoenix LiveView provides server-owned interactive rendering with its own connection/lifecycle behavior."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "php-development",
+      "source_sha256": "3396b85e1e300f9170d3c6517a7bcc7c1fcec79126b541d80235d88e4e967ed6",
+      "reviewed_source_sections": [
+        "PHP Development",
+        "Core Principles",
+        "PHP Standards",
+        "Best Practices",
+        "Code Organization",
+        "Naming Conventions",
+        "Type Declarations",
+        "Documentation",
+        "Error Handling",
+        "Security Practices",
+        "Testing"
+      ],
+      "corrections": [
+        "Corrected feature-version grouping and strict_types overreach.",
+        "Removed mandatory repository abstraction/full PHPDoc and generic sanitize-all prescription."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.php.net/manual/en/language.types.declarations.php",
+          "checked_claim": "PHP type declarations and strict scalar coercion have specific per-feature and call-site semantics."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "pixi-js",
+      "source_sha256": "0c38d4742f32e0c3a432eeb6178c8f17be3bafc8b974653577e713770186a84f",
+      "reviewed_source_sections": [
+        "Pixi.js Game Development",
+        "Key Principles",
+        "Project Structure",
+        "Naming Conventions",
+        "TypeScript Best Practices",
+        "Pixi.js Optimizations",
+        "Rendering Performance",
+        "Sprite and Display Management",
+        "Interaction Handling",
+        "Performance Optimization",
+        "Memory Management",
+        "Asset Management",
+        "Game Loop",
+        "Mobile Optimization",
+        "Touch Controls",
+        "Responsive Design",
+        "Power Management"
+      ],
+      "corrections": [
+        "Updated cacheAsBitmap/interaction-manager advice for PixiJSv8.",
+        "Removed universal WebGPU-optimal claim and added async init/shared-resource ownership."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://pixijs.com/8.x/guides/components/scene-objects/container/cache-as-texture",
+          "checked_claim": "PixiJSv8 documents cacheAsTexture and explicit cache refresh rather than the older cacheAsBitmap API."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "playwright",
+      "source_sha256": "527958d40ebe6d13d9cb365bfc1b563655382b9d79c2a6ce1edb18c37a0f5113",
+      "reviewed_source_sections": [
+        "Playwright Testing Best Practices",
+        "Test Design Principles",
+        "Test Structure",
+        "Locator Strategy",
+        "Recommended Locators",
+        "Assertions and Waits",
+        "Web-First Assertions",
+        "Waiting Best Practices",
+        "Configuration",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Qualified role-locator accessibility, waitForLoadState readiness and mobile emulator claims.",
+        "Added response-wait race and backend-data isolation omitted by source."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://playwright.dev/docs/locators",
+          "checked_claim": "Playwright locators support auto-waiting and semantic or explicit test-ID targeting."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "playwright-cursor-rules",
+      "source_sha256": "219bc8cedbc20a6aa8f30d57fd3d02390ad2d298e3ccb5be10906e3ccbbec120",
+      "reviewed_source_sections": [
+        "Playwright Cursor Rules",
+        "Code Quality Standards",
+        "Key Practices",
+        "Test Naming",
+        "Fixtures & Isolation",
+        "Setup/Teardown",
+        "DRY Principle",
+        "Locators",
+        "Configuration",
+        "Error Handling",
+        "Cross-Browser Testing",
+        "Assertions",
+        "Timing",
+        "Parallelization",
+        "Documentation",
+        "Focus",
+        "Reference Documentation",
+        "Example Test Structure"
+      ],
+      "corrections": [
+        "Replaced nonexistent page.waitFor recommendation with supported condition-specific APIs.",
+        "Removed no-inline-comment mandate and clarified full parallel/device validation boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://playwright.dev/docs/api/class-page#page-wait-for-function",
+          "checked_claim": "Current Page API provides explicit wait methods rather than a generic page.waitFor."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "pnpm",
+      "source_sha256": "d3ac3b1d7087159b8eb80b248010f647254a7bb2039770534c52081a29f7fcba",
+      "reviewed_source_sections": [
+        "pnpm Development",
+        "Core Principles",
+        "Installation and Setup",
+        "Workspace Configuration",
+        "Dependency Management",
+        "Filtering Commands",
+        "Scripts and Task Running",
+        "Dependency Hoisting",
+        "Strict mode - no hoisting",
+        "Selective hoisting",
+        "Shamefully hoist everything (not recommended)",
+        "Peer Dependencies",
+        "Overrides and Resolutions",
+        "Publishing Workspaces",
+        "Performance Optimization",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Removed always-pnpm/global-latest mandates and stale configuration/version pin.",
+        "Added lifecycle-build approval and version-aware settings rather than disabling strict peer checks by default."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://pnpm.io/workspaces",
+          "checked_claim": "pnpm workspaces and workspace protocols govern local dependency resolution and package publication rewriting."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "postcss-best-practices",
+      "source_sha256": "c6f10c7ca566d2f8e6eacc6a94c6400cb75cc20f7095719577edbe3eb0a9e165",
+      "reviewed_source_sections": [
+        "PostCSS Best Practices",
+        "Key Principles",
+        "What is PostCSS",
+        "Project Setup",
+        "Installation",
+        "Core PostCSS",
+        "Common plugins",
+        "Optional plugins",
+        "Configuration File",
+        "Build Tool Integration",
+        "Webpack",
+        "Vite",
+        "Next.js",
+        "Essential Plugins",
+        "postcss-preset-env",
+        "autoprefixer",
+        "cssnano",
+        "postcss-import",
+        "postcss-nested",
+        "Modern CSS Features",
+        "CSS Nesting (Native)",
+        "Custom Properties (CSS Variables)",
+        "Custom Media Queries",
+        "Custom Selectors",
+        "Logical Properties",
+        "Container Queries",
+        "File Organization",
+        "Structure",
+        "Main Entry Point",
+        "Production Configuration",
+        "Environment-Based Config",
+        "Browser Support",
+        "Useful Plugin Configurations",
+        "postcss-custom-media",
+        "postcss-mixins",
+        "postcss-simple-vars",
+        "Performance Tips",
+        "Common Plugin Combinations",
+        "Minimal Setup",
+        "Modern CSS Features",
+        "Sass-like Features",
+        "With Tailwind CSS",
+        "Debugging",
+        "Enable Source Maps",
+        "Verbose Output",
+        "CLI with verbose output",
+        "Check Plugin Order"
+      ],
+      "corrections": [
+        "Corrected stage2-as-stable assertion, obsolete Tailwind nesting/PostCSS integration and custom-media options.",
+        "Qualified duplicate Autoprefixer, purge safety, all-comment removal and config loading assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://tailwindcss.com/docs/installation/using-postcss",
+          "checked_claim": "Current Tailwind PostCSS setup uses @tailwindcss/postcss with major-version-specific configuration."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "postgresql-best-practices",
+      "source_sha256": "77bfa60c38b83a735f47c754a860a32f03763cdd3dbdbb1a6bece0c490256cb5",
+      "reviewed_source_sections": [
+        "PostgreSQL Best Practices",
+        "Core Principles",
+        "Schema Design",
+        "Data Types",
+        "Table Design",
+        "Partitioning",
+        "Indexing Strategies",
+        "Index Types",
+        "Index Maintenance",
+        "Query Optimization",
+        "EXPLAIN ANALYZE",
+        "Common Table Expressions (CTEs)",
+        "Window Functions",
+        "JSONB Best Practices",
+        "Connection Management",
+        "Connection Pooling",
+        "Connection Settings",
+        "Transactions and Locking",
+        "Maintenance",
+        "Vacuum and Analyze",
+        "Backup Strategies",
+        "Security",
+        "Monitoring"
+      ],
+      "corrections": [
+        "Added missing EXPLAIN ANALYZE write-effect warning and RLS/tenant/pool bypass boundaries.",
+        "Removed incorrect blocking-lock join, inconsistent example columns, and dead-tuples-equals-bloat/covering-index guarantees."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.postgresql.org/docs/current/sql-explain.html",
+          "checked_claim": "EXPLAIN ANALYZE executes the statement and reports actual runtime rather than merely planning."
+        },
+        {
+          "url": "https://www.postgresql.org/docs/current/ddl-rowsecurity.html",
+          "checked_claim": "Table owner and privileged-role bypass and policy checks must be considered when enforcing RLS."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "pr-review",
+      "source_sha256": "ff710b79204e38672d1399eb10d4a20994fa2afef5b2d487af731e86abb40fe4",
+      "reviewed_source_sections": [
+        "PR Review",
+        "Workflow for Reviewing a PR",
+        "Output Discipline",
+        "Angle 1: Security",
+        "Angle 2: Performance",
+        "Angle 3: Tests",
+        "Angle 4: Architecture",
+        "Example Finding Format",
+        "Reviewing Multiple Angles at Once",
+        "Common Pitfalls in Review"
+      ],
+      "corrections": [
+        "Replaced security-only default and forced four-verdict format with risk-based complete review.",
+        "Removed universal every-branch-test and one-implementation-is-debt rules; qualified merge safety and external review authority."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.github.com/en/pull-requests/reference/pull-request-reviews",
+          "checked_claim": "GitHub review comments, approval and change requests are distinct review decisions with configured merge implications."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "prisma",
+      "source_sha256": "e7f9085ad46fe4ba50d400ca5adf02bb5b6651e7c8beddfe41accda35ee385fd",
+      "reviewed_source_sections": [
+        "Prisma",
+        "Core Principles",
+        "Schema Design",
+        "Client Usage",
+        "Error Management",
+        "Architecture",
+        "Performance",
+        "Testing",
+        "Security"
+      ],
+      "corrections": [
+        "Corrected schema attributes/decorators terminology and blanket middleware/soft-delete/repository assumptions.",
+        "Qualified built-in SQL injection protection and in-memory database equivalence."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.prisma.io/docs/orm/v7/prisma-client/client-extensions",
+          "checked_claim": "Prisma extension/middleware APIs are generation-specific; current docs distinguish v7 Client extensions and v8 middleware."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "prisma-development",
+      "source_sha256": "261ce7e30750383ba6374b82611df5f519501b07be70467915e8d9b3269efef9",
+      "reviewed_source_sections": [
+        "Prisma ORM Development",
+        "TypeScript Fundamentals",
+        "Basic Principles",
+        "Naming Conventions",
+        "Function Design",
+        "Data & Error Handling",
+        "Prisma-Specific Practices",
+        "Schema Design",
+        "Client Usage",
+        "Migrations",
+        "Error Handling",
+        "Quality Standards"
+      ],
+      "corrections": [
+        "Corrected all-migrations-idempotent, never-edit-any-migration and ValidationError-as-schema-validation claims.",
+        "Qualified middleware generation, soft deletes and in-memory provider tests."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.prisma.io/docs/orm/v7/prisma-client/client-extensions",
+          "checked_claim": "Versioned Prisma docs distinguish supported Client extensions from other generations\u2019 middleware."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "puppeteer-automation",
+      "source_sha256": "75167de9cdd1d758271f21f4ef4aceaadfbde0ae3c5b889d20915ec5faf27d83",
+      "reviewed_source_sections": [
+        "Puppeteer Browser Automation",
+        "Core Expertise",
+        "Key Principles",
+        "Project Setup",
+        "Basic Structure",
+        "Browser Launch Options",
+        "Page Navigation",
+        "Element Selection",
+        "Query Selectors",
+        "Evaluation in Page Context",
+        "Page Interactions",
+        "Clicking",
+        "Typing",
+        "Form Handling",
+        "Waiting Strategies",
+        "Screenshots and PDFs",
+        "Screenshots",
+        "PDF Generation",
+        "Network Interception",
+        "Authentication and Cookies",
+        "Browser Context and Multiple Pages",
+        "Error Handling",
+        "Performance Optimization",
+        "Key Dependencies",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Corrected Playwright-only waitForLoadState, removed/renamed Puppeteer APIs and stale headless option.",
+        "Removed default no-sandbox/stealth flags and fixed leaking retry/interception patterns."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://pptr.dev/guides/page-interactions",
+          "checked_claim": "Current Puppeteer interaction documentation uses supported locator/wait interfaces tied to browser version."
+        },
+        {
+          "url": "https://pptr.dev/api/puppeteer.browser.createbrowsercontext",
+          "checked_claim": "Current Browser API exposes createBrowserContext for isolated contexts."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "pwa-development",
+      "source_sha256": "e0f29b79d96ab0d7998759689a7df4ae24d7acb15e41360084fab231720fb853",
+      "reviewed_source_sections": [
+        "Progressive Web App Development Guidelines",
+        "Core Principles",
+        "Web App Manifest",
+        "Service Worker Registration",
+        "Service Worker Implementation",
+        "Caching Strategies",
+        "Cache First (Static Assets)",
+        "Network First (Dynamic Content)",
+        "Stale While Revalidate",
+        "Background Sync",
+        "Push Notifications",
+        "Offline Detection",
+        "Performance Optimization",
+        "Testing",
+        "Best Practices"
+      ],
+      "corrections": [
+        "Replaced cache-deletes-all and unfiltered fetch/offline fallback examples.",
+        "Corrected unowned async revalidation, online-status certainty, unconditional worker takeover and universal background-sync/audit assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://web.dev/learn/pwa/service-workers",
+          "checked_claim": "Service workers have scoped lifecycle and browser-support constraints for offline caching and updates."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "pyspark-etl",
+      "source_sha256": "0b3c3f31b5a34d1ef27026a3abdcb6efe0e1d67e6df8c7d235b905ad050d0132",
+      "reviewed_source_sections": [
+        "PySpark ETL",
+        "Workflow for Building a PySpark ETL Job",
+        "Project Structure",
+        "ETL class scaffold",
+        "Config as a factory function",
+        "Partition-aware shared reader",
+        "Code Style",
+        "BAD \u2014 3 intermediate DataFrames, one projection per call",
+        "GOOD \u2014 one DataFrame, explicit schema contract",
+        "Joins",
+        "Window Functions",
+        "Map & Array Higher-Order Functions",
+        "Cumulative / Snapshot Table Patterns",
+        "Data Quality & Performance",
+        "Iceberg Write Patterns"
+      ],
+      "corrections": [
+        "Corrected nonexistent write.byName, incorrect __partitions metadata/snapshot inference, and printSchema materialization claims.",
+        "Fixed shared session cleanup and universal F.col/ignore-nulls/distribution prescriptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://iceberg.apache.org/docs/latest/spark-writes/",
+          "checked_claim": "Iceberg recommends DataFrameWriterV2 writeTo operations that match table columns by name and expose explicit overwrite behavior."
+        },
+        {
+          "url": "https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameWriter.html",
+          "checked_claim": "DataFrameWriter has no general byName method; use supported writer interfaces."
+        },
+        {
+          "url": "https://iceberg.apache.org/docs/latest/spark-queries/",
+          "checked_claim": "Catalog table metadata distinguishes partitions and snapshots."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "python",
+      "source_sha256": "1a5cc069c82227fca8c5b4cee11ebd651893c5bd5251dbeb80b57194ebc14df7",
+      "reviewed_source_sections": [
+        "Python",
+        "Universal Principles",
+        "Code Style",
+        "Data Analysis",
+        "Web Development",
+        "Django",
+        "FastAPI",
+        "Flask",
+        "Error Handling",
+        "Performance"
+      ],
+      "corrections": [
+        "Removed mandatory type/style/framework/package prescriptions.",
+        "Qualified async-for-I/O and vectorization guidance with blocking, cleanup and measured resource behavior."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.python.org/3/library/asyncio-task.html",
+          "checked_claim": "Python asyncio requires explicit task/cancellation/timeout ownership and does not automatically offload blocking work."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "python-cybersecurity-tool-development",
+      "source_sha256": "57b5ea250f83c11f7fdf36ce7ac17ca74b3253b58784630f12ee27ece972e46a",
+      "reviewed_source_sections": [
+        "Python Cybersecurity Tool Development",
+        "Key Principles",
+        "Python/Cybersecurity Guidelines",
+        "Error Handling and Validation",
+        "Dependencies",
+        "Security-Specific Guidelines",
+        "Performance Optimization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Removed default attack-module, mandatory CLI+REST and blanket dependency prescriptions.",
+        "Replaced sanitize-shell advice with argument-boundary safety and added explicit target/authorization evidence."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.python.org/3/library/subprocess.html",
+          "checked_claim": "subprocess argument-vector and shell/security behavior governs safe external process invocation."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "python-odoo-cursor-rules",
+      "source_sha256": "7914279f11c76ce7b6994f870d8c736682b55f673395068b172dca47692c053f",
+      "reviewed_source_sections": [
+        "Python and Odoo Development",
+        "Key Principles",
+        "Odoo/Python Guidelines",
+        "Error Handling and Validation",
+        "Odoo-Specific Guidelines",
+        "Performance Optimization",
+        "Key Conventions"
+      ],
+      "corrections": [
+        "Removed obsolete api.multi guidance independently confirmed in this overlapping source.",
+        "Clarified onchange, scheduled-job semantics and administrator/security verification limits."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://github.com/odoo/documentation/blob/20.0/content/developer/tutorials/server_framework_101/08_compute_onchange.rst",
+          "checked_claim": "Odoo official documentation separates computed-field dependencies from form-only onchange behavior; installed version controls syntax."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "python-testing",
+      "source_sha256": "f62daf92df63943130b58850e7bc855d677f4ab1f4fc57002fc04e990505f4a0",
+      "reviewed_source_sections": [
+        "Python Testing",
+        "Core Principles",
+        "Test Structure",
+        "pytest Best Practices",
+        "Test Types",
+        "Unit Tests",
+        "Integration Tests",
+        "Property-Based Testing",
+        "Mocking",
+        "Coverage"
+      ],
+      "corrections": [
+        "Replaced signature/docstring-based generation and high-coverage target with requirement-based assertions.",
+        "Qualified mocks/random diversity and added fixture lifetime/meaningful property boundaries."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.pytest.org/en/stable/how-to/fixtures.html",
+          "checked_claim": "pytest fixtures have explicit scopes, dependencies and teardown behavior that determine test isolation."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "python-uv",
+      "source_sha256": "8903135fb3b1205d47b546af96803116571c4f10b8939a8ce1111c40ca355ede",
+      "reviewed_source_sections": [
+        "Python Package Management with uv",
+        "Core Directive",
+        "Dependency Management Commands",
+        "Script Management",
+        "Manual Inline Metadata Configuration",
+        "/// script",
+        "requires-python = \">=3.12\"",
+        "dependencies = [",
+        "  \"torch\",",
+        "  \"torchvision\",",
+        "  \"opencv-python\",",
+        "  \"numpy\",",
+        "  \"matplotlib\",",
+        "  \"Pillow\",",
+        "  \"timm\",",
+        "]",
+        "///",
+        "CLI-Based Script Dependencies",
+        "Key Principles"
+      ],
+      "corrections": [
+        "Removed universal uv-only/no-pip override of repository tooling and added explicit script lock/environment effects.",
+        "Verified uv0.13.6 installed help supports sync --script, avoiding a false stale-API correction."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.astral.sh/uv/guides/scripts/",
+          "checked_claim": "uv supports PEP723 script dependencies and separate locking/execution behavior for reproducibility."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "pytorch",
+      "source_sha256": "9598bfc586f7f33f41fbe77c39e6678e85de87e285188320463a95790020ea93",
+      "reviewed_source_sections": [
+        "PyTorch Development",
+        "Core Principles",
+        "Model Development",
+        "Custom Modules",
+        "Autograd",
+        "Transformers Integration",
+        "Diffusion Models",
+        "Training Best Practices",
+        "Data Loading",
+        "Optimization",
+        "Performance Optimization",
+        "Gradio Integration"
+      ],
+      "corrections": [
+        "Updated deprecated CUDA AMP and universal DataParallel/GPU guidance.",
+        "Added missing eval-versus-no_grad, accumulation and backend-specific validation distinctions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://docs.pytorch.org/docs/2.15/amp.html",
+          "checked_claim": "Current PyTorch AMP uses device-aware torch.amp/autocast and deprecates older CUDA-specific entrypoints."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "quarkus",
+      "source_sha256": "1d231c44434ee4452a89ae6fa196e131aa99724d2b73da01784844d8798acdf8",
+      "reviewed_source_sections": [
+        "Quarkus",
+        "Code Style and Structure",
+        "Quarkus Specifics",
+        "Naming Conventions",
+        "Java and Quarkus Usage",
+        "Configuration and Properties",
+        "Dependency Injection and IoC",
+        "Testing",
+        "Performance and Scalability",
+        "Security",
+        "Logging and Monitoring",
+        "API Documentation",
+        "Data Access and ORM",
+        "Build and Deployment",
+        "General Best Practices"
+      ],
+      "corrections": [
+        "Corrected annotation ownership and obsolete Metrics/OpenTracing prescriptions.",
+        "Qualified fixed Java/native-performance/reactive and in-memory testing assumptions."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://quarkus.io/guides/opentelemetry/",
+          "checked_claim": "Current Quarkus documents OpenTelemetry/Micrometer integration and migration from OpenTracing."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    },
+    {
+      "skill": "rabbitmq-development",
+      "source_sha256": "dcbe2b86ce36ec863ff90025dbec2027f690aa7d82659f2e663b20e5f8d46718",
+      "reviewed_source_sections": [
+        "RabbitMQ Development",
+        "Core Principles",
+        "Architecture Components",
+        "Exchanges",
+        "Queues",
+        "Bindings",
+        "Queue Management Best Practices",
+        "Queue Size",
+        "Queue Types",
+        "Classic Queues",
+        "Quorum Queues (Recommended)",
+        "Performance Optimization",
+        "Connection and Channel Management",
+        "Connections",
+        "Channels",
+        "Prefetch and Consumer Configuration",
+        "Prefetch (QoS)",
+        "Acknowledgments",
+        "Message Handling",
+        "Message Properties",
+        "Publishing Best Practices",
+        "Error Handling",
+        "Dead Letter Exchanges",
+        "Retry Queues Pattern",
+        "Circuit Breaker",
+        "High Availability",
+        "Clustering",
+        "Mirroring (Classic Queues)",
+        "Security",
+        "Authentication",
+        "Authorization",
+        "Monitoring and Observability",
+        "Key Metrics",
+        "Management Plugin",
+        "Alerts",
+        "Testing",
+        "Unit Testing",
+        "Integration Testing",
+        "Common Patterns",
+        "Work Queues (Task Distribution)",
+        "Publish/Subscribe",
+        "RPC (Request/Response)",
+        "Event Sourcing"
+      ],
+      "corrections": [
+        "Removed obsolete classic mirroring/lazy and fixed throughput/memory/core prescriptions.",
+        "Corrected direct-exchange unicast, persistent-message durability guarantees, channel terminology and Kafka partition leakage."
+      ],
+      "primary_sources": [
+        {
+          "url": "https://www.rabbitmq.com/docs/classic-queues",
+          "checked_claim": "RabbitMQ4 classic queues are non-replicated; quorum queues/streams are recommended where replicated data safety is required."
+        }
+      ],
+      "verification_limits": [
+        "Source text reviewed completely; referenced primary documentation inspected on 2026-10-31.",
+        "No target framework application or external service was executed; apply version-specific runtime validation in the consuming project."
+      ],
+      "references": [
+        "references/implementation.md"
+      ]
+    }
+  ]
+}

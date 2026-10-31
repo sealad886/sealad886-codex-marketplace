@@ -17,9 +17,9 @@ irrelevant to development projects worked on since 2026-08-31.
 
 ## Checklist
 
-- [ ] Inventory and individually audit the 265 source skills (active).
-- [ ] Integrate the package, provenance, catalogs, and meaningful validation.
-- [ ] Commit, push, and complete bounded independent and configured PR reviews.
+- [x] Inventory and individually audit the 265 source skills.
+- [x] Integrate the package, provenance, catalogs, and meaningful validation.
+- [ ] Commit, push, and complete bounded independent and configured PR reviews (active).
 - [ ] Merge and publish the validated plugin and marketplace release.
 - [ ] Install the published package, remove development variants, and verify
       per-skill enablement against recent project evidence.

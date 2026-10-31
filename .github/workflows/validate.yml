@@ -78,6 +78,9 @@ jobs:
       - name: Validate route contracts
         run: python3 scripts/check_routes.py .
 
+      - name: Validate Mindrally skill coverage and individual review evidence
+        run: python3 scripts/check_mindrally_skills.py
+
       - name: Validate historical route-shape compatibility
         run: python3 scripts/check_route_receipts.py tests/fixtures/blind-route-observations-v1.3.1.json --root . --allow-subset --allow-historical-annotations
 

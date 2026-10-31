@@ -79,6 +79,20 @@ actual handoffs separately from metadata discovery. Agent role instructions,
 deterministic tool validation, runner qualification, and human acceptance are
 separate evidence; preserve those distinctions when extending the package.
 
+## Mindrally Skills
+
+[Mindrally Skills](plugins/mindrally-skills/README.md) adapts all 265 skills from
+the pinned Apache-2.0 upstream source recorded in
+`docs/reviews/mindrally-skills/source-inventory.json`. Preserve its license and
+modification notices. Keep every upstream skill separately discoverable and
+maintain its individual accuracy-review record when technical guidance changes.
+Use concise entry points and directly linked, conditional references; do not
+copy obsolete API examples or universal style mandates into reference files.
+Run `python3 scripts/check_mindrally_skills.py` in addition to the shared package
+and catalog checks. This checks coverage and evidence structure, not technical
+truth or execution of every framework example. Native discovery and installation
+must be verified separately in both clients with isolated settings.
+
 ## Before changing Project Delivery
 
 1. Open or reference an issue when the change affects lifecycle semantics, artifact contracts, compatibility, or safety.

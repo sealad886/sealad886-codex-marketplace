@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "mindrally-skills",
+  "version": "0.1.0",
+  "description": "265 development skills adapted from Mindrally, with individually reviewed technical guidance and progressive disclosure for Codex and GitHub Copilot.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/mindrally-skills",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "Apache-2.0",
+  "keywords": [
+    "development",
+    "frameworks",
+    "languages",
+    "mindrally",
+    "progressive-disclosure"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Mindrally Skills",
+        "shortDescription": "265 development skills",
+        "longDescription": "Development guidance across languages, application frameworks, databases, infrastructure, AI and engineering practices. All 265 upstream skill identities remain separately discoverable. Concise workflows route to topic references, with per-skill accuracy review and Apache-2.0 provenance. Tools, runtimes and authentication come from the selected client and target project.",
+        "developerName": "Andrew Cox",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Use the Mindrally skill matching this project to review its implementation against the installed framework version.",
+          "Help implement this feature using the relevant Mindrally development skill and its focused references."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg",
+        "brandColor": "#345A9C",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/mindrally-skills"
+      }
+    }
+  }
+}
