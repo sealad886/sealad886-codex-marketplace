@@ -2,6 +2,15 @@
 
 Reviewed 2026-10-04. Scope: Tauri 2, not v1 allowlists. This is an original capability-level synthesis. Source plugins were inspected locally at Build iOS Apps 0.1.2, Build Web Apps 0.1.2, Build macOS Apps 0.1.4 and Test Android Apps 0.1.2. No prompts, code, assets or proprietary schemas were copied. No companion plugin is a runtime requirement.
 
+## Performance refresh — 2026-10-31
+
+The mobile-first `tauri-performance` expansion has its own
+[performance primary-source ledger](performance/research.md), covering current
+Tauri 2.12 component versions, platform lifecycle limits, responsiveness, energy,
+thermal behavior and multiprocess memory evidence. Load that ledger for performance
+work. The original 2026-10-04 registry below remains the dated baseline for the
+other workflows; it is not a claim that all those sources were refreshed.
+
 ## Source capability adaptation
 
 | Source | Inspected capabilities | Tauri adaptation | Boundary |

@@ -1,7 +1,7 @@
 interface:
-  display_name: "Tauri Performance and Memory"
-  short_description: "Profile renderer, Rust and native lifetime problems"
+  display_name: "Tauri Performance and Efficiency"
+  short_description: "Optimize mobile speed, battery and memory"
   brand_color: "#147D92"
-  default_prompt: "Use $tauri-performance to profile renderer, Rust and native lifetime problems in this project."
+  default_prompt: "Use $tauri-performance to measure and improve this Tauri app's responsiveness, battery use and memory efficiency while preserving correct behavior."
   icon_small: "./assets/icon.svg"
   icon_large: "./assets/icon.svg"
