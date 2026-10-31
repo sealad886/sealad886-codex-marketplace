@@ -3,6 +3,25 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Build Multi-target Tauri Apps 0.2.0 - 2026-10-31
+
+### Added
+
+- Mobile-first optimization workflow in the existing `tauri-performance` skill,
+  covering responsiveness, startup, battery/energy, sustained thermal behavior
+  and memory efficiency alongside correctness.
+- Focused measurement, lifecycle/energy and memory guidance with dated primary
+  sources, platform/tool availability limits and a before/after evidence receipt.
+
+### Changed
+
+- Require causal diagnosis, bounded work/resource ownership and comparable
+  scenario measurements before accepting a performance improvement.
+- Keep Tauri, frontend and native process attribution explicit; distinguish
+  physical-device acceptance from browser, emulator and debug diagnostics.
+- Preserve eight shared skills and synchronize Codex/Copilot package metadata
+  for the 0.2.0 release.
+
 ## Local Translation 0.6.0 - 2026-10-30
 
 ### Added

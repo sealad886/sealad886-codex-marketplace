@@ -1,7 +1,7 @@
 {
   "name": "build-multi-target-tauri-apps",
-  "version": "0.1.0",
-  "description": "Build, debug, test and prepare Tauri 2 apps across desktop and mobile targets with grounded security and platform evidence.",
+  "version": "0.2.0",
+  "description": "Build, debug, optimize and prepare Tauri 2 apps across desktop and mobile targets with grounded security, performance and platform evidence.",
   "author": {
     "name": "Andrew Cox",
     "url": "https://github.com/sealad886"
@@ -10,7 +10,7 @@
   "interface": {
     "displayName": "Build Multi-target Tauri Apps",
     "shortDescription": "Build Tauri desktop and mobile",
-    "longDescription": "Eight focused skills cover architecture, frontend UX, native builds, IPC security, device QA, performance and distribution, with dated primary-source research and target-specific evidence.",
+    "longDescription": "Eight focused skills cover architecture, frontend UX, native builds, IPC security, device QA, mobile speed, battery and memory efficiency, and distribution, with dated primary research and target-specific evidence.",
     "developerName": "Andrew Cox",
     "category": "Developer Tools",
     "capabilities": [
@@ -19,9 +19,9 @@
       "Interactive"
     ],
     "defaultPrompt": [
-      "Build this Tauri app for desktop, iOS and Android.",
-      "Verify this Tauri feature across native targets.",
-      "Review Tauri IPC permissions and prepare release artifacts."
+      "Build and verify this Tauri app for desktop, iOS and Android.",
+      "Review Tauri IPC permissions and prepare release artifacts.",
+      "Optimize this Tauri app for mobile responsiveness, battery use and memory efficiency."
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/logo.svg",
@@ -38,6 +38,9 @@
     "ios",
     "android",
     "cross-platform",
-    "webview"
+    "webview",
+    "performance",
+    "battery",
+    "memory"
   ]
 }

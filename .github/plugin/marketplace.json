@@ -39,8 +39,8 @@
     },
     {
       "name": "build-multi-target-tauri-apps",
-      "description": "Build, debug, test and prepare Tauri 2 apps across desktop and mobile targets with grounded security and platform evidence.",
-      "version": "0.1.0",
+      "description": "Build, debug, optimize and prepare Tauri 2 apps across desktop and mobile targets with grounded security, performance and platform evidence.",
+      "version": "0.2.0",
       "source": "./plugins/build-multi-target-tauri-apps"
     },
     {
