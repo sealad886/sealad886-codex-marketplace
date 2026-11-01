@@ -18,6 +18,11 @@ specific matching skill instead of loading overlapping guides together.
 
 ## Why distribute the collection as a plugin?
 
+Upstream already offers a Claude Code plugin and a `skills` installer with
+broader agent support; see its [installation options](https://github.com/Mindrally/skills#installation).
+This distribution adds native plugin packaging for Codex and GitHub Copilot,
+using one shared, individually reviewed skill tree.
+
 One versioned plugin gives the collection a single install, update and uninstall
 lifecycle, instead of managing 265 separate skill copies. Shared skill files,
 synchronized manifests and a common validation workflow keep the Codex and
