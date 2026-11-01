@@ -4,11 +4,31 @@ One skills-only plugin containing all **265** skills from
 [Mindrally/skills](https://github.com/Mindrally/skills), adapted for **Codex and
 GitHub Copilot**. Version **0.1.0**.
 
+**Mindrally's skills collection** is the original source and inspiration, pinned
+to [commit `7682ca77710e0971eab4e0ae5dddfa281aea0ba5`](https://github.com/Mindrally/skills/tree/7682ca77710e0971eab4e0ae5dddfa281aea0ba5).
+This independently maintained adaptation preserves the upstream
+[Apache-2.0 license](LICENSE) and [attribution and modification notices](NOTICE.md);
+it does not imply affiliation with or endorsement by Mindrally.
+
 Languages, frameworks, web and native applications, APIs, databases,
 infrastructure, machine learning, testing, accessibility and engineering
 practices remain separately discoverable. Closely related upstream skills keep
 their identities so existing skill names remain available; invoke the most
 specific matching skill instead of loading overlapping guides together.
+
+## Why distribute the collection as a plugin?
+
+One versioned plugin gives the collection a single install, update and uninstall
+lifecycle, instead of managing 265 separate skill copies. Shared skill files,
+synchronized manifests and a common validation workflow keep the Codex and
+Copilot packages aligned. The pinned source, individual source hashes and audit
+records make the adaptation traceable and its source baseline reproducible.
+
+All 265 skills remain independently discoverable, with local controls for disabling
+unused skills. Bundling them does not require loading every skill body and reference
+into each task: use progressive disclosure to select relevant guidance. Enabled
+skill metadata can still contribute to context, so selective enablement remains
+useful.
 
 ## How progressive disclosure works
 
