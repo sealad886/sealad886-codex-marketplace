@@ -1,6 +1,6 @@
-# Conversation Visuals
+![Conversation Visuals — Make ideas easier to understand.](assets/readme-banner.png)
 
-![Conversation Visuals](assets/conversation-visuals-logo.svg)
+# Conversation Visuals
 
 Conversation Visuals enriches supported Codex and ChatGPT conversations with
 relevant sourced images, generated illustrations, diagrams, charts, slide

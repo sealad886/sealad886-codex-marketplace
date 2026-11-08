@@ -159,6 +159,12 @@ A plugin has two display surfaces. Keep both useful:
 - `README.md` is the full package guide. Include a brief purpose, linked skill
   summaries, useful example requests, prerequisites, and validation instructions.
 
+README banners belong in `assets/readme-banner.png` or `assets/readme-banner.svg`.
+The distribution selector includes these optional files without changing the
+marketplace icon or logo. Link the banner at the top of the package README with
+descriptive alternative text, and follow the package's existing palette and
+visual identity. Artwork prompts and provenance belong in `docs/artwork/`.
+
 Display metadata does not replace `SKILL.md` or grant tool permissions. Keep
 starter prompts within the skill's authority rules. See OpenAI's
 [skill interface requirements](https://developers.openai.com/plugins/deploy/submission-errors).

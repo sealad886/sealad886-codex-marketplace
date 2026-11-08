@@ -1,3 +1,5 @@
+![Repository Guidance — Engineering rules grounded in your code.](assets/readme-banner.png)
+
 # Repository Guidance
 
 Version: **0.1.0**. Create, adapt, and audit coding-agent instructions using the

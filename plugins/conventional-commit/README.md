@@ -1,3 +1,5 @@
+![Conventional Commit — Clear intent. Coherent history.](assets/readme-banner.png)
+
 # Conventional Commit
 
 Version **0.2.0**. One standalone skill for inspecting dirty Git work, selecting

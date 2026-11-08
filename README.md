@@ -14,6 +14,8 @@ metadata retained separately.
 
 ### [Mindrally Skills](plugins/mindrally-skills/README.md)
 
+[![Mindrally Skills — Focused expertise across your stack.](plugins/mindrally-skills/assets/readme-banner.png)](plugins/mindrally-skills/README.md)
+
 All 265 skills from Mindrally's development library, individually reviewed and
 adapted into concise workflows with conditional technical references. Covers
 languages, frameworks, native and web applications, APIs, databases, AI,
@@ -25,11 +27,15 @@ discoverable in Codex and GitHub Copilot.
 
 ### [Camofox Browser](plugins/camofox-mcp/README.md)
 
+[![Camofox Browser — Small fox. Big browser energy.](plugins/camofox-mcp/assets/readme-banner.svg)](plugins/camofox-mcp/README.md)
+
 Give agents a full headless browser with 46 MCP tools, managed server and browser setup, isolated sessions, screenshots, structured extraction, uploads, and downloads. Runs locally on macOS and Linux, or connects to an existing Camofox service.
 
 **Release:** `0.1.1` · [Setup and usage](plugins/camofox-mcp/README.md) · [Runtime source](https://github.com/sealad886/camofox-mcp)
 
 ### [Project Delivery](plugins/project-delivery/README.md)
+
+[![Project Delivery — From intent to verified delivery.](plugins/project-delivery/assets/readme-banner.png)](plugins/project-delivery/README.md)
 
 Take work from requirements through implementation, testing, review, and release. Project Delivery adapts the workflow to the size and risk of the task, keeps decisions grounded in the repository, and tracks what has actually been verified.
 
@@ -37,11 +43,15 @@ Take work from requirements through implementation, testing, review, and release
 
 ### [Semantic Versioning](plugins/semantic-versioning/README.md)
 
+[![Semantic Versioning — Release intent. Verified versions.](plugins/semantic-versioning/assets/readme-banner.png)](plugins/semantic-versioning/README.md)
+
 Keep version decisions aligned with code changes. Assess release impact, respect the project's existing version owner, and configure or verify release automation. Includes guidance across ten ecosystem families, read-only inspection tools, and GitHub Actions examples for common packaging workflows.
 
 **Release:** `0.1.1` · [Guide and examples](plugins/semantic-versioning/README.md)
 
 ### [MLX Optimizer](plugins/mlx-optimizer/README.md)
+
+[![MLX Optimizer — Measure the work. Compress the path.](plugins/mlx-optimizer/assets/readme-banner.png)](plugins/mlx-optimizer/README.md)
 
 Audit, benchmark, and optimize Python MLX code on Apple Silicon. Find performance bottlenecks, compare changes against measured baselines, and check numerical accuracy alongside speed and memory use.
 
@@ -49,11 +59,15 @@ Audit, benchmark, and optimize Python MLX code on Apple Silicon. Find performanc
 
 ### [Conversation Visuals](plugins/conversation-visuals/README.md)
 
+[![Conversation Visuals — Make ideas easier to understand.](plugins/conversation-visuals/assets/readme-banner.png)](plugins/conversation-visuals/README.md)
+
 Bring useful images, diagrams, and generated visuals into supported Codex and ChatGPT conversations. Choose visuals that help explain the subject, with source attribution and clear disclosure of generated content.
 
 **Version:** `0.1.2` · [Guide and supported capabilities](plugins/conversation-visuals/README.md)
 
 ### [iCloud Mail](plugins/icloud-mail/README.md)
+
+[![iCloud Mail — Your mailbox, thoughtfully connected.](plugins/icloud-mail/assets/readme-banner.png)](plugins/icloud-mail/README.md)
 
 Connect iCloud Mail through one temporary setup page on your Mac, with an Apple app-specific password stored in macOS Keychain. Search, read, organize, draft, and send mail directly on iCloud, including attachments, replies, and forwarding. No local email repository, cache, search index, or background sync.
 
@@ -61,11 +75,15 @@ Connect iCloud Mail through one temporary setup page on your Mac, with an Apple 
 
 ### [Build Multi-target Tauri Apps](plugins/build-multi-target-tauri-apps/README.md)
 
+[![Build Multi-target Tauri Apps — Shared foundations. Native experiences.](plugins/build-multi-target-tauri-apps/assets/readme-banner.png)](plugins/build-multi-target-tauri-apps/README.md)
+
 Build, debug, test and prepare Tauri 2 apps across Windows, Linux, macOS, iOS and Android. Eight skills cover architecture, frontend UX, native integration, IPC security, device QA, performance and distribution, grounded in dated primary-source research.
 
 **Initial package:** `0.1.0` · [Guide and target requirements](plugins/build-multi-target-tauri-apps/README.md)
 
 ### [Iterating PR Bot Fixes](plugins/iterating-pr-bot-fixes/README.md)
+
+[![Iterating PR Bot Fixes — Review. Resolve. Verify.](plugins/iterating-pr-bot-fixes/assets/readme-banner.png)](plugins/iterating-pr-bot-fixes/README.md)
 
 Drive a GitHub pull request through bounded review and fix rounds, diagnose failed checks, and refresh evidence after head, base, or merge-queue changes. Retain explicit reviewer outcomes, current-revision merge gates, and resumable cleanup.
 
@@ -73,11 +91,15 @@ Drive a GitHub pull request through bounded review and fix rounds, diagnose fail
 
 ### [Repository Consolidation](plugins/repo-consolidation/README.md)
 
+[![Repository Consolidation — Bring useful work together.](plugins/repo-consolidation/assets/readme-banner.png)](plugins/repo-consolidation/README.md)
+
 Reconcile useful outcomes from scattered branches, worktrees, stashes, and unfinished changes onto the verified default branch. Choose canonical implementations, adapt missing behavior, and prune verified obsolete code, artifacts and residue through focused PRs in series.
 
 **Release:** `0.3.0` · [Guide and reconciliation rules](plugins/repo-consolidation/README.md)
 
 ### [Conventional Commit](plugins/conventional-commit/README.md)
+
+[![Conventional Commit — Clear intent. Coherent history.](plugins/conventional-commit/assets/readme-banner.png)](plugins/conventional-commit/README.md)
 
 Turn selected changes into coherent Conventional Commits whose types and scopes fit the behavior and repository automation. Includes a constrained staged-hunk procedure, excluded-work preservation, signing/hooks, and explicit cleanup controls.
 
@@ -85,11 +107,15 @@ Turn selected changes into coherent Conventional Commits whose types and scopes 
 
 ### [Simplify Code](plugins/simplify-code/README.md)
 
+[![Simplify Code — Less complexity. Clearer behavior.](plugins/simplify-code/assets/readme-banner.png)](plugins/simplify-code/README.md)
+
 Remove unnecessary layers, simplify state and control flow, and migrate proven callers to their canonical owner. Preserve required behavior, resource lifetimes, evaluation order, and unresolved dynamic or external consumers.
 
 **Release:** `0.2.0` · [Guide and refactoring examples](plugins/simplify-code/README.md)
 
 ### [Adversarial Audit](plugins/adversarial-audit/README.md)
+
+[![Adversarial Audit — Find consequential defects with evidence.](plugins/adversarial-audit/assets/readme-banner.png)](plugins/adversarial-audit/README.md)
 
 Investigate system risks through reproducible evidence, bounded failure/recovery experiments, and independent or property-based comparisons. Keep finding validity separate from repair status and drive authorized fixes through verification.
 
@@ -97,11 +123,15 @@ Investigate system risks through reproducible evidence, bounded failure/recovery
 
 ### [Web Research](plugins/web-research/README.md)
 
+[![Web Research — Questions answered. Sources checked.](plugins/web-research/assets/readme-banner.png)](plugins/web-research/README.md)
+
 Research decisions with cited evidence, comparable quantities, and explicit uncertainty. Compare options and sensitivity, refresh an existing brief claim by claim, and check quantitative claims while separating reported figures from calculations.
 
 **Release:** `0.2.0` · [Guide and source evaluation](plugins/web-research/README.md)
 
 ### [Repository Guidance](plugins/repository-guidance/README.md)
+
+[![Repository Guidance — Engineering rules grounded in your code.](plugins/repository-guidance/assets/readme-banner.png)](plugins/repository-guidance/README.md)
 
 Create or audit repository-specific agent instructions using evidence from the
 target checkout. Adapt engineering conventions to its actual package boundaries,
@@ -110,6 +140,8 @@ state ownership, contracts, verification commands, and delivery policies.
 **Release:** `0.1.0` · [Guide and adaptation method](plugins/repository-guidance/README.md)
 
 ### [Local Translation](plugins/local-translation/README.md)
+
+[![Local Translation: coordinated language work across documents](plugins/local-translation/assets/banner.png)](plugins/local-translation/README.md)
 
 Assign a translation coordinator and nineteen separately invocable expert skills,
 including translator, independent bilingual reviser, terminologist, editor,

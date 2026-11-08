@@ -1,3 +1,5 @@
+![Web Research — Questions answered. Sources checked.](assets/readme-banner.png)
+
 # Web Research
 
 Version: **0.2.0**. One skill for researching a question, comparing decisions,
