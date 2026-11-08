@@ -1,6 +1,6 @@
-# Semantic Versioning
+![Semantic Versioning — Release intent. Verified versions.](assets/readme-banner.png)
 
-![Semantic Versioning](assets/logo.svg)
+# Semantic Versioning
 
 Version 0.1.1.
 

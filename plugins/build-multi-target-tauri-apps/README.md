@@ -1,3 +1,5 @@
+![Build Multi-target Tauri Apps — Shared foundations. Native experiences.](assets/readme-banner.png)
+
 # Build Multi-target Tauri Apps
 
 Build, debug, test and prepare Tauri 2 apps for Windows, Linux, macOS, iOS and Android. Share frontend/domain behavior while checking native permissions, plugins, WebView differences and platform evidence. Optional browser deployment has explicit native-feature replacements or unavailable states.
