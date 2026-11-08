@@ -248,6 +248,40 @@ class DistributionBundleTests(unittest.TestCase):
             for name in ("dark.svg", "dark-composer.svg"):
                 self.assertEqual((source / name).read_bytes(), (output / name).read_bytes())
 
+    def test_readme_banner_ships_without_changing_marketplace_artwork(self) -> None:
+        # A documentation banner is part of the installed package even when
+        # the marketplace continues to use its separate icon and logo.
+        for extension in ("png", "svg"):
+            with self.subTest(format=extension), tempfile.TemporaryDirectory() as temporary:
+                source = Path(temporary) / "source/example-plugin"
+                create_minimal_plugin(source, name="example-plugin")
+                overlay_path = source / ".codex-plugin/plugin.json"
+                overlay = json.loads(overlay_path.read_text())
+                overlay["skills"] = "./skills/"
+                overlay_path.write_text(json.dumps(overlay))
+                portable = add_portable_manifest(source)
+                portable.pop("skills")
+                (source / "plugin.json").write_text(json.dumps(portable))
+                banner = Path(f"assets/readme-banner.{extension}")
+                (source / banner).parent.mkdir()
+                contents = (b"\x89PNG\r\n\x1a\n" if extension == "png" else
+                            b'<svg xmlns="http://www.w3.org/2000/svg"/>')
+                (source / banner).write_bytes(contents)
+                (source / "README.md").write_text(f"![Example plugin]({banner.as_posix()})\n")
+                output = Path(temporary) / "dist/example-plugin"
+
+                result = run_checker("--output", str(output), root=source)
+
+                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertEqual((output / banner).read_bytes(), contents)
+                self.assertEqual((output / ".codex-plugin/plugin.json").read_bytes(),
+                                 overlay_path.read_bytes())
+
+                (source / "assets/unrelated.txt").write_text("not package artwork\n")
+                rejected = run_checker(root=source)
+                self.assertNotEqual(rejected.returncode, 0)
+                self.assertIn("undeclared file: assets/unrelated.txt", rejected.stdout)
+
     def test_project_delivery_package_still_validates(self) -> None:
         result = run_checker()
 

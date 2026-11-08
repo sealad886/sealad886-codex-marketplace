@@ -1,3 +1,5 @@
+![Simplify Code — Less complexity. Clearer behavior.](assets/readme-banner.png)
+
 # Simplify Code
 
 Version: **0.2.0**. One skill for removing unnecessary layers and obsolete source,

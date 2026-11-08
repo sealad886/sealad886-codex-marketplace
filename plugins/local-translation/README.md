@@ -1,6 +1,6 @@
-# Local Translation
-
 ![Local Translation: coordinated language work across documents](assets/banner.png)
+
+# Local Translation
 
 Coordinate expert agents through translation, independent bilingual AI revision,
 terminology and subject review, correction loops, and a human release decision.

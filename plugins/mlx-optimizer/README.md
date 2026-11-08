@@ -1,7 +1,4 @@
-<p align="center">
-
-  <img src="assets/mlx-optimizer-logo.png" width="176" alt="MLX Optimizer electrified compiled-flow logo">
-</p>
+![MLX Optimizer — Measure the work. Compress the path.](assets/readme-banner.png)
 
 <h1 align="center">MLX Optimizer</h1>
 

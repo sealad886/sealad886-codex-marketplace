@@ -1,3 +1,5 @@
+![Repository Consolidation — Bring useful work together.](assets/readme-banner.png)
+
 # Repository Consolidation
 
 Version **0.3.0**. One standalone skill for reconciling useful implemented work

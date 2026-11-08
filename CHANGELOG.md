@@ -3,6 +3,17 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Marketplace 0.1.21 - 2026-11-08
+
+### Changed
+
+- Add coordinated banners to every plugin README and its section in the
+  marketplace README, using each plugin's existing colors and icon motifs.
+- Create fourteen 1536 × 512 PNG banners and reuse the existing Local Translation
+  and Camofox artwork. Record the generation prompts and a complete banner gallery.
+- Include standard README banner assets in plugin distributions while preserving
+  the existing marketplace icons, plugin versions and Codex release pins.
+
 ## Mindrally Skills 0.1.0 - 2026-10-31
 
 ### Added

@@ -1,6 +1,6 @@
-# iCloud Mail for Codex
+![iCloud Mail — Your mailbox, thoughtfully connected.](assets/readme-banner.png)
 
-![iCloud Mail](assets/icloud-mail-logo.svg)
+# iCloud Mail for Codex
 
 iCloud Mail gives Codex a local, dependency-free email integration using
 Apple's documented IMAP and SMTP endpoints. It offers the practical core of

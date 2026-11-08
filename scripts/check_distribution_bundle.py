@@ -36,6 +36,10 @@ OPTIONAL_ROOT_FILES = {
     "pyproject.toml",
     "yarn.lock",
 }
+OPTIONAL_README_ARTWORK = (
+    "assets/readme-banner.png",
+    "assets/readme-banner.svg",
+)
 COMPONENT_FIELDS = ("skills", "scripts", "apps", "app", "appConfig", "hooks")
 PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/operating-model.md",
@@ -230,6 +234,9 @@ def select_paths(root: Path) -> set[Path]:
         raise ValueError("plugin manifest must contain an object")
     selected = {Path(".codex-plugin/plugin.json")}
     selected.update(path for path in map(Path, OPTIONAL_ROOT_FILES) if (root / path).is_file())
+    selected.update(
+        path for path in map(Path, OPTIONAL_README_ARTWORK) if (root / path).is_file()
+    )
 
     for field in COMPONENT_FIELDS:
         value = manifest.get(field)

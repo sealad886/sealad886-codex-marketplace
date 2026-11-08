@@ -1,3 +1,5 @@
+![Iterating PR Bot Fixes — Review. Resolve. Verify.](assets/readme-banner.png)
+
 # Iterating PR Bot Fixes
 
 Version **0.2.1**. One standalone skill for taking an identified GitHub pull

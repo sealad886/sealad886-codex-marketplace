@@ -1,3 +1,5 @@
+![Adversarial Audit — Find consequential defects with evidence.](assets/readme-banner.png)
+
 # Adversarial Audit
 
 Version: **0.2.0**. One self-contained skill for finding consequential correctness,

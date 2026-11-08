@@ -1,3 +1,5 @@
+![Mindrally Skills — Focused expertise across your stack.](assets/readme-banner.png)
+
 # Mindrally Skills
 
 One skills-only plugin containing all **265** skills from
