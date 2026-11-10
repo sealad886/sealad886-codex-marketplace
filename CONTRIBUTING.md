@@ -6,6 +6,22 @@ All new and updated plugins must remain valid for both Codex and GitHub Copilot.
 The repository's [agent instructions](AGENTS.md) define the required catalog,
 manifest, MCP, packaging, and verification rules for both marketplaces.
 
+Explicitly requested Codex-only packages use the validated root-manifest
+extension `com.sealad886.marketplace` with `{"clients": ["codex"], "reason": "..."}`.
+This is repository catalog policy, not a native host setting. Both clients remain
+the default when the extension is absent. The Copilot generator validates all
+canonical packages before filtering membership; retain portable manifests and
+run both catalog checks even for an excluded package.
+
+[Worktree Activity](plugins/worktree-activity/README.md) owns a Codex-only skill,
+local registry helper, Draft 2020-12 schema, lifecycle contract, and runtime
+identity evidence. Run `PYTHONDONTWRITEBYTECODE=1 .venv/bin/python -m unittest
+discover -s tests -p 'test_worktree_activity.py' -v`. Its runtime dependency
+closure is pinned under the skill's `scripts/requirements.txt`; CI installs it
+in a dedicated environment. No records expire and recovery plans never message
+or resume conversations. Changing deletion, identity, or synchronization requires
+an independent review.
+
 ## Choose the owning scope
 
 - Marketplace-level changes own catalog metadata, repository policy, shared CI, issue templates, and cross-plugin documentation.

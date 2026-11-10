@@ -60,6 +60,18 @@ def write_mcp_server(source: Path, server: object) -> None:
 
 
 class DistributionBundleTests(unittest.TestCase):
+    def test_worktree_activity_only_declared_helper_may_be_executable(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "worktree-activity"
+            create_minimal_plugin(source, name="worktree-activity")
+            helper = source / "skills/sample/scripts/helper.py"
+            helper.parent.mkdir()
+            helper.write_text("#!/usr/bin/env python3\nprint('fixture')\n")
+            helper.chmod(0o755)
+            result = run_checker(root=source)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("executable file", result.stdout)
+
     def test_local_translation_runtime_and_configuration_ship_together(self) -> None:
         # Installed tools must retain their imported modules and setup examples.
         with tempfile.TemporaryDirectory() as temporary:

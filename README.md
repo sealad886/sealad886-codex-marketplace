@@ -8,7 +8,8 @@ Tools for planning and shipping software, reviewing and consolidating Git work, 
 
 Available as a plugin marketplace for **Codex** and **GitHub Copilot**. All
 packages expose portable Agent Plugins 1.0 manifests, with Codex presentation
-metadata retained separately.
+metadata retained separately. Worktree Activity is offered only in the Codex
+catalog because it requires native Codex conversation identity.
 
 ## Plugins
 
@@ -128,6 +129,14 @@ Investigate system risks through reproducible evidence, bounded failure/recovery
 Research decisions with cited evidence, comparable quantities, and explicit uncertainty. Compare options and sensitivity, refresh an existing brief claim by claim, and check quantitative claims while separating reported figures from calculations.
 
 **Release:** `0.2.0` · [Guide and source evaluation](plugins/web-research/README.md)
+
+### [Worktree Activity](plugins/worktree-activity/README.md)
+
+Preserve unfinished worktree assignments under their responsible Codex root
+conversation across interruptions. Includes an atomic local registry helper,
+versioned schema, root-only lifecycle skill, and read-only recovery plans.
+
+**Version:** `0.1.0` · **Codex only** · [Setup and activation](plugins/worktree-activity/README.md)
 
 ### [Repository Guidance](plugins/repository-guidance/README.md)
 

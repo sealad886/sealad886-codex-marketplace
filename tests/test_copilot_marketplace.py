@@ -43,6 +43,40 @@ def create_fixture(root: Path) -> Path:
 
 
 class CopilotMarketplaceTests(unittest.TestCase):
+    def test_explicit_codex_scope_omits_only_copilot_membership(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = create_fixture(root)
+            path = package / "plugin.json"
+            manifest = json.loads(path.read_text())
+            manifest["extensions"]["com.sealad886.marketplace"] = {
+                "clients": ["codex"], "reason": "Requires native Codex identity",
+            }
+            write_json(path, manifest)
+            result = run_checker(root, "--write")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(json.loads((root / CATALOG).read_text())["plugins"], [])
+            # Omission must not bypass package validation.
+            manifest["version"] = "99.0.0"
+            write_json(path, manifest)
+            self.assertNotEqual(run_checker(root).returncode, 0)
+
+    def test_invalid_client_scope_cannot_silently_drop_package(self) -> None:
+        for policy in ({"clients": [], "reason": "empty"},
+                       {"clients": ["copilot"], "reason": "unsupported"},
+                       {"clients": ["codex"], "reason": " "},
+                       {"clients": ["codex"], "reason": "x", "typo": True}, None):
+            with self.subTest(policy=policy), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                package = create_fixture(root)
+                path = package / "plugin.json"
+                manifest = json.loads(path.read_text())
+                manifest["extensions"]["com.sealad886.marketplace"] = policy
+                write_json(path, manifest)
+                result = run_checker(root, "--write")
+                self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                self.assertFalse((root / CATALOG).exists())
+
     def test_repository_catalog_and_all_plugins_are_discoverable(self) -> None:
         result = run_checker(ROOT)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)

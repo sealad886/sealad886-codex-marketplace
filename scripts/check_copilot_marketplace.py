@@ -77,11 +77,23 @@ def expected_catalog(root: Path) -> tuple[dict, list[str]]:
             raise ValueError(f"{name} canonical source must match the package name")
         if not (package / "plugin.json").is_file():
             errors.append(f"{name} missing portable manifest plugin.json")
+            portable = {}
         else:
             errors.extend(f"{name}: {error}" for error in validate_portable_manifest(package, overlay))
+            try:
+                portable = read_object(package / "plugin.json", package)
+            except (OSError, UnicodeError, ValueError) as error:
+                errors.append(f"{name} portable manifest: {error}")
+                portable = {}
         if not list((package / "skills").glob("*/SKILL.md")):
             errors.append(f"{name} must expose skills in skills/<name>/SKILL.md")
         errors.extend(validate_portable_mcp(package, overlay))
+        # Validate every canonical package before applying its explicit client scope.
+        # This repository-owned extension is not a native host activation policy.
+        extensions = portable.get("extensions", {})
+        targets = extensions.get("com.sealad886.marketplace", {}) if isinstance(extensions, dict) else {}
+        if isinstance(targets, dict) and targets.get("clients") == ["codex"]:
+            continue
         plugins.append({
             "name": name,
             "description": overlay["description"],

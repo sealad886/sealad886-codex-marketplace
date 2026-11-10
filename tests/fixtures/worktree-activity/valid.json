@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "session_type": "codex-desktop",
+  "root_thread_id": "019a1111-1111-7111-8111-111111111111",
+  "session_id": null,
+  "worktree_path": "/example/project/.worktrees/native-backend",
+  "branch": "codex/native-backend",
+  "tasks": [
+    {
+      "id": "implement-native-backend",
+      "description": "Implement and verify native backend",
+      "registered_at": "2026-11-09T09:30:47Z",
+      "last_activity": "2026-11-10T17:36:00Z",
+      "status": "blocked",
+      "assignee_thread_id": "019a3333-3333-7333-8333-333333333333",
+      "note": "Awaiting explicit approval for external deployment"
+    }
+  ]
+}

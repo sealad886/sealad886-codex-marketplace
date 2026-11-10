@@ -40,6 +40,9 @@ OPTIONAL_README_ARTWORK = (
     "assets/readme-banner.png",
     "assets/readme-banner.svg",
 )
+EXECUTABLE_RESOURCES = {
+    "worktree-activity": {Path("skills/worktree-activity/scripts/worktree_activity.py")},
+}
 COMPONENT_FIELDS = ("skills", "scripts", "apps", "app", "appConfig", "hooks")
 PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/operating-model.md",
@@ -49,6 +52,7 @@ PROJECT_DELIVERY_SHARED_RUNTIME_PATHS = (
     "skills/.shared/route-profiles-v1.json",
 )
 EXPECTED_SKILL_COUNTS = {
+    "worktree-activity": 1,
     "mindrally-skills": 265,
     "local-translation": 20,
     "camofox-mcp": 1,
@@ -332,6 +336,7 @@ def inventory_tree(
     files: set[Path] = set()
     directories: set[Path] = set()
     errors: list[str] = []
+    executable_resources = EXECUTABLE_RESOURCES.get(read_plugin_name(root), set())
     entries = sorted(root.rglob("*"))
     started = time.monotonic()
     for index, path in enumerate(entries, 1):
@@ -347,7 +352,7 @@ def inventory_tree(
             continue
         if path.is_file():
             files.add(relative)
-            if path.stat().st_mode & 0o111:
+            if path.stat().st_mode & 0o111 and relative not in executable_resources:
                 errors.append(f"{label} contains executable file: {relative}")
         elif path.is_dir():
             directories.add(relative)

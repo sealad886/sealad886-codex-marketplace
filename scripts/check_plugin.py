@@ -128,6 +128,15 @@ def validate_portable_manifest(root: Path, overlay: dict) -> list[str]:
     extensions = portable.get("extensions", {})
     if not isinstance(extensions, dict) or not all(isinstance(value, dict) for value in extensions.values()):
         errors.append("portable manifest extensions must map namespaces to objects")
+    if isinstance(extensions, dict) and "com.sealad886.marketplace" in extensions:
+        targets = extensions["com.sealad886.marketplace"]
+        if (not isinstance(targets, dict)
+                or set(targets) != {"clients", "reason"}
+                or targets.get("clients") not in (["codex"], ["codex", "copilot"])
+                or not isinstance(targets.get("reason"), str)
+                or not targets["reason"].strip()):
+            errors.append("marketplace extension requires clients [codex] or [codex, copilot] "
+                          "and a nonblank reason")
     openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else None
     interface = openai.get("interface") if isinstance(openai, dict) else None
     if not isinstance(interface, dict):

@@ -8,6 +8,13 @@ plugins, including metadata, versions, skills, MCP servers, package contents,
 catalog membership, and release automation. A change is not complete when only
 one marketplace validates.
 
+An explicit user-requested Codex-only package may opt out of Copilot catalog
+membership using root `plugin.json` extension `com.sealad886.marketplace` with
+`clients: ["codex"]` and a nonblank `reason`. Worktree Activity uses this exception
+because it requires native Codex identity. Both catalog validators and portable
+package checks still apply; omission never bypasses package validation. Other
+packages retain both-client membership by default.
+
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the owning plugin's guide before
 editing. Extend the existing package and validation tools; do not create separate
 Codex and Copilot copies of the same skills or runtime implementation.

@@ -102,4 +102,5 @@ jobs:
         run: |
           python3 -m venv "$RUNNER_TEMP/icloud-remote-tests"
           "$RUNNER_TEMP/icloud-remote-tests/bin/python" -m pip install --require-hashes -r plugins/icloud-mail/mcp/requirements-remote.txt
+          "$RUNNER_TEMP/icloud-remote-tests/bin/python" -m pip install --require-hashes -r plugins/worktree-activity/skills/worktree-activity/scripts/requirements.txt
           "$RUNNER_TEMP/icloud-remote-tests/bin/python" -m unittest discover -s tests -p 'test_*.py' -v

@@ -1,0 +1,38 @@
+{
+  "name": "worktree-activity",
+  "version": "0.1.0",
+  "description": "Keep unfinished Git work attributable to its responsible Codex conversation until owner-verified completion or authorized cancellation.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/worktree-activity",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "worktree",
+    "ownership",
+    "recovery"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Worktree Activity",
+    "shortDescription": "Recover unfinished Git work",
+    "longDescription": "Register unfinished assignments by native Codex conversation in existing authorized worktrees. Preserve ownership across interruptions, reconcile delegated results, and produce read-only recovery plans. Records never expire and never grant exclusive checkout access.",
+    "developerName": "Andrew Cox",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Register this development assignment in its existing worktree and preserve its ownership until verified completion.",
+      "Inspect these project roots and prepare a read-only recovery plan grouped by responsible conversation."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "brandColor": "#276579",
+    "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/worktree-activity"
+  }
+}
