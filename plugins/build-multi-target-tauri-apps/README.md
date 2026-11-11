@@ -4,7 +4,20 @@
 
 Build, debug, test and prepare Tauri 2 apps for Windows, Linux, macOS, iOS and Android. Share frontend/domain behavior while checking native permissions, plugins, WebView differences and platform evidence. Optional browser deployment has explicit native-feature replacements or unavailable states.
 
-Current package version: **0.2.0**. Marketplace package; publication is gated by PR review and CI, while native consumer acceptance requires separate target evidence. This original synthesis adapts capabilities from Build iOS Apps, Build Web Apps, Build macOS Apps and Test Android Apps. It does not copy their skill text or require them to be installed. [Original adaptation and research ledger](skills/.shared/research.md). The [2026-10-31 performance refresh](skills/.shared/performance/research.md) adds mobile-first responsiveness, battery, thermal and memory guidance from current primary sources.
+Current package version: **0.2.1**. Marketplace package; publication is gated by PR review and CI, while native consumer acceptance requires separate target evidence. This original synthesis adapts capabilities from Build iOS Apps, Build Web Apps, Build macOS Apps and Test Android Apps. It does not copy their skill text or require them to be installed. [Original adaptation and research ledger](skills/.shared/research.md). The [2026-10-31 performance refresh](skills/.shared/performance/research.md) adds mobile-first responsiveness, battery, thermal and memory guidance from current primary sources.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install build-multi-target-tauri-apps@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/build-multi-target-tauri-apps:tauri-app-builder`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Skills
 
@@ -51,7 +64,7 @@ expose new native APIs, promise battery savings or require SDK installation.
 
 Use consumer repository's package manager, locked frontend/Rust dependencies and local Tauri 2 CLI. Selected native targets require their documented SDK/toolchain and authorized device. iOS requires full Xcode on macOS; Android requires matching SDK/NDK/JDK/Gradle and Rust ABIs. Windows/Linux/macOS packages require supported native build hosts and runtime libraries. No SDK installation is performed by this plugin.
 
-Browser automation, Xcode tools, adb and profilers are optional capabilities detected at runtime. Missing tools have explicit fallback or not-run evidence; no invented tool APIs. Native Tauri plugins are dependencies of the consumer app, distinct from this Codex plugin.
+Browser automation, Xcode tools, adb and profilers are optional capabilities detected at runtime. Missing tools have explicit fallback or not-run evidence; no invented tool APIs. Native Tauri plugins are dependencies of the consumer app, distinct from this coding-agent plugin.
 
 Current WebdriverIO embedded automation supports desktop macOS, Windows and Linux; direct official tauri-driver supports Windows/Linux. Provider/version setup must be verified, and instrumentation stays in test-only builds. Browser mocks cannot prove real IPC ACLs, OS permissions or native lifecycle behavior.
 
@@ -66,7 +79,8 @@ PYTHONDONTWRITEBYTECODE=1 python scripts/check_plugin.py plugins/build-multi-tar
 PYTHONDONTWRITEBYTECODE=1 python scripts/check_distribution_bundle.py plugins/build-multi-target-tauri-apps
 PYTHONDONTWRITEBYTECODE=1 python scripts/check_marketplace.py .
 PYTHONDONTWRITEBYTECODE=1 python scripts/check_copilot_marketplace.py .
+PYTHONDONTWRITEBYTECODE=1 python scripts/check_claude_marketplace.py .
 PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-These check package structure, local links, exact distribution closure and both Codex/Copilot marketplace formats. Regenerate the Copilot catalog with `scripts/check_copilot_marketplace.py --write` after version or description changes. Verify discovery and installation in both clients with isolated settings when changing metadata or package layout. They do not prove native app behavior, fresh Codex routing, visual plugin-card rendering or storefront compliance. Validate consumer changes using the target evidence matrix in [testing reference](skills/.shared/validation.md). Keep original prose/artwork, refresh affected sources, preserve unrelated changes and commit only coherent scope. No credentials or captures belong in the distribution.
+These check package structure, local links, exact distribution closure and Codex, Copilot and Claude Code marketplace formats. Regenerate the Copilot and Claude Code catalogs with `scripts/check_copilot_marketplace.py --write` and `scripts/check_claude_marketplace.py --write` after version or description changes. Verify discovery and installation in all three clients with isolated settings when changing metadata or package layout. They do not prove native app behavior, fresh Codex routing, visual plugin-card rendering or storefront compliance. Validate consumer changes using the target evidence matrix in [testing reference](skills/.shared/validation.md). Keep original prose/artwork, refresh affected sources, preserve unrelated changes and commit only coherent scope. No credentials or captures belong in the distribution.

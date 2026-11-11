@@ -2,13 +2,26 @@
 
 # Simplify Code
 
-Version: **0.2.0**. One skill for removing unnecessary layers and obsolete source,
+Version: **0.2.1**. One skill for removing unnecessary layers and obsolete source,
 centralizing shared rules, and making required behavior easier to understand.
 
 [The simplify-code skill](skills/simplify-code/SKILL.md) traces ownership through
 callers, checks public and dynamic entrypoints, refactors coherent slices, and
 uses proportionate behavioral checks. Fewer concepts matter more than line-count
 or call-depth targets.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install simplify-code@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/simplify-code:simplify-code`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Use
 

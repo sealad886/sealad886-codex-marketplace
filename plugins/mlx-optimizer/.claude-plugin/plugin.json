@@ -1,10 +1,13 @@
 {
   "name": "mlx-optimizer",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Python-first MLX optimization skills, references, and audit scripts for Apple Silicon.",
   "author": {
-    "name": "Andrew"
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
   },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/mlx-optimizer",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
   "license": "MIT",
   "keywords": [
     "mlx",
@@ -13,7 +16,5 @@
     "optimization",
     "python",
     "metal"
-  ],
-  "category": "Productivity",
-  "skills": "./skills/"
+  ]
 }

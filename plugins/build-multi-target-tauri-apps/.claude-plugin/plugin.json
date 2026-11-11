@@ -1,0 +1,24 @@
+{
+  "name": "build-multi-target-tauri-apps",
+  "version": "0.2.1",
+  "description": "Build, debug, optimize and prepare Tauri 2 apps across desktop and mobile targets with grounded security, performance and platform evidence.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/build-multi-target-tauri-apps",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "tauri",
+    "rust",
+    "desktop",
+    "ios",
+    "android",
+    "cross-platform",
+    "webview",
+    "performance",
+    "battery",
+    "memory"
+  ]
+}

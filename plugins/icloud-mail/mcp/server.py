@@ -42,7 +42,7 @@ from typing import Any, Iterator
 
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_INFO = {"name": "icloud-mail", "version": "0.4.0"}
+SERVER_INFO = {"name": "icloud-mail", "version": "0.4.1"}
 IMAP_HOST = "imap.mail.me.com"
 IMAP_PORT = 993
 SMTP_HOST = "smtp.mail.me.com"

@@ -2,13 +2,26 @@
 
 # Repository Guidance
 
-Version: **0.1.0**. Create, adapt, and audit coding-agent instructions using the
+Version: **0.1.1**. Create, adapt, and audit coding-agent instructions using the
 repository’s actual architecture, commands, tests, and delivery policies.
 
 The [repository-guidance skill](skills/repository-guidance/SKILL.md) turns useful
 engineering conventions into evidence-backed local rules. It maps each relevant
 candidate to **adopt**, **adapt**, **not applicable**, **conflict**, or **unknown**;
 then produces the requested audit, draft, or focused instruction-file patch.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install repository-guidance@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/repository-guidance:repository-guidance`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Install and use
 
@@ -52,7 +65,7 @@ inspected rather than executed. Report missing evidence instead of inventing rul
 
 The [adaptation lenses](skills/repository-guidance/references/adaptation-lenses.md)
 include a worked mapping for this marketplace’s package boundaries, paired
-manifests, canonical/generated catalogs, Python environment, both client checks,
+manifests, canonical/generated catalogs, Python environment, supported-client checks,
 and publishing authority. The optional
 [adaptation record](skills/repository-guidance/templates/adaptation-record.md)
 can be replaced by an existing project format or a concise response.
@@ -66,7 +79,7 @@ for the inspected revision, research date, license distinction, and excluded
 project-specific assumptions. No upstream source text, runtime, branding, or
 assets are included; this plugin has no Multica affiliation or endorsement.
 
-The package contains one shared skill for Codex and GitHub Copilot. It includes
+The package contains one shared skill for Codex, GitHub Copilot and Claude Code. It includes
 no MCP server, network client, credentials, shell runtime, or required sibling
 plugin. The host supplies repository-reading/editing tools and enforces approvals.
 Browsing is optional unless the task requests current external-source verification.
@@ -83,7 +96,7 @@ PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_distribution_bundle.py 
 ```
 
 Follow the current [marketplace contribution guide](https://github.com/sealad886/sealad886-codex-marketplace/blob/main/CONTRIBUTING.md)
-for both catalog checks, skill validation, isolated native client discovery and
+for all three catalog checks, skill validation, isolated native client discovery and
 installation, installed-file parity, and release scanning. Documentation and
 package checks establish structural validity; evaluate the actual adaptation’s
 claims against the target repository before accepting its guidance.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "repository-guidance",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Create, adapt, and audit repository instructions against local architecture, tooling, tests, and authority instead of importing another project\u2019s assumptions.",
   "author": {
     "name": "Andrew Cox",

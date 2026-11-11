@@ -1,12 +1,30 @@
 ![iCloud Mail — Your mailbox, thoughtfully connected.](assets/readme-banner.png)
 
-# iCloud Mail for Codex
+# iCloud Mail
 
-iCloud Mail gives Codex a local, dependency-free email integration using
+iCloud Mail gives coding agents a local, dependency-free email integration using
 Apple's documented IMAP and SMTP endpoints. It offers the practical core of
 the Gmail and Outlook integrations: mailbox counts, structured search, message
 and conversation reading, attachment access, flags, archive/move/Trash,
 drafts, replies, forwards, and sending.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install icloud-mail@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/icloud-mail:icloud-mail`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
+
+The stdio integration requires Python 3.11+ and macOS for local Keychain-backed
+account setup. Ask to connect iCloud Mail; enter credentials only in the temporary
+local browser setup page. Codex's plugin-page action is not required. Mail reads
+and sends retain the same explicit authorization boundaries in every client.
 
 ## Access while your Mac is offline
 
@@ -248,8 +266,8 @@ Body truncation flags still apply to each returned message.
 **Migration from 0.2.x:** `max_results` is removed from these public tools.
 Refresh tool discovery, remove that argument, and follow continuation tokens.
 Existing account configuration and message identifiers need no data migration.
-The marketplace advertises and installs version **0.4.0**, pinned to the immutable
-source commit containing this release's package. The `icloud-mail-v0.4.0` release
+The marketplace advertises and installs version **0.4.1**, pinned to the immutable
+source commit containing this release's package. The `icloud-mail-v0.4.1` release
 tag contains the same package files. Refresh and install through the marketplace:
 
 ```bash

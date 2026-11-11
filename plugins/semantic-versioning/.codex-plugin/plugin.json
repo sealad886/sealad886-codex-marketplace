@@ -1,6 +1,6 @@
 {
   "name": "semantic-versioning",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Agent-owned release assessment, native version management, and verified CI release recipes.",
   "author": {
     "name": "Andrew Cox",

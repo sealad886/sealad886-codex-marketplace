@@ -1,7 +1,7 @@
 {
   "name": "mindrally-skills",
-  "version": "0.1.0",
-  "description": "265 development skills adapted from Mindrally, with individually reviewed technical guidance and progressive disclosure for Codex and GitHub Copilot.",
+  "version": "0.1.1",
+  "description": "265 development skills adapted from Mindrally, with individually reviewed technical guidance and progressive disclosure for Codex, GitHub Copilot and Claude Code.",
   "author": {
     "name": "Andrew Cox",
     "url": "https://github.com/sealad886"

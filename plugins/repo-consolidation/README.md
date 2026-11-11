@@ -2,7 +2,7 @@
 
 # Repository Consolidation
 
-Version **0.3.0**. One standalone skill for reconciling useful implemented work
+Version **0.3.1**. One standalone skill for reconciling useful implemented work
 onto the verified default branch and removing verified obsolete source through
 focused reviewed PRs in series.
 
@@ -22,6 +22,19 @@ generator inputs before deletion. Source pruning is separate from retiring Git
 branches or worktrees and from disposing of unique dirty content or user data.
 Completion verifies useful behavior on actual default, source cleanup and
 preservation. Fewer branches or lines alone is not success.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install repo-consolidation@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/repo-consolidation:repo-consolidation`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Install and use
 

@@ -6,7 +6,7 @@
 
 Tools for planning and shipping software, reviewing and consolidating Git work, simplifying code, researching the web, managing releases and iCloud email, browsing the web with Camofox, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
 
-Available as a plugin marketplace for **Codex** and **GitHub Copilot**. All
+Available as a plugin marketplace for **Codex**, **GitHub Copilot**, and **Claude Code**. All
 packages expose portable Agent Plugins 1.0 manifests, with Codex presentation
 metadata retained separately. Worktree Activity is offered only in the Codex
 catalog because it requires native Codex conversation identity.
@@ -21,9 +21,9 @@ All 265 skills from Mindrally's development library, individually reviewed and
 adapted into concise workflows with conditional technical references. Covers
 languages, frameworks, native and web applications, APIs, databases, AI,
 infrastructure, testing and engineering practices. Skills remain independently
-discoverable in Codex and GitHub Copilot.
+discoverable in Codex, GitHub Copilot, and Claude Code.
 
-**Version:** `0.1.0` · [Skill directory and usage](plugins/mindrally-skills/README.md)
+**Version:** `0.1.1` · [Skill directory and usage](plugins/mindrally-skills/README.md)
 · [Apache-2.0 provenance](plugins/mindrally-skills/NOTICE.md)
 
 ### [Camofox Browser](plugins/camofox-mcp/README.md)
@@ -32,7 +32,7 @@ discoverable in Codex and GitHub Copilot.
 
 Give agents a full headless browser with 46 MCP tools, managed server and browser setup, isolated sessions, screenshots, structured extraction, uploads, and downloads. Runs locally on macOS and Linux, or connects to an existing Camofox service.
 
-**Release:** `0.1.1` · [Setup and usage](plugins/camofox-mcp/README.md) · [Runtime source](https://github.com/sealad886/camofox-mcp)
+**Release:** `0.1.2` · [Setup and usage](plugins/camofox-mcp/README.md) · [Runtime source](https://github.com/sealad886/camofox-mcp)
 
 ### [Project Delivery](plugins/project-delivery/README.md)
 
@@ -40,7 +40,7 @@ Give agents a full headless browser with 46 MCP tools, managed server and browse
 
 Take work from requirements through implementation, testing, review, and release. Project Delivery adapts the workflow to the size and risk of the task, keeps decisions grounded in the repository, and tracks what has actually been verified.
 
-**Stable release:** `1.5.0` · [Guide and usage](plugins/project-delivery/README.md)
+**Stable release:** `1.5.1` · [Guide and usage](plugins/project-delivery/README.md)
 
 ### [Semantic Versioning](plugins/semantic-versioning/README.md)
 
@@ -48,7 +48,7 @@ Take work from requirements through implementation, testing, review, and release
 
 Keep version decisions aligned with code changes. Assess release impact, respect the project's existing version owner, and configure or verify release automation. Includes guidance across ten ecosystem families, read-only inspection tools, and GitHub Actions examples for common packaging workflows.
 
-**Release:** `0.1.1` · [Guide and examples](plugins/semantic-versioning/README.md)
+**Release:** `0.1.2` · [Guide and examples](plugins/semantic-versioning/README.md)
 
 ### [MLX Optimizer](plugins/mlx-optimizer/README.md)
 
@@ -56,7 +56,7 @@ Keep version decisions aligned with code changes. Assess release impact, respect
 
 Audit, benchmark, and optimize Python MLX code on Apple Silicon. Find performance bottlenecks, compare changes against measured baselines, and check numerical accuracy alongside speed and memory use.
 
-**Stable release:** `0.2.5` · [Guide and requirements](plugins/mlx-optimizer/README.md)
+**Stable release:** `0.2.6` · [Guide and requirements](plugins/mlx-optimizer/README.md)
 
 ### [Conversation Visuals](plugins/conversation-visuals/README.md)
 
@@ -64,7 +64,7 @@ Audit, benchmark, and optimize Python MLX code on Apple Silicon. Find performanc
 
 Bring useful images, diagrams, and generated visuals into supported Codex and ChatGPT conversations. Choose visuals that help explain the subject, with source attribution and clear disclosure of generated content.
 
-**Version:** `0.1.2` · [Guide and supported capabilities](plugins/conversation-visuals/README.md)
+**Version:** `0.1.3` · [Guide and supported capabilities](plugins/conversation-visuals/README.md)
 
 ### [iCloud Mail](plugins/icloud-mail/README.md)
 
@@ -72,7 +72,7 @@ Bring useful images, diagrams, and generated visuals into supported Codex and Ch
 
 Connect iCloud Mail through one temporary setup page on your Mac, with an Apple app-specific password stored in macOS Keychain. Search, read, organize, draft, and send mail directly on iCloud, including attachments, replies, and forwarding. No local email repository, cache, search index, or background sync.
 
-**Release:** `0.4.0` (optional self-hosted read-only remote access; hosting required) · [Setup and usage](plugins/icloud-mail/README.md)
+**Release:** `0.4.1` (optional self-hosted read-only remote access; hosting required) · [Setup and usage](plugins/icloud-mail/README.md)
 
 ### [Build Multi-target Tauri Apps](plugins/build-multi-target-tauri-apps/README.md)
 
@@ -88,7 +88,7 @@ Build, debug, test and prepare Tauri 2 apps across Windows, Linux, macOS, iOS an
 
 Drive a GitHub pull request through bounded review and fix rounds, diagnose failed checks, and refresh evidence after head, base, or merge-queue changes. Retain explicit reviewer outcomes, current-revision merge gates, and resumable cleanup.
 
-**Release:** `0.2.1` · [Guide and review workflow](plugins/iterating-pr-bot-fixes/README.md)
+**Release:** `0.2.2` · [Guide and review workflow](plugins/iterating-pr-bot-fixes/README.md)
 
 ### [Repository Consolidation](plugins/repo-consolidation/README.md)
 
@@ -96,7 +96,7 @@ Drive a GitHub pull request through bounded review and fix rounds, diagnose fail
 
 Reconcile useful outcomes from scattered branches, worktrees, stashes, and unfinished changes onto the verified default branch. Choose canonical implementations, adapt missing behavior, and prune verified obsolete code, artifacts and residue through focused PRs in series.
 
-**Release:** `0.3.0` · [Guide and reconciliation rules](plugins/repo-consolidation/README.md)
+**Release:** `0.3.1` · [Guide and reconciliation rules](plugins/repo-consolidation/README.md)
 
 ### [Conventional Commit](plugins/conventional-commit/README.md)
 
@@ -104,7 +104,7 @@ Reconcile useful outcomes from scattered branches, worktrees, stashes, and unfin
 
 Turn selected changes into coherent Conventional Commits whose types and scopes fit the behavior and repository automation. Includes a constrained staged-hunk procedure, excluded-work preservation, signing/hooks, and explicit cleanup controls.
 
-**Release:** `0.2.0` · [Guide and commit safety](plugins/conventional-commit/README.md)
+**Release:** `0.2.1` · [Guide and commit safety](plugins/conventional-commit/README.md)
 
 ### [Simplify Code](plugins/simplify-code/README.md)
 
@@ -112,7 +112,7 @@ Turn selected changes into coherent Conventional Commits whose types and scopes 
 
 Remove unnecessary layers, simplify state and control flow, and migrate proven callers to their canonical owner. Preserve required behavior, resource lifetimes, evaluation order, and unresolved dynamic or external consumers.
 
-**Release:** `0.2.0` · [Guide and refactoring examples](plugins/simplify-code/README.md)
+**Release:** `0.2.1` · [Guide and refactoring examples](plugins/simplify-code/README.md)
 
 ### [Adversarial Audit](plugins/adversarial-audit/README.md)
 
@@ -120,7 +120,7 @@ Remove unnecessary layers, simplify state and control flow, and migrate proven c
 
 Investigate system risks through reproducible evidence, bounded failure/recovery experiments, and independent or property-based comparisons. Keep finding validity separate from repair status and drive authorized fixes through verification.
 
-**Release:** `0.2.0` · [Guide and evidence ledger](plugins/adversarial-audit/README.md)
+**Release:** `0.2.1` · [Guide and evidence ledger](plugins/adversarial-audit/README.md)
 
 ### [Web Research](plugins/web-research/README.md)
 
@@ -128,7 +128,7 @@ Investigate system risks through reproducible evidence, bounded failure/recovery
 
 Research decisions with cited evidence, comparable quantities, and explicit uncertainty. Compare options and sensitivity, refresh an existing brief claim by claim, and check quantitative claims while separating reported figures from calculations.
 
-**Release:** `0.2.0` · [Guide and source evaluation](plugins/web-research/README.md)
+**Release:** `0.2.1` · [Guide and source evaluation](plugins/web-research/README.md)
 
 ### [Worktree Activity](plugins/worktree-activity/README.md)
 
@@ -151,7 +151,7 @@ Create or audit repository-specific agent instructions using evidence from the
 target checkout. Adapt engineering conventions to its actual package boundaries,
 state ownership, contracts, verification commands, and delivery policies.
 
-**Release:** `0.1.0` · [Guide and adaptation method](plugins/repository-guidance/README.md)
+**Release:** `0.1.1` · [Guide and adaptation method](plugins/repository-guidance/README.md)
 
 ### [Local Translation](plugins/local-translation/README.md)
 
@@ -167,7 +167,7 @@ guide the roles in preparing native inputs through progressive disclosure. Sessi
 temporary, and reviewed workbench candidates return to the caller. Native plugin settings open a bundled
 configuration modal for connecting an existing Index-Translate runner.
 
-**Version:** `0.6.0` · [Role directory and setup](plugins/local-translation/README.md)
+**Version:** `0.6.1` · [Role directory and setup](plugins/local-translation/README.md)
 
 ## Install
 
@@ -244,9 +244,39 @@ The catalog follows GitHub's
 [marketplace format](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-marketplace)
 and [plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference).
 
+### Claude Code
+
+All plugins except Worktree Activity are available in Claude Code. Add this
+marketplace, then install any supported plugin:
+
+```bash
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install project-delivery@sealad886-codex-marketplace
+claude plugin install mindrally-skills@sealad886-codex-marketplace
+```
+
+Use `claude plugin list --available --json` to browse, and
+`claude plugin marketplace update sealad886-codex-marketplace` to refresh.
+Invoke a skill as `/project-delivery:delivery-orchestrator` or
+`/mindrally-skills:python`. The shared skills and runtimes are identical across
+clients; `.claude-plugin/plugin.json` supplies Claude's metadata and MCP paths.
+
+For local development, register this checkout with
+`claude plugin marketplace add .`. For a pinned snapshot, register
+`https://github.com/sealad886/sealad886-codex-marketplace.git#marketplace-vX.Y.Z`.
+See the [Claude marketplace guide](https://code.claude.com/docs/en/plugin-marketplaces)
+and [plugin manifest reference](https://code.claude.com/docs/en/plugins-reference).
+
+Host features remain client-specific. Claude Code does not supply Codex panels,
+ChatGPT media presentation, or native Codex plugin settings. Conversation Visuals
+uses available local artifacts or connected tools; Local Translation uses its
+file/environment configuration path when the native settings modal is absent.
+iCloud Mail requires its documented local setup, and Camofox requires explicit
+browser setup. Installation does not configure accounts or run those operations.
+
 ## Contributing and validation
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development, validation commands, and release requirements. Plugin source lives under `plugins/`; the catalogs are [Codex marketplace.json](.agents/plugins/marketplace.json) and [Copilot marketplace.json](.github/plugin/marketplace.json). CI checks catalog parity, package structure, distribution contents, regression tests, and security scans. Semantic Versioning also includes native example builds and workflow validation.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development, validation commands, and release requirements. Plugin source lives under `plugins/`; the catalogs are [Codex marketplace.json](.agents/plugins/marketplace.json), [Copilot marketplace.json](.github/plugin/marketplace.json), and [Claude marketplace.json](.claude-plugin/marketplace.json). CI checks catalog parity, package structure, distribution contents, regression tests, and security scans. Semantic Versioning also includes native example builds and workflow validation.
 
 [Changelog](CHANGELOG.md) · [Report a security issue](SECURITY.md) · [Get support](SUPPORT.md)
 

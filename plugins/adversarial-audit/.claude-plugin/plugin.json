@@ -1,0 +1,19 @@
+{
+  "name": "adversarial-audit",
+  "version": "0.2.1",
+  "description": "Audit correctness, performance, tests, and operational contracts, then verify fixes when remediation is authorized.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/adversarial-audit",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "audit",
+    "correctness",
+    "performance",
+    "verification",
+    "remediation"
+  ]
+}

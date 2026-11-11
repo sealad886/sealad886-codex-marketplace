@@ -2,11 +2,29 @@
 
 # Conversation Visuals
 
-Conversation Visuals enriches supported Codex and ChatGPT conversations with
+Conversation Visuals enriches supported agent conversations with
 relevant sourced images, generated illustrations, diagrams, charts, slide
 sequences, and short media. It chooses the smallest visual that materially
 improves the conversation, supplies accessible descriptions, and keeps sourced
 evidence distinct from generated content.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install conversation-visuals@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/conversation-visuals:visual-companion`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
+
+The local MCP planner and result validator work over stdio. Claude Code's terminal
+does not provide Codex/ChatGPT voice surfaces or their native image-generation
+and media-rendering tools. Use available tools to produce a linked artifact or
+accessible text/diagram, and report unavailable generation or rendering honestly.
 
 ## Try it in Codex
 
@@ -48,6 +66,7 @@ plugin cannot silently grant those external permissions.
 |---|---|
 | Codex tasks with relevant native tools | Full orchestration of sourced and generated visuals, subject to task authority. |
 | ChatGPT conversations that expose installed plugin skills/tools | Visual enrichment using the capabilities exposed by that conversation. |
+| Claude Code terminal | Shared skills and local MCP planning; available tools provide artifacts or text/diagrams, without Codex/ChatGPT voice or native media rendering. |
 | ChatGPT voice variants that do not expose plugins or connected apps | No plugin-specific invocation; native host visuals may still appear. |
 | Background or screen-off voice | Spoken conversation continues; no claim is made that an unseen visual was rendered. |
 

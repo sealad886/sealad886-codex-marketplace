@@ -1,0 +1,19 @@
+{
+  "name": "repo-consolidation",
+  "version": "0.3.1",
+  "description": "Reconcile useful work onto the verified default branch, simplify overlapping implementations, and prune verified obsolete source through serial reviewed pull requests.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/repo-consolidation",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "branches",
+    "worktrees",
+    "consolidation",
+    "pull-request"
+  ]
+}

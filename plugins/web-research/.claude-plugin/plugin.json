@@ -1,0 +1,19 @@
+{
+  "name": "web-research",
+  "version": "0.2.1",
+  "description": "Research questions, compare decisions, refresh briefs, and appraise quantitative evidence using consulted sources, claim-level citations, and explicit uncertainty.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/web-research",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "sources",
+    "citations",
+    "evidence",
+    "synthesis"
+  ]
+}

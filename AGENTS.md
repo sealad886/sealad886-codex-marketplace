@@ -2,22 +2,22 @@
 
 ## Required marketplace support
 
-Every plugin in this repository must remain valid for **both Codex and GitHub
-Copilot**. Apply this requirement to new plugins and to all changes to existing
+Every plugin in this repository must remain valid for **Codex, GitHub Copilot,
+and Claude Code**. Apply this requirement to new plugins and to all changes to existing
 plugins, including metadata, versions, skills, MCP servers, package contents,
-catalog membership, and release automation. A change is not complete when only
-one marketplace validates.
+catalog membership, and release automation. A change is not complete until all
+three marketplaces validate.
 
-An explicit user-requested Codex-only package may opt out of Copilot catalog
+An explicit user-requested Codex-only package may opt out of Copilot and Claude Code catalog
 membership using root `plugin.json` extension `com.sealad886.marketplace` with
 `clients: ["codex"]` and a nonblank `reason`. Worktree Activity uses this exception
-because it requires native Codex identity. Both catalog validators and portable
+because it requires native Codex identity. All catalog validators and portable
 package checks still apply; omission never bypasses package validation. Other
-packages retain both-client membership by default.
+packages retain three-client membership by default.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) and the owning plugin's guide before
 editing. Extend the existing package and validation tools; do not create separate
-Codex and Copilot copies of the same skills or runtime implementation.
+client-specific copies of the same skills or runtime implementation.
 
 ## Catalogs and manifests
 
@@ -28,6 +28,10 @@ Codex and Copilot copies of the same skills or runtime implementation.
   it with `scripts/check_copilot_marketplace.py --write` after additions,
   removals, renames, version changes, or description changes. Do not maintain a
   divergent hand-edited catalog or weaken validation to hide drift.
+- `.claude-plugin/marketplace.json` is the generated Claude Code catalog. Run
+  `scripts/check_claude_marketplace.py --write` when membership or package metadata
+  changes. Each included package ships `.claude-plugin/plugin.json`, synchronized
+  with the common Codex and portable identity. Reuse the same `skills/` tree.
 - Every package must ship root `plugin.json` using the Agent Plugins 1.0 schema
   and `.codex-plugin/plugin.json` for Codex. Keep common identity, version,
   description, author, homepage, repository, license, and keywords synchronized.
@@ -45,8 +49,12 @@ Codex and Copilot copies of the same skills or runtime implementation.
   portable root `mcp.json` using the Agent Plugins 1.0 MCP schema. Keep server
   names, commands, and entrypoints aligned. Use `stdio` and `${PLUGIN_ROOT}` paths
   in portable configurations; do not copy Codex-only `tool_timeout_sec` there.
-- Final distributions must retain root `plugin.json`, the Codex overlay, all
-  skills, both MCP configurations when applicable, and referenced assets,
+- Claude manifests declare the same MCP servers inline with
+  `${CLAUDE_PLUGIN_ROOT}` entrypoint paths, overriding their names from the
+  default `.mcp.json`. Preserve the Codex and portable configurations; omit
+  Codex-only timeout fields from the Claude manifest.
+- Final distributions must retain root `plugin.json`, the applicable Codex and Claude
+  overlays, all skills, both MCP configurations when applicable, and referenced assets,
   scripts, and supporting files. Update the existing distribution selector when
   introducing a new required resource; a valid source checkout is insufficient
   if the packaged plugin omits it.
@@ -55,22 +63,23 @@ Codex and Copilot copies of the same skills or runtime implementation.
 
 Use the existing project Python environment. Before handing off a plugin change:
 
-1. Regenerate the Copilot catalog when its inputs changed, then run both
-   `scripts/check_marketplace.py .` and `scripts/check_copilot_marketplace.py .`.
+1. Regenerate the Copilot and Claude catalogs when their inputs changed, then run
+   `scripts/check_marketplace.py .`, `scripts/check_copilot_marketplace.py .`,
+   and `scripts/check_claude_marketplace.py .`.
 2. Run `scripts/check_plugin.py plugins/<plugin-id> --layout source` and
    `scripts/check_distribution_bundle.py plugins/<plugin-id>` for every affected
    package. For shared packaging or catalog changes, check all catalog packages.
 3. Run relevant regression tests and the owning plugin's checks from
    [CONTRIBUTING.md](CONTRIBUTING.md). Shared validator or packaging changes must
-   include the marketplace, Copilot, manifest, and distribution regression suites.
+   include the marketplace, Copilot, Claude, manifest, and distribution regression suites.
    Disable Python bytecode writing during validation to avoid adding cache files
    to package source trees. Preserve any pre-existing ignored files; use clean
    temporary package copies when those files prevent distribution validation.
 4. For changes to discovery, manifests, MCP declarations, or distribution layout,
-   verify discovery and installation in both clients with isolated test settings
+   verify discovery and installation in all three clients with isolated test settings
    when available. Keep real user settings and credentials untouched. Report
    client versions, commands, results, and any unavailable client or omitted
    runtime checks; static validation alone is not proof of live installation.
 
-Keep CI checking both catalogs and portable components. Update installation,
+Keep CI checking all three catalogs and portable components. Update installation,
 contribution, and release documentation when the corresponding workflow changes.

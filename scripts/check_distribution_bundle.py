@@ -22,6 +22,7 @@ from safe_files import MAX_PAYLOAD_BYTES, read_bytes, read_text
 
 OPTIONAL_ROOT_FILES = {
     "plugin.json",
+    ".claude-plugin/plugin.json",
     "mcp.json",
     ".codexignore",
     "LICENSE",
@@ -75,7 +76,6 @@ PLUGIN_RESOURCE_DIRECTORIES = {
     "icloud-mail": ("mcp",),
     "semantic-versioning": ("references", "scripts", "templates", "examples"),
     "mlx-optimizer": (
-        ".claude-plugin",
         ".cursor-plugin",
         "references",
         "scripts",

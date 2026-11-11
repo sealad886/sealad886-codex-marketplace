@@ -27,7 +27,7 @@ from urllib.parse import urlsplit
 import uuid
 
 
-VERSION = "0.6.0"
+VERSION = "0.6.1"
 PROTOCOL = "2025-06-18"
 MAX_FRAME = 1024 * 1024
 MAX_FILE = 256 * 1024

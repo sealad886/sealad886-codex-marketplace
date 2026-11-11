@@ -2,16 +2,16 @@
 
 Contributions that make the sealad886 Codex Marketplace or one of its contained plugins clearer, safer, more evidence-driven, or more adaptable are welcome.
 
-All new and updated plugins must remain valid for both Codex and GitHub Copilot.
+All new and updated plugins must remain valid for Codex, GitHub Copilot, and Claude Code.
 The repository's [agent instructions](AGENTS.md) define the required catalog,
-manifest, MCP, packaging, and verification rules for both marketplaces.
+manifest, MCP, packaging, and verification rules for all three marketplaces.
 
 Explicitly requested Codex-only packages use the validated root-manifest
 extension `com.sealad886.marketplace` with `{"clients": ["codex"], "reason": "..."}`.
-This is repository catalog policy, not a native host setting. Both clients remain
+This is repository catalog policy, not a native host setting. All three clients remain
 the default when the extension is absent. The Copilot generator validates all
 canonical packages before filtering membership; retain portable manifests and
-run both catalog checks even for an excluded package.
+run all three catalog checks even for an excluded package.
 
 [Worktree Activity](plugins/worktree-activity/README.md) owns a Codex-only skill,
 local registry helper, Draft 2020-12 schema, lifecycle contract, and runtime
@@ -46,6 +46,9 @@ version is published, copy that release's entire `plugin/` directory to
 validation and a clean consumer installation before publishing this marketplace.
 The local catalog source keeps the full plugin details visible before install.
 Do not create a second server implementation or follow npm latest implicitly.
+Claude metadata and installation guidance follow the same upstream-first
+release process. Never reuse an existing Camofox plugin version for a changed
+package or bump its plugin version ahead of the matching npm release.
 
 Local Translation owns its [package guide](plugins/local-translation/README.md)
 and [security policy](plugins/local-translation/SECURITY.md). Its stdlib MCP runtime
@@ -107,7 +110,7 @@ copy obsolete API examples or universal style mandates into reference files.
 Run `python3 scripts/check_mindrally_skills.py` in addition to the shared package
 and catalog checks. This checks coverage and evidence structure, not technical
 truth or execution of every framework example. Native discovery and installation
-must be verified separately in both clients with isolated settings.
+must be verified separately in all three clients with isolated settings.
 
 ## Before changing Project Delivery
 
@@ -157,6 +160,35 @@ with the Codex `.mcp.json`. Codex's `tool_timeout_sec` is client-specific and is
 not copied into the portable configuration. Distribution validation retains
 both formats. Copilot sources track the selected marketplace checkout, while
 Codex's existing `git-subdir` release pins remain independent.
+
+## Claude Code catalog and manifests
+
+The canonical Codex catalog also owns Claude Code membership. Regenerate and
+check `.claude-plugin/marketplace.json` with
+`PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_claude_marketplace.py --write`
+and then run the same command without `--write`. Worktree Activity remains
+Codex-only; its portable package still passes validation before exclusion.
+
+Each included package has `.claude-plugin/plugin.json` with synchronized common
+identity and version metadata. Claude discovers the shared `skills/` directory
+automatically. MCP packages declare their existing servers inline in this
+manifest using `${CLAUDE_PLUGIN_ROOT}` entrypoint paths. Claude loads the default
+`.mcp.json` first and the manifest declaration afterward, so the explicit
+same-name servers supply Claude paths while Codex retains its own configuration.
+No second skill tree or server runtime is shipped.
+
+Validate both the marketplace and individual packages with
+`claude plugin validate . --strict` and
+`claude plugin validate plugins/<plugin-id> --strict`. Use an isolated
+`CLAUDE_CONFIG_DIR` when adding the local marketplace and installing packages;
+inspect `claude plugin list --available --json`, `claude plugin list --json`, and
+`claude plugin details <plugin-id>` to distinguish discovery from installation
+and loaded components. Never use real mailbox credentials, model endpoints, or
+browser profiles for packaging tests. Native host UI, browser setup, and real
+mail/model operations require their own acceptance evidence.
+
+Authoritative format and precedence: [Claude plugin manifests](https://code.claude.com/docs/en/plugins-reference)
+and [marketplaces](https://code.claude.com/docs/en/plugin-marketplaces).
 
 ## Codex display metadata
 
@@ -228,6 +260,7 @@ python3 plugins/conversation-visuals/mcp/server.py --self-test
 python3 plugins/icloud-mail/mcp/server.py --self-test
 python3 scripts/check_marketplace.py .
 python3 scripts/check_copilot_marketplace.py .
+python3 scripts/check_claude_marketplace.py .
 python3 scripts/check_installed_parity.py <prepared-plugin-source> <installed-cache-version-dir>
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```

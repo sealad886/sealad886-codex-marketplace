@@ -1,0 +1,27 @@
+{
+  "name": "icloud-mail",
+  "version": "0.4.1",
+  "description": "Read, organize, draft, and send iCloud Mail locally, with optional self-hosted read-only remote access.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/icloud-mail",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "icloud",
+    "mail",
+    "email",
+    "imap",
+    "smtp"
+  ],
+  "mcpServers": {
+    "icloud-mail": {
+      "command": "python3",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/server.py"
+      ]
+    }
+  }
+}

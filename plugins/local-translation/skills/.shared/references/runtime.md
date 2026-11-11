@@ -64,8 +64,8 @@ retries and tool responses do not clear it. The form does not persist that
 unsaved input in browser or widget state, so it does not survive a reload.
 Successful save and Cancel ask the host to close the configuration screen.
 
-Both Codex and Copilot use the same saved settings. They survive plugin updates
-and apply on the next tool call without restarting either client.
+Codex, Copilot and Claude Code use the same saved settings. They survive plugin updates
+and apply on the next tool call without restarting the client.
 `translation_settings` reports the active source, settings path and redacted
 configuration. `translation_health` verifies the connection after setup. Do not
 edit a versioned plugin cache or the client's MCP declaration to configure the
@@ -78,7 +78,7 @@ enforce app-only visibility and call the local server without a model turn; this
 is verified for Codex desktop 0.166.0-alpha.5.1. Other clients need equivalent
 enforcement before the form handles credentials. No form state is sent to model context,
 messages or widget persistence. Unsupported hosts receive setup guidance; the
-plugin does not launch a browser as a fallback. Copilot CLI can use the same
+plugin does not launch a browser as a fallback. Copilot CLI and Claude Code can use the same
 saved engine configuration or an explicit deployment file, even when it cannot
 render the native popup.
 
@@ -104,7 +104,8 @@ An optional credential comes from the variable named by `api_key_env`. Codex's
 declaration forwards `LOCAL_TRANSLATION_CONFIG` and `LOCAL_TRANSLATION_API_KEY`
 from its launch environment. Use that credential name
 in Codex. The portable declaration uses no Codex-specific forwarding extension;
-other clients control their explicit environment. See the official
+Claude Code inherits these variables from the process that launches it; other
+clients control their explicit environment. See the official
 [stdio environment rules](https://learn.chatgpt.com/docs/extend/mcp#stdio-servers).
 Restart a client only when changing this explicit launch environment. The normal
 desktop saved-settings flow needs none of these variables.

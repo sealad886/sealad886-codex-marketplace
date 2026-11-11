@@ -2,7 +2,7 @@
 
 # Web Research
 
-Version: **0.2.0**. One skill for researching a question, comparing decisions,
+Version: **0.2.1**. One skill for researching a question, comparing decisions,
 refreshing existing briefs, and checking quantitative evidence with citations and
 honest uncertainty.
 
@@ -13,6 +13,19 @@ conflicts, and cites material claims where they appear.
 Advanced runbooks separate hard constraints from preferences, expose decisions
 that depend on unknown evidence, update individual claims without overstating
 coverage, and make units, denominators, and calculations inspectable.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install web-research@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/web-research:web-research`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Use
 
