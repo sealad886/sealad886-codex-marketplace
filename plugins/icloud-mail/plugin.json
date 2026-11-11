@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "icloud-mail",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "description": "Read, organize, draft, and send iCloud Mail locally, with optional self-hosted read-only remote access.",
   "author": {
     "name": "Andrew Cox",

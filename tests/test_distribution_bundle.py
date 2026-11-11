@@ -19,7 +19,7 @@ sys.path.insert(0, str(REPOSITORY_ROOT / "scripts"))
 
 from check_distribution_bundle import materialize_runtime_closure  # noqa: E402
 from check_copilot_marketplace import validate_portable_mcp  # noqa: E402
-from test_validation import add_portable_manifest, create_minimal_plugin
+from test_validation import add_claude_manifest, add_portable_manifest, create_minimal_plugin
 
 
 UNIVERSAL_FORBIDDEN_PARTS = {
@@ -117,6 +117,7 @@ class DistributionBundleTests(unittest.TestCase):
                     "command": "python3", "cwd": "${PLUGIN_ROOT}",
                     "args": ["${PLUGIN_ROOT}/mcp/server.py"]}},
             }))
+            add_claude_manifest(source)
             output = Path(temporary) / "dist/local-translation"
             result = run_checker("--output", str(output), root=source)
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -125,7 +126,7 @@ class DistributionBundleTests(unittest.TestCase):
                              {p.parent.name for p in (output / "skills").glob("*/SKILL.md")})
             for relative in ("mcp/helper.py", "mcp/server.py", "examples/config.json", "assets/banner.svg",
                              "skills/.shared/references/expert-contract.md",
-                             "plugin.json", "mcp.json", ".mcp.json"):
+                             "plugin.json", "mcp.json", ".mcp.json", ".claude-plugin/plugin.json"):
                 self.assertEqual((source / relative).read_bytes(),
                                  (output / relative).read_bytes())
             launch = subprocess.run([sys.executable, "-B", str(output / "mcp/server.py")],
@@ -182,13 +183,15 @@ class DistributionBundleTests(unittest.TestCase):
                 '<svg xmlns="http://www.w3.org/2000/svg"/>'
             )
             (source / "README.md").write_text("![Banner](assets/banner.svg)\n")
+            add_claude_manifest(source)
             output = Path(temporary) / "dist/camofox-mcp"
 
             result = run_checker("--output", str(output), root=source)
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             for relative in ("scripts/launch.mjs", "scripts/setup.mjs",
-                             "scripts/runtime-paths.mjs", "mcp.json", "assets/banner.svg"):
+                             "scripts/runtime-paths.mjs", "mcp.json", "assets/banner.svg",
+                             ".claude-plugin/plugin.json"):
                 self.assertEqual((source / relative).read_bytes(),
                                  (output / relative).read_bytes())
             node = shutil.which("node")

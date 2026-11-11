@@ -6,11 +6,24 @@
 [![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Project Delivery is a self-contained Codex plugin that turns an incomplete idea or bounded request into a traceable, production-oriented change. It provides one repository-grounded, risk-scaled evidence spine from outcome through requirements, design, planning, implementation, verification, documentation, independent review, security and operational readiness, release, and learning.
+Project Delivery is a self-contained plugin for Codex, GitHub Copilot and Claude Code that turns an incomplete idea or bounded request into a traceable, production-oriented change. It provides one repository-grounded, risk-scaled evidence spine from outcome through requirements, design, planning, implementation, verification, documentation, independent review, security and operational readiness, release, and learning.
 
 It is published through the [sealad886 Codex Marketplace](https://github.com/sealad886/sealad886-codex-marketplace). The marketplace ID is `sealad886-codex-marketplace`; the plugin ID, display name, skill selectors, and package boundary remain `project-delivery`.
 
 It is designed to become the sole generic project-management and software-delivery workflow after its adoption gates pass. It does not replace authenticated connectors, CI systems, platform tooling, security scanners, deployment providers, observability systems, or other specialist evidence sources.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install project-delivery@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/project-delivery:delivery-orchestrator`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Why it is different
 

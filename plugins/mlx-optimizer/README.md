@@ -4,7 +4,7 @@
 
 <p align="center"><strong>Measure the work. Compress the path.</strong></p>
 
-`mlx-optimizer` helps Codex audit, benchmark, and optimize Python-first
+`mlx-optimizer` helps coding agents audit, benchmark, and optimize Python-first
 [MLX](https://github.com/ml-explore/mlx) projects on Apple Silicon. It combines
 six progressively disclosed skills with focused MLX references, conservative
 static-analysis scripts, and before/after verification templates.
@@ -19,6 +19,22 @@ Static findings remain candidates until representative workload evidence proves
 them. The plugin never installs Python globally, treats lazy evaluation and
 synchronization as correctness concerns, and requires concrete timing, memory,
 and output evidence for optimization claims.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install mlx-optimizer@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/mlx-optimizer:mlx-optimizer`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
+
+Static audit tools do not require MLX. Running MLX workloads still requires Apple
+Silicon and the target project's selected MLX environment, with Metal access.
 
 ## Try it in Codex
 
@@ -101,10 +117,10 @@ mlx-optimizer/
 └── templates/
 ```
 
-The Codex manifest is canonical for this marketplace. Claude Code and Cursor
-compatibility manifests remain packaged for consumers that materialize the same
-plugin subtree through those hosts; their marketplace registration is outside
-this repository's Codex publication contract.
+The Codex catalog is canonical for package membership. Generated Copilot and
+Claude Code catalogs register this same plugin subtree. The Claude manifest
+shares its identity with the Codex and portable manifests; the existing Cursor
+compatibility manifest remains packaged without a separate Cursor catalog.
 
 ## Verification
 

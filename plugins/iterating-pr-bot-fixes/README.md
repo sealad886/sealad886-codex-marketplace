@@ -2,7 +2,7 @@
 
 # Iterating PR Bot Fixes
 
-Version **0.2.1**. One standalone skill for taking an identified GitHub pull
+Version **0.2.2**. One standalone skill for taking an identified GitHub pull
 request through bounded review, scoped repairs, verified integration, and
 eligible task cleanup.
 
@@ -28,6 +28,19 @@ remote checks. The ledger records push/review triggers and the basis of usage
 claims. Private-repository Copilot reviews also consume Actions minutes under
 [current GitHub billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions);
 read-only status polling does not itself execute an Actions job.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install iterating-pr-bot-fixes@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/iterating-pr-bot-fixes:iterating-pr-bot-fixes`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Install and use
 

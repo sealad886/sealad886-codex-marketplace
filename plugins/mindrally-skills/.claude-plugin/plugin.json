@@ -1,0 +1,19 @@
+{
+  "name": "mindrally-skills",
+  "version": "0.1.1",
+  "description": "265 development skills adapted from Mindrally, with individually reviewed technical guidance and progressive disclosure for Codex, GitHub Copilot and Claude Code.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/mindrally-skills",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "Apache-2.0",
+  "keywords": [
+    "development",
+    "frameworks",
+    "languages",
+    "mindrally",
+    "progressive-disclosure"
+  ]
+}

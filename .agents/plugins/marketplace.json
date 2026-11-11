@@ -9,7 +9,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "v1.5.0",
+        "ref": "15e06a3b06923e06c9298b79c33e4e57436f39cd",
         "path": "./plugins/project-delivery"
       },
       "policy": {
@@ -23,7 +23,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "conversation-visuals-v0.1.2",
+        "ref": "15e06a3b06923e06c9298b79c33e4e57436f39cd",
         "path": "./plugins/conversation-visuals"
       },
       "policy": {
@@ -37,7 +37,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "f2392b62b2012b4f0ff86afc26a786b94de57afa",
+        "ref": "15e06a3b06923e06c9298b79c33e4e57436f39cd",
         "path": "./plugins/mlx-optimizer"
       },
       "policy": {
@@ -63,7 +63,7 @@
       "source": {
         "source": "git-subdir",
         "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "f081046d65eaa52fb6d2e9667d5c5096df05607f",
+        "ref": "15e06a3b06923e06c9298b79c33e4e57436f39cd",
         "path": "./plugins/icloud-mail"
       },
       "policy": {

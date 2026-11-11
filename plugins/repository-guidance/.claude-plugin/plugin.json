@@ -1,0 +1,19 @@
+{
+  "name": "repository-guidance",
+  "version": "0.1.1",
+  "description": "Create, adapt, and audit repository instructions against local architecture, tooling, tests, and authority instead of importing another project\u2019s assumptions.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/repository-guidance",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "repository",
+    "instructions",
+    "architecture",
+    "conventions"
+  ]
+}

@@ -49,13 +49,13 @@ It is not a set of paths to impose on other repositories.
 | Candidate purpose | Local evidence | Disposition and resulting guidance |
 | --- | --- | --- |
 | Make ownership explicit | `CONTRIBUTING.md`, `plugins/<plugin-id>/README.md` | **Adapt:** each package owns its skills/resources; shared catalog and validation logic remains at marketplace level. |
-| Keep generated outputs aligned | `AGENTS.md`, `scripts/check_copilot_marketplace.py` | **Adapt:** `.agents/plugins/marketplace.json` owns membership; regenerate `.github/plugin/marketplace.json` using the existing command. |
-| Preserve public contracts | `AGENTS.md`, `scripts/check_plugin.py` | **Adapt:** retain paired portable `plugin.json` and `.codex-plugin/plugin.json` identities, versions and OpenAI presentation. |
+| Keep generated outputs aligned | `AGENTS.md`, `scripts/check_copilot_marketplace.py`, `scripts/check_claude_marketplace.py` | **Adapt:** `.agents/plugins/marketplace.json` owns membership; regenerate the Copilot and Claude Code catalogs using the existing commands. |
+| Preserve public contracts | `AGENTS.md`, `scripts/check_plugin.py` | **Adapt:** keep portable `plugin.json`, `.codex-plugin/plugin.json` and `.claude-plugin/plugin.json` identity/version metadata aligned; retain OpenAI presentation in its supported manifests. |
 | Use actual managed commands | `.venv/`, `CONTRIBUTING.md` | **Adapt:** run package, marketplace and distribution checks through the existing project Python environment; disable bytecode writes during validation. |
-| Verify each supported surface | `AGENTS.md`, `CONTRIBUTING.md` | **Adapt:** validate both catalogs and isolated Codex/Copilot discovery/install when available; report versions and omitted runtime evidence. |
+| Verify each supported surface | `AGENTS.md`, `CONTRIBUTING.md` | **Adapt:** validate all three catalogs and isolated Codex/Copilot/Claude Code discovery/install when available; report versions and omitted runtime evidence. |
 | Make delivery status honest | `CONTRIBUTING.md`, `.github/workflows/` | **Adopt:** tie release claims to verified artifacts and observed workflow results; preserve the user’s required publish authority. |
 | Transfer app-specific architecture | No matching Multica app/server layers | **Not applicable:** omit its pnpm, Go, UUID, workspace-route, database and UI implementation details. |
 
 A report-only adaptation can identify these mappings without editing `AGENTS.md`.
 An instruction-edit request can patch the canonical file while keeping the
-marketplace’s existing dual-client contracts and approval boundaries intact.
+marketplace’s existing supported-client contracts and approval boundaries intact.

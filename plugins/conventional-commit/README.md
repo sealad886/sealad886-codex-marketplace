@@ -2,7 +2,7 @@
 
 # Conventional Commit
 
-Version **0.2.0**. One standalone skill for inspecting dirty Git work, selecting
+Version **0.2.1**. One standalone skill for inspecting dirty Git work, selecting
 coherent changes, and creating verified local Conventional Commits while
 preserving excluded bytes and staging.
 
@@ -15,6 +15,19 @@ and configured automation, and commit an independent subset of already-staged
 text hunks through a verified alternate index while retaining original staging.
 No push, PR, merge, release, or worktree creation follows from a local commit
 request.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install conventional-commit@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/conventional-commit:conventional-commit`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Install and use
 

@@ -1,0 +1,19 @@
+{
+  "name": "iterating-pr-bot-fixes",
+  "version": "0.2.2",
+  "description": "Drive scoped GitHub pull requests through explicit review rounds, verified merge gates, and careful task cleanup.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/iterating-pr-bot-fixes",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "github",
+    "pull-request",
+    "review",
+    "copilot",
+    "git"
+  ]
+}

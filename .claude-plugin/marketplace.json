@@ -1,0 +1,107 @@
+{
+  "name": "sealad886-codex-marketplace",
+  "owner": {
+    "name": "Andrew Cox"
+  },
+  "metadata": {
+    "description": "Independent software delivery, Git, research, browser, mail, visuals, and MLX plugins by sealad886."
+  },
+  "plugins": [
+    {
+      "name": "project-delivery",
+      "description": "A repository-grounded, risk-scaled workflow for coordinating, planning, implementing, verifying, reviewing, releasing, and improving software changes.",
+      "version": "1.5.1",
+      "source": "./plugins/project-delivery"
+    },
+    {
+      "name": "conversation-visuals",
+      "description": "Enrich supported agent conversations with relevant, sourced or generated visuals while preserving attribution, accessibility, privacy, and user control.",
+      "version": "0.1.3",
+      "source": "./plugins/conversation-visuals"
+    },
+    {
+      "name": "mlx-optimizer",
+      "description": "Python-first MLX optimization skills, references, and audit scripts for Apple Silicon.",
+      "version": "0.2.6",
+      "source": "./plugins/mlx-optimizer"
+    },
+    {
+      "name": "semantic-versioning",
+      "description": "Agent-owned release assessment, native version management, and verified CI release recipes.",
+      "version": "0.1.2",
+      "source": "./plugins/semantic-versioning"
+    },
+    {
+      "name": "icloud-mail",
+      "description": "Read, organize, draft, and send iCloud Mail locally, with optional self-hosted read-only remote access.",
+      "version": "0.4.1",
+      "source": "./plugins/icloud-mail"
+    },
+    {
+      "name": "build-multi-target-tauri-apps",
+      "description": "Build, debug, optimize and prepare Tauri 2 apps across desktop and mobile targets with grounded security, performance and platform evidence.",
+      "version": "0.2.1",
+      "source": "./plugins/build-multi-target-tauri-apps"
+    },
+    {
+      "name": "iterating-pr-bot-fixes",
+      "description": "Drive scoped GitHub pull requests through explicit review rounds, verified merge gates, and careful task cleanup.",
+      "version": "0.2.2",
+      "source": "./plugins/iterating-pr-bot-fixes"
+    },
+    {
+      "name": "repo-consolidation",
+      "description": "Reconcile useful work onto the verified default branch, simplify overlapping implementations, and prune verified obsolete source through serial reviewed pull requests.",
+      "version": "0.3.1",
+      "source": "./plugins/repo-consolidation"
+    },
+    {
+      "name": "conventional-commit",
+      "description": "Inspect dirty Git work, preserve excluded changes and staging, and create coherent verified Conventional Commits.",
+      "version": "0.2.1",
+      "source": "./plugins/conventional-commit"
+    },
+    {
+      "name": "simplify-code",
+      "description": "Remove unnecessary layers and obsolete code, centralize shared rules, and verify the behavior that must survive.",
+      "version": "0.2.1",
+      "source": "./plugins/simplify-code"
+    },
+    {
+      "name": "adversarial-audit",
+      "description": "Audit correctness, performance, tests, and operational contracts, then verify fixes when remediation is authorized.",
+      "version": "0.2.1",
+      "source": "./plugins/adversarial-audit"
+    },
+    {
+      "name": "web-research",
+      "description": "Research questions, compare decisions, refresh briefs, and appraise quantitative evidence using consulted sources, claim-level citations, and explicit uncertainty.",
+      "version": "0.2.1",
+      "source": "./plugins/web-research"
+    },
+    {
+      "name": "repository-guidance",
+      "description": "Create, adapt, and audit repository instructions against local architecture, tooling, tests, and authority instead of importing another project\u2019s assumptions.",
+      "version": "0.1.1",
+      "source": "./plugins/repository-guidance"
+    },
+    {
+      "name": "camofox-mcp",
+      "description": "Complete MCP tools and managed setup for the Camofox headless browser.",
+      "version": "0.1.2",
+      "source": "./plugins/camofox-mcp"
+    },
+    {
+      "name": "local-translation",
+      "description": "Coordinate a translation team with separate expert role skills, local Index-Translate drafting, and evidence-bound revision and delivery across target locales.",
+      "version": "0.6.1",
+      "source": "./plugins/local-translation"
+    },
+    {
+      "name": "mindrally-skills",
+      "description": "265 development skills adapted from Mindrally, with individually reviewed technical guidance and progressive disclosure for Codex, GitHub Copilot and Claude Code.",
+      "version": "0.1.1",
+      "source": "./plugins/mindrally-skills"
+    }
+  ]
+}

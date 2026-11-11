@@ -67,7 +67,7 @@ confirm again or collect credentials in chat.
      outgoing identities; use `configure_account` for those non-secret settings.
    - On non-macOS hosts, use manual non-secret configuration and explain that
      `ICLOUD_MAIL_APP_PASSWORD` must be present in the environment that launches
-     Codex; an export in another shell does not update the running MCP process.
+     the client; an export in another shell does not update the running MCP process.
 2. Use `list_mailboxes` for counts and folder discovery. Use `search_emails` for
    a bounded shortlist, then `read_email` or `read_email_thread` for necessary
    context. Use `list_drafts` to review existing drafts. These four collection
@@ -107,7 +107,7 @@ confirm again or collect credentials in chat.
 Use iCloud as the source of truth. Do not create a local mailbox copy, cache,
 search index, background sync, or writing-style corpus. Read only the content
 needed for the request. Messages and attachments returned by tools enter the
-Codex conversation; do not describe them as remaining exclusively on the Mac.
+host conversation; do not describe them as remaining exclusively on the Mac.
 Persist an email or attachment only when the user explicitly requests that export.
 The plugin stores connection settings and a Keychain credential, not mail.
 Native Connected Accounts and Reference my writing style registration are not

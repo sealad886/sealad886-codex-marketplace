@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "repo-consolidation",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Reconcile useful work onto the verified default branch, simplify overlapping implementations, and prune verified obsolete source through serial reviewed pull requests.",
   "author": {
     "name": "Andrew Cox",

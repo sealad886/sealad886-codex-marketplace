@@ -1,0 +1,20 @@
+{
+  "name": "project-delivery",
+  "version": "1.5.1",
+  "description": "A repository-grounded, risk-scaled workflow for coordinating, planning, implementing, verifying, reviewing, releasing, and improving software changes.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/project-delivery",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "project-management",
+    "software-delivery",
+    "planning",
+    "testing",
+    "security",
+    "release-management"
+  ]
+}

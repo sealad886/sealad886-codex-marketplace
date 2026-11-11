@@ -1,0 +1,19 @@
+{
+  "name": "conventional-commit",
+  "version": "0.2.1",
+  "description": "Inspect dirty Git work, preserve excluded changes and staging, and create coherent verified Conventional Commits.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/conventional-commit",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "git",
+    "commit",
+    "conventional-commits",
+    "staging",
+    "cleanup"
+  ]
+}

@@ -3,6 +3,23 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Marketplace 0.2.0 - 2026-11-11
+
+### Added
+
+- Claude Code marketplace support for all 16 non-Codex-only plugins, with a
+  generated catalog, synchronized native manifests, shared skills, and explicit
+  plugin-root MCP entrypoints.
+- Claude catalog, manifest, and distribution regression checks in shared CI;
+  client-specific installation guidance and runtime prerequisites in each guide.
+
+### Changed
+
+- Patch releases for all 16 updated packages to include Claude metadata.
+  Camofox follows its upstream release process and retains an exact matching
+  npm runtime pin for the new plugin version.
+- Preserve Worktree Activity 0.1.0 as Codex-only, with no package changes.
+
 ## Worktree Activity 0.1.0 - 2026-11-11
 
 ### Added

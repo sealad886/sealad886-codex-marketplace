@@ -2,13 +2,26 @@
 
 # Adversarial Audit
 
-Version: **0.2.0**. One self-contained skill for finding consequential correctness,
+Version: **0.2.1**. One self-contained skill for finding consequential correctness,
 performance, resource, testing, contract, and operational defects with evidence.
 
 [The adversarial-audit skill](skills/adversarial-audit/SKILL.md) distinguishes an
 assessment from authorized remediation. An audit can finish with confirmed open
 findings. An audit-and-fix task carries accepted changes through review and fresh
 verification. Findings track validity separately from implementation status.
+
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install adversarial-audit@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/adversarial-audit:adversarial-audit`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
 
 ## Use
 

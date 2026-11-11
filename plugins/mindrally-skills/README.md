@@ -3,8 +3,8 @@
 # Mindrally Skills
 
 One skills-only plugin containing all **265** skills from
-[Mindrally/skills](https://github.com/Mindrally/skills), adapted for **Codex and
-GitHub Copilot**. Version **0.1.0**.
+[Mindrally/skills](https://github.com/Mindrally/skills), adapted for **Codex,
+GitHub Copilot and Claude Code**. Version **0.1.1**.
 
 **Mindrally's skills collection** is the original source and inspiration, pinned
 to [commit `7682ca77710e0971eab4e0ae5dddfa281aea0ba5`](https://github.com/Mindrally/skills/tree/7682ca77710e0971eab4e0ae5dddfa281aea0ba5).
@@ -18,17 +18,30 @@ practices remain separately discoverable. Closely related upstream skills keep
 their identities so existing skill names remain available; invoke the most
 specific matching skill instead of loading overlapping guides together.
 
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install mindrally-skills@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/mindrally-skills:react`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
+
 ## Why distribute the collection as a plugin?
 
 Upstream already offers a Claude Code plugin and a `skills` installer with
 broader agent support; see its [installation options](https://github.com/Mindrally/skills#installation).
-This distribution adds native plugin packaging for Codex and GitHub Copilot,
+This distribution adds native plugin packaging for Codex, GitHub Copilot and Claude Code,
 using one shared, individually reviewed skill tree.
 
 One versioned plugin gives the collection a single install, update and uninstall
 lifecycle, instead of managing 265 separate skill copies. Shared skill files,
-synchronized manifests and a common validation workflow keep the Codex and
-Copilot packages aligned. The pinned source, individual source hashes and audit
+synchronized manifests and a common validation workflow keep the Codex,
+Copilot and Claude Code packages aligned. The pinned source, individual source hashes and audit
 records make the adaptation traceable and its source baseline reproducible.
 
 All 265 skills remain independently discoverable, with local controls for disabling
@@ -109,12 +122,13 @@ writing disabled:
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_mindrally_skills.py
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_marketplace.py .
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_copilot_marketplace.py .
+PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_claude_marketplace.py .
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_plugin.py plugins/mindrally-skills --layout source
 PYTHONDONTWRITEBYTECODE=1 .venv/bin/python scripts/check_distribution_bundle.py plugins/mindrally-skills
 ```
 
 Run the regression suites specified by the marketplace contribution guide and
-verify isolated native discovery and installation in both clients. Keep real
+verify isolated native discovery and installation in all three clients. Keep real
 user settings and credentials untouched during package tests.
 
 ## Complete skill directory

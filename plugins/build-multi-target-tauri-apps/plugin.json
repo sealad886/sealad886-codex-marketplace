@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "build-multi-target-tauri-apps",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Build, debug, optimize and prepare Tauri 2 apps across desktop and mobile targets with grounded security, performance and platform evidence.",
   "author": {
     "name": "Andrew Cox",

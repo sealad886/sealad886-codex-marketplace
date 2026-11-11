@@ -61,7 +61,27 @@ def add_portable_manifest(root: Path) -> dict:
     portable["$schema"] = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
     portable["extensions"] = {"com.openai": {"interface": overlay["interface"]}}
     (root / "plugin.json").write_text(json.dumps(portable), encoding="utf-8")
+    add_claude_manifest(root)
     return portable
+
+
+def add_claude_manifest(root: Path) -> dict:
+    """Build a synthetic client manifest independently of the validator."""
+    overlay = json.loads((root / ".codex-plugin/plugin.json").read_text())
+    manifest = {key: overlay[key] for key in (
+        "name", "version", "description", "author", "homepage", "repository", "license", "keywords",
+    ) if key in overlay}
+    source = root / overlay.get("mcpServers", ".mcp.json")
+    if source.is_file():
+        servers = json.loads(source.read_text())["mcpServers"]
+        manifest["mcpServers"] = {name: {
+            "command": server["command"],
+            "args": ["${CLAUDE_PLUGIN_ROOT}/" + server["args"][0].removeprefix("./")],
+        } for name, server in servers.items()}
+    path = root / ".claude-plugin/plugin.json"
+    path.parent.mkdir(exist_ok=True)
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    return manifest
 
 
 class PluginCheckerTests(unittest.TestCase):

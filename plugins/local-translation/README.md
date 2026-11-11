@@ -22,6 +22,27 @@ media-coordination and conformance responsibilities to actual skills. Agents
 exchange findings, replies and adjudications through the host's real
 collaboration tools.
 
+## Claude Code installation
+
+```sh
+claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin install local-translation@sealad886-codex-marketplace
+```
+
+Start a fresh session and invoke `/local-translation:translation-project`. Claude Code
+loads the same `skills/` files as Codex and GitHub Copilot; there is no separate
+copy of the skill content. Use the host's available tools and the prerequisites
+below. Installation does not provide credentials, external services or additional
+tool permissions.
+
+The stdio tools require Python 3.11+ and an explicitly configured local inference
+runner. Claude Code does not supply Codex's native settings modal. Use the
+[environment configuration](skills/.shared/references/runtime.md#explicit-process-environment-configuration)
+when the host lacks an MCP App UI that enforces app-only credential submission.
+Never put runner keys in chat or model-facing tool arguments. Independent review
+still requires different actual agents; host delegation capabilities must be
+verified before claiming a completed review.
+
 ## Assign a specialist
 
 Use `$local-translation:translation-project` for end-to-end coordination. The
@@ -54,7 +75,7 @@ for all twenty entry points and their evidence requirements.
 ## Start a project
 
 1. Install this package using your client's supported local marketplace/plugin
-   flow. It ships portable Agent Plugins 1.0 components and the Codex overlay;
+   flow. It ships portable Agent Plugins 1.0 components plus Codex and Claude overlays;
    client support and delegation capabilities differ.
 2. Supply Python 3.11+ and an already running local oMLX or vLLM-compatible
    Index-Translate runner with model listing, chat completions and chat tokenization. Installation
@@ -109,7 +130,7 @@ server does not monitor the caller's files.
 
 ### Settings and connection checks
 
-The plugin's MCP process connects Codex or Copilot to the translation tools. The
+The plugin's MCP process connects Codex, Copilot or Claude Code to the translation tools. The
 in-app form configures the tools' separate HTTP connection to your inference
 engine. A discovered MCP tool does not establish a working engine connection.
 

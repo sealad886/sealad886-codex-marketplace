@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mlx-optimizer",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Python-first MLX optimization skills, references, and audit scripts for Apple Silicon.",
   "author": {
     "name": "Andrew Cox",

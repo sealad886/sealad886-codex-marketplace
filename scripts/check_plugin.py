@@ -40,6 +40,9 @@ REQUIRED_SKILL_SECTIONS = (
     "## Must not",
 )
 REQUIRED_ROOT_FILES = (".codexignore", "LICENSE", "README.md", "SECURITY.md")
+COMMON_MANIFEST_FIELDS = (
+    "name", "version", "description", "author", "homepage", "repository", "license", "keywords",
+)
 PUBLIC_FIXTURE_HOME_PATH = re.compile(r"(?:/Users|/home)/[^/\s]+/")
 PUBLIC_FIXTURE_TASK_ID = re.compile(
     r"\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
@@ -121,8 +124,7 @@ def validate_portable_manifest(root: Path, overlay: dict) -> list[str]:
         keywords = portable["keywords"]
         if not isinstance(keywords, list) or not all(isinstance(value, str) for value in keywords):
             errors.append("portable manifest keywords must be an array of strings")
-    for field in ("name", "version", "description", "author", "homepage",
-                  "repository", "license", "keywords"):
+    for field in COMMON_MANIFEST_FIELDS:
         if portable.get(field) != overlay.get(field):
             errors.append(f"portable manifest {field} must match the Codex manifest")
     extensions = portable.get("extensions", {})
@@ -132,10 +134,10 @@ def validate_portable_manifest(root: Path, overlay: dict) -> list[str]:
         targets = extensions["com.sealad886.marketplace"]
         if (not isinstance(targets, dict)
                 or set(targets) != {"clients", "reason"}
-                or targets.get("clients") not in (["codex"], ["codex", "copilot"])
+                or targets.get("clients") not in (["codex"], ["codex", "copilot", "claude"])
                 or not isinstance(targets.get("reason"), str)
                 or not targets["reason"].strip()):
-            errors.append("marketplace extension requires clients [codex] or [codex, copilot] "
+            errors.append("marketplace extension requires clients [codex] or [codex, copilot, claude] "
                           "and a nonblank reason")
     openai = extensions.get("com.openai", {}) if isinstance(extensions, dict) else None
     interface = openai.get("interface") if isinstance(openai, dict) else None
@@ -165,6 +167,64 @@ def validate_portable_manifest(root: Path, overlay: dict) -> list[str]:
     return errors
 
 
+def expected_claude_manifest(root: Path, overlay: dict) -> dict:
+    """Project shared metadata and local MCP entrypoints into Claude's format.
+
+    Claude loads the root .mcp.json first, then lets an inline declaration
+    replace servers with the same names. Absolute plugin-root arguments keep
+    those servers independent of the consumer's working directory.
+    """
+    expected = {key: overlay[key] for key in COMMON_MANIFEST_FIELDS if key in overlay}
+    declaration = overlay.get("mcpServers")
+    if declaration is not None:
+        if not isinstance(declaration, str) or not declaration.startswith("./"):
+            raise ValueError("Claude MCP source must be a contained ./ config path")
+        config = json.loads(read_text(root / declaration, root=root))
+        servers = config.get("mcpServers") if isinstance(config, dict) else None
+        if not isinstance(servers, dict) or not servers:
+            raise ValueError("Claude MCP source must contain named mcpServers")
+        translated = {}
+        for name, server in servers.items():
+            if not isinstance(name, str) or not isinstance(server, dict):
+                raise ValueError("Claude MCP source servers must be named objects")
+            arguments = server.get("args")
+            if (server.get("command") not in ("python3", "node")
+                    or not isinstance(arguments, list) or len(arguments) != 1
+                    or not isinstance(arguments[0], str)
+                    or not arguments[0].startswith("./")):
+                raise ValueError("Claude MCP source must launch one contained Python or Node script")
+            script = Path(arguments[0])
+            # Validate containment, regular-file identity and bounded reads.
+            read_bytes(root / script, root=root)
+            translated[name] = {
+                "command": server["command"],
+                "args": ["${CLAUDE_PLUGIN_ROOT}/" + script.as_posix()],
+            }
+        expected["mcpServers"] = translated
+    return expected
+
+
+def validate_claude_manifest(root: Path, overlay: dict) -> list[str]:
+    """Require synchronized Claude metadata for portable non-Codex-only packages."""
+    portable_path = root / "plugin.json"
+    if not portable_path.exists() and not portable_path.is_symlink():
+        return []
+    try:
+        portable = json.loads(read_text(portable_path, root=root))
+        extensions = portable.get("extensions", {}) if isinstance(portable, dict) else {}
+        targets = extensions.get("com.sealad886.marketplace", {}) if isinstance(extensions, dict) else {}
+        if isinstance(targets, dict) and targets.get("clients") == ["codex"]:
+            return []
+        actual = json.loads(read_text(root / ".claude-plugin/plugin.json", root=root))
+        expected = expected_claude_manifest(root, overlay)
+    except (OSError, UnicodeError, ValueError, TypeError) as error:
+        return [f"invalid or missing Claude manifest: {error}"]
+    if actual != expected:
+        return ["Claude manifest must match shared Codex metadata and use inline "
+                "MCP servers with ${CLAUDE_PLUGIN_ROOT} entrypoints"]
+    return []
+
+
 def validate(root: Path, layout: str = "auto") -> tuple[list[str], int, int]:
     errors: list[str] = []
     if not root.is_dir():
@@ -181,6 +241,7 @@ def validate(root: Path, layout: str = "auto") -> tuple[list[str], int, int]:
     if not isinstance(manifest, dict):
         return ["manifest must contain an object"], 0, len(collect_files(root))
     errors.extend(validate_portable_manifest(root, manifest))
+    errors.extend(validate_claude_manifest(root, manifest))
 
     for relative in REQUIRED_ROOT_FILES:
         if not (root / relative).is_file():

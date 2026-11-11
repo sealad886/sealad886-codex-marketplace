@@ -33,6 +33,9 @@ jobs:
       - name: Validate Copilot marketplace and portable components
         run: python3 scripts/check_copilot_marketplace.py .
 
+      - name: Validate Claude Code marketplace and package manifests
+        run: python3 scripts/check_claude_marketplace.py .
+
       - name: Validate manifests with OpenAI Plugin Creator
         env:
           PLUGIN_VALIDATOR_SHA256: ebda00d55d7518b127f675f062fb5c6e7a1ffdc0a99df1a55ac594400d7d3228
