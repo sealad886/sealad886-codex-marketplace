@@ -132,9 +132,14 @@ Research decisions with cited evidence, comparable quantities, and explicit unce
 
 ### [Worktree Activity](plugins/worktree-activity/README.md)
 
-Preserve unfinished worktree assignments under their responsible Codex root
-conversation across interruptions. Includes an atomic local registry helper,
-versioned schema, root-only lifecycle skill, and read-only recovery plans.
+[![Worktree Activity — A thread back to unfinished work.](plugins/worktree-activity/assets/readme-banner.png)](plugins/worktree-activity/README.md)
+
+Keep a route back to the Codex conversation responsible for unfinished worktree
+assignments. Preserve tasks, blockers, and verification across interruptions,
+then build read-only recovery plans grouped by their original user-facing root.
+Ownership remains until that root verifies completion or reconciles explicit
+user-authorized cancellation. Includes a local registry helper and versioned
+schema; supports multiple owners in one checkout.
 
 **Version:** `0.1.0` · **Codex only** · [Setup and activation](plugins/worktree-activity/README.md)
 
@@ -194,6 +199,7 @@ codex plugin add conventional-commit@sealad886-codex-marketplace
 codex plugin add simplify-code@sealad886-codex-marketplace
 codex plugin add adversarial-audit@sealad886-codex-marketplace
 codex plugin add web-research@sealad886-codex-marketplace
+codex plugin add worktree-activity@sealad886-codex-marketplace
 codex plugin add repository-guidance@sealad886-codex-marketplace
 codex plugin add camofox-mcp@sealad886-codex-marketplace
 codex plugin add local-translation@sealad886-codex-marketplace
@@ -202,15 +208,17 @@ codex plugin add mindrally-skills@sealad886-codex-marketplace
 
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.
 
-The single-skill workflow plugins contain instructions without requiring a local
-executor. Marketplace installation makes them available in the local client;
+Most single-skill workflow plugins contain instructions without requiring a local
+executor. Worktree Activity also uses a local Python helper; follow its setup guide.
+Marketplace installation makes the plugins available in the local client;
 cloud use requires a separately available account copy. Each task still needs
 the relevant tools, repository access, and authentication. Invoke each skill as
 `$<plugin-name>:<skill-name>`; these plugins use the same name for both parts.
 
 ### GitHub Copilot
 
-Register the marketplace, then install any plugin by its name from the list above:
+Register the marketplace, then install a supported plugin by its name from the
+list above. Worktree Activity is Codex-only and is omitted from the Copilot catalog.
 
 ```bash
 copilot plugin marketplace add sealad886/sealad886-codex-marketplace

@@ -1,10 +1,34 @@
+![Worktree Activity — A thread back to unfinished work.](assets/readme-banner.png)
+
 # Worktree Activity
 
-Keep unfinished development attributable to its responsible user-facing Codex conversation across interruption, shutdown, and recovery. Each root coordinator owns one advisory JSON record per existing authorized worktree. Multiple coordinators may share a checkout; each retains its own record.
+**A thread back to unfinished work.**
+
+When development stops halfway through, keep a clear route back to the Codex conversation responsible for finishing it. Worktree Activity records the assignment, progress, blockers, and verification in each target worktree so interrupted work remains attributable to its original user-facing coordinator.
+
+- **Keep ownership through interruptions.** Records survive crashes, paused work, ended turns, and context compaction. They have no expiration.
+- **Reconcile before you finish.** The responsible root retains its record until it verifies every task or records explicit user-authorized cancellation.
+- **Coordinate several owners.** Independent root conversations keep separate records in a shared checkout; delegated workers report to their coordinator.
+- **Find the next recovery step.** Read-only plans group unfinished work across projects by its responsible root, with native conversation links and visible discrepancies.
 
 The [Worktree Activity skill](skills/worktree-activity/SKILL.md) ships with an executable helper, [JSON Schema](skills/worktree-activity/references/worktree-activity-v1.schema.json), [lifecycle/CLI contract](skills/worktree-activity/references/lifecycle.md), [runtime identity findings](skills/worktree-activity/references/runtime-identity.md), and [examples](skills/worktree-activity/examples/). It targets Codex and is intentionally excluded from the Copilot catalog. The portable plugin manifest remains included in the package.
 
-## Setup and activation
+## Install
+
+Add the marketplace, then install the plugin:
+
+```sh
+codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
+codex plugin add worktree-activity@sealad886-codex-marketplace
+```
+
+Start a fresh Codex chat after installation. Complete the runtime setup below before asking the coordinator to register an assignment. For example:
+
+> Use $worktree-activity:worktree-activity to register this assignment in its existing authorized worktree, retain ownership through interruptions, and finalize only after you verify all registered work.
+
+For a local marketplace checkout, replace the first command with `codex plugin marketplace add /absolute/path/to/sealad886-codex-marketplace --json`. See [runtime identity findings](skills/worktree-activity/references/runtime-identity.md) for tested client versions and native discovery evidence.
+
+## Runtime setup and activation
 
 You need Python 3.11+, Git, a local filesystem supporting POSIX advisory file locks and atomic same-directory replacement, and the helper's pinned Python dependencies. Ordinary registry commands run offline. Dependency installation may use your configured package index.
 
@@ -22,14 +46,7 @@ python3 -m venv "$WORKTREE_ACTIVITY_ENV"
 
 No global/system Python installation is required. Keep both paths available when invoking the helper; do not assume the shell starts in this marketplace or in the target worktree. Relocating the package works when you update `PLUGIN`.
 
-Install the package through Codex's supported plugin installation flow. For a local marketplace checkout, the bundled CLI supports:
-
-```sh
-codex plugin marketplace add /absolute/path/to/sealad886-codex-marketplace --json
-codex plugin add worktree-activity@sealad886-codex-marketplace --json
-```
-
-These commands change the selected Codex configuration; run them deliberately when installing. Enable the plugin, then inspect its available skill in a fresh chat. The skill permits implicit invocation, and its marketplace metadata targets Codex, but installation alone does not guarantee selection for every development assignment. Adopt the concise [AGENTS.md integration block](skills/worktree-activity/references/global-agents-integration.md) if you want a default instruction to load it before work. This package does not change global instructions, real client settings, or credentials automatically. See runtime findings for tested discovery commands and client versions.
+Installation changes the selected Codex configuration. Enable the plugin, then inspect its available skill in a fresh chat. The skill permits implicit invocation, and its marketplace metadata targets Codex, but installation alone does not guarantee selection for every development assignment. Adopt the concise [AGENTS.md integration block](skills/worktree-activity/references/global-agents-integration.md) if you want a default instruction to load it before work. This package does not change global instructions, real client settings, or credentials automatically.
 
 ## Ordinary use
 

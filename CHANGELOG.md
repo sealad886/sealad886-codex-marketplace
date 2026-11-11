@@ -3,6 +3,23 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Worktree Activity 0.1.0 - 2026-11-11
+
+### Added
+
+- Codex-only plugin for persistent unfinished-work ownership in existing
+  Git-registered linked worktrees, including legacy locations outside `.worktrees/`.
+- One root-owned `.activity.json` record per responsible conversation and checkout,
+  strict versioned schema, atomic synchronized updates, explicit verified
+  finalization, and read-only recovery plans grouped by responsible root.
+- Root-only lifecycle skill, hash-locked Python helper, valid/invalid examples,
+  runtime identity evidence, and optional default AGENTS integration.
+- Original conversation-and-branch logo, coordinated README banner, product
+  documentation, and marketplace presentation. Records never expire and do not
+  represent process locks or liveness.
+- Isolated client discovery, ownership/concurrency regression tests, and
+  Codex-only catalog membership without bypassing portable package validation.
+
 ## Marketplace 0.1.21 - 2026-11-08
 
 ### Changed

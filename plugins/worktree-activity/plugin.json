@@ -32,8 +32,8 @@
           "Register this development assignment in its existing worktree and preserve its ownership until verified completion.",
           "Inspect these project roots and prepare a read-only recovery plan grouped by responsible conversation."
         ],
-        "composerIcon": "./assets/icon.svg",
-        "logo": "./assets/icon.svg",
+        "composerIcon": "./skills/worktree-activity/assets/icon.svg",
+        "logo": "./skills/worktree-activity/assets/icon.svg",
         "brandColor": "#276579",
         "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/worktree-activity"
       }

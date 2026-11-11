@@ -1,7 +1,9 @@
 interface:
   display_name: "Worktree Activity"
   short_description: "Recover unfinished work"
-  brand_color: "#27626D"
+  brand_color: "#276579"
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"
   default_prompt: "Use $worktree-activity:worktree-activity to reconcile my unfinished development ownership in existing authorized worktrees. Capture the current coordinator's native thread ID, preserve prior tasks, verify results before finalization, and report recovery targets without messaging them."
 policy:
   allow_implicit_invocation: true

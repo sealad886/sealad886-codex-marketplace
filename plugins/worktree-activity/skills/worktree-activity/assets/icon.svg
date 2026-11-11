@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title description">
+  <title id="title">Worktree Activity</title>
+  <desc id="description">A root conversation branches to a worktree node and a retained, bookmarked record.</desc>
+  <rect width="256" height="256" rx="52" fill="#0D2730"/>
+  <g fill="none" stroke="#B9E7DA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M68 122v64m0-31h80"/>
+    <circle cx="68" cy="199" r="13" fill="#0D2730" stroke-width="8"/>
+  </g>
+  <path d="M61 40h84c12.15 0 22 9.85 22 22v31c0 12.15-9.85 22-22 22H91l-23 20v-20h-7c-12.15 0-22-9.85-22-22V62c0-12.15 9.85-22 22-22Z" fill="#276579" stroke="#B9E7DA" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M65 68h76M65 88h48" fill="none" stroke="#B9E7DA" stroke-width="8" stroke-linecap="round"/>
+  <rect x="148" y="128" width="64" height="82" rx="10" fill="#B9E7DA"/>
+  <path d="M178 128h18v32l-9-7-9 7Z" fill="#F2C078"/>
+  <path d="M164 178h31m-31 16h19" fill="none" stroke="#276579" stroke-width="6" stroke-linecap="round"/>
+</svg>

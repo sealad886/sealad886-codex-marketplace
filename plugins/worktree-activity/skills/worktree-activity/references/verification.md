@@ -103,3 +103,25 @@ network filesystems or power loss remain unverified. No messaging/resumption is
 implemented. The full unrelated cross-plugin application suite and hosted CI/HOL
 scanner were not run for this local task; CI now includes the package and its
 locked dependencies. This receipt is not a release certification.
+
+## Branding and first-release preparation — 2026-11-11
+
+The original conversation/branch/bookmark identity now appears in the plugin and
+marketplace READMEs, with one packaged PNG banner and one canonical SVG under
+`skills/worktree-activity/assets/`. Both manifests and the skill reference that
+same SVG. Image Generation produced the banner; the vector mark is original
+native SVG. The source artwork ledger records its prompt and palette.
+
+The 33 behavioral tests and 12 release-workflow tests passed again. Both catalog
+checks, source/distribution checks, the checksum-pinned OpenAI manifest validator,
+and Skill Creator validation passed. An isolated installation through the
+Desktop-bundled runtime reported no skill errors; both installed skill icon
+paths resolved to bytes identical to the canonical SVG. No normal-user settings
+or unrelated development work were changed.
+
+The initial receipt above describes the earlier local implementation milestone.
+For this first release, the exact committed package is built separately from the
+dirty working checkout. Publication requires successful validation and the pinned
+HOL scanner on that source commit. The GitHub release and its automatically
+created marketplace snapshot are authoritative for publication status; preparing
+these files alone does not establish that publication occurred.
