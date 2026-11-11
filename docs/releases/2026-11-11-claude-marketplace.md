@@ -45,6 +45,9 @@ MCP names; shared CI and the pinned HOL scanner pass before publication.
 
 ## Verification
 
+- Full repository regression suite: **745 tests passed, zero skips**, with Node
+  on PATH, optional remote dependencies required, and loopback sockets enabled.
+
 - Claude Code 2.1.311: strict native validation of 16 packages; isolated catalog
   discovery and 16 enabled installations; exact inventory of 328 skills and four
   MCP servers. Worktree Activity absent. No model turns or runtime setup.
@@ -73,8 +76,9 @@ are untouched.
 
 Publish through a reviewed signed-commit PR and the common marketplace release
 action. Each updated package receives an immutable version tag; one marketplace
-release records the batch. Codex's four pinned sources advance to the validated
-package content, and their bytes must match the tagged merge packages. No
+release records the batch. Codex's four pinned sources advance to signed content
+commit `15e06a3b06923e06c9298b79c33e4e57436f39cd`; their bytes must match the tagged
+merge packages. This ancestor pin avoids circular self-referencing source hashes. No
 per-plugin GitHub Release is needed to repeat the full snapshot pipeline for
 every package in this one batch.
 
