@@ -1,6 +1,6 @@
 # Optional default integration
 
-Installation makes the skill available for implicit invocation; it does not guarantee that every development assignment activates it. Add the following block to your chosen global or project `AGENTS.md` only when you deliberately adopt this workflow. The plugin does not edit global instructions or user configuration.
+Installation makes the skill available for implicit invocation; it does not guarantee that every development assignment activates it. Add the following block to your chosen global or project `AGENTS.md` only when you deliberately adopt this workflow. The configured creation hook covers new managed Desktop checkouts; the package guide documents the tested runtime's explicit configuration fallback. This block also covers other assignment paths. The plugin does not edit global instructions or user configuration.
 
 ```markdown
 ## Recoverable worktree ownership

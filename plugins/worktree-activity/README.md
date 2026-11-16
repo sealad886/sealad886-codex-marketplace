@@ -11,7 +11,7 @@ When development stops halfway through, keep a clear route back to the Codex con
 - **Coordinate several owners.** Independent root conversations keep separate records in a shared checkout; delegated workers report to their coordinator.
 - **Find the next recovery step.** Read-only plans group unfinished work across projects by its responsible root, with native conversation links and visible discrepancies.
 
-The [Worktree Activity skill](skills/worktree-activity/SKILL.md) ships with an executable helper, [JSON Schema](skills/worktree-activity/references/worktree-activity-v1.schema.json), [lifecycle/CLI contract](skills/worktree-activity/references/lifecycle.md), [runtime identity findings](skills/worktree-activity/references/runtime-identity.md), and [examples](skills/worktree-activity/examples/). It targets Codex and is intentionally excluded from the Copilot catalog. The portable plugin manifest remains included in the package.
+The [Worktree Activity skill](skills/worktree-activity/SKILL.md) ships with an executable helper, [JSON Schema](skills/worktree-activity/references/worktree-activity-v1.schema.json), [lifecycle/CLI contract](skills/worktree-activity/references/lifecycle.md), [runtime identity findings](skills/worktree-activity/references/runtime-identity.md), and [examples](skills/worktree-activity/examples/). It targets Codex and is intentionally excluded from the Copilot and Claude Code catalogs. The portable plugin manifest remains included in the package.
 
 ## Install
 
@@ -46,7 +46,45 @@ python3 -m venv "$WORKTREE_ACTIVITY_ENV"
 
 No global/system Python installation is required. Keep both paths available when invoking the helper; do not assume the shell starts in this marketplace or in the target worktree. Relocating the package works when you update `PLUGIN`.
 
-Installation changes the selected Codex configuration. Enable the plugin, then inspect its available skill in a fresh chat. The skill permits implicit invocation, and its marketplace metadata targets Codex, but installation alone does not guarantee selection for every development assignment. Adopt the concise [AGENTS.md integration block](skills/worktree-activity/references/global-agents-integration.md) if you want a default instruction to load it before work. This package does not change global instructions, real client settings, or credentials automatically.
+Installation changes the selected Codex configuration. Enable the plugin, then inspect its available skill in a fresh chat. Review the hook through **Review hooks** or **Settings > Hooks** before expecting automatic context injection. Administrators can restrict hooks. This package does not change global instructions, hook trust, client settings, or credentials automatically.
+
+**Tested Desktop limitation:** runtime `0.169.0-alpha.11.1` ignores bundled hooks
+for portable plugin packages. On that build, replace the two paths in the
+[configuration example](skills/worktree-activity/references/post-tool-use.toml)
+and add its tables to your chosen user `~/.codex/config.toml` or trusted project
+`.codex/config.toml`. Use the installed plugin directory and a separate writable
+data directory. Reload the session and review the hook. This configuration-layer
+fallback was discovered successfully in an isolated profile; no real settings
+were changed. On a runtime that discovers the bundled hook, use that registration
+instead of keeping both. See [runtime findings](skills/worktree-activity/references/runtime-identity.md#managed-creation-hook--2026-11-16).
+
+### After a managed worktree is created
+
+The configured `PostToolUse` hook injects the installed Worktree Activity skill after
+Desktop's `create_worktree` tool reports a created checkout. For asynchronous
+creation, it remembers the pending creation operation and waits for
+`get_worktree_creation_status` to return the created result. Merely attaching an
+existing checkout, polling an unrelated operation, or failing before creation
+does not activate it. A checkout created before a setup or attachment error still
+gets the skill so its coordinator can reconcile the unfinished work.
+
+The hook loads trusted packaged instructions; it never creates a worktree,
+registers an assignment, or changes ownership records. The skill's root-only
+rules remain in force for delegated callers. A creation without an actual
+development assignment still does not justify registration.
+
+Pending-operation markers live separately under
+`$PLUGIN_DATA/worktree-activity-pending/`. They only distinguish asynchronous
+creation from attachment; they are not ownership records or liveness signals.
+They have no timer or age-based cleanup. A completed creation or explicit failure consumes its matching
+marker; malformed or pending status retains it. `.agent-activity/` records remain untouched.
+
+The hook uses only Python's standard library. Registry commands still need the
+runtime setup above. Direct shell commands such as `git worktree add` are not
+covered: the tested Desktop shell-hook payload lacks a reliable exit status.
+Existing worktrees and unsupported creation routes can still use explicit or
+implicit skill invocation. Adopt the [AGENTS.md integration block](skills/worktree-activity/references/global-agents-integration.md)
+for an instruction-level default before other development or delegation.
 
 ## Ordinary use
 

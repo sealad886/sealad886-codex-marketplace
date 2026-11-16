@@ -211,3 +211,69 @@ keeps Codex-only publication targeting in the catalog policy.
 Recheck identity capture, thread routing, discovery and activation after a Desktop
 upgrade. Keep failed or unavailable integration checks visibly unverified rather
 than manufacturing identity or deleting evidence.
+
+## Managed-creation hook — 2026-11-16
+
+The installed Desktop is now `26.1111.21308` (build `27194`), with bundled
+`codex-cli 0.169.0-alpha.11.1`. The runtime reports `hooks` as a stable enabled
+feature. Its exact upstream tag is `rust-v0.169.0-alpha.11.1`.
+
+This build supports the case-sensitive `PostToolUse` event. Root `plugin.json` declares `skills/worktree-activity/hooks/hooks.json` under
+`extensions.com.openai.hooks`. The OpenAI extension takes precedence when
+present, so an overlay-only declaration would be ignored. The older compatibility
+manifest format accepted by the pinned validator does not allow a `hooks` field;
+it retains the common metadata and skill declaration. Command hooks receive
+`PLUGIN_ROOT` and writable `PLUGIN_DATA`. JSON output with
+`hookSpecificOutput.hookEventName: "PostToolUse"` and `additionalContext` supplies
+extra developer context. The handler emits the trusted installed skill, not text
+copied from a tool response. See the [official hook guide](https://learn.chatgpt.com/docs/hooks#posttooluse)
+and exact tagged [input](https://raw.githubusercontent.com/openai/codex/rust-v0.169.0-alpha.11.1/codex-rs/hooks/schema/generated/post-tool-use.command.input.schema.json)
+and [output](https://raw.githubusercontent.com/openai/codex/rust-v0.169.0-alpha.11.1/codex-rs/hooks/schema/generated/post-tool-use.command.output.schema.json)
+contracts. Plugin hooks require their own trust review; installation is not
+permission to execute them, and managed policy can prevent their execution.
+
+Installed `app.asar` entries
+`.vite/build/early-bootstrap-226-2f6bd181558008cf.js` and
+`webview/assets/async/559929.51467d90f1.js` establish the managed tool results:
+`create_worktree` returns `type: "created"` with absolute `worktreeGitRoot` and
+`worktreeWorkspaceRoot`, or `type: "pending"` with an `operationId`. Status polling
+returns the same operation ID, a stage, and an optional created result. A created
+checkout can carry setup/registration errors, so that result still warrants
+loading recovery instructions. Failure before a created result does not.
+
+Some attachment operations share the status result shape. Pending-creation
+markers in plugin data therefore correlate only operations originally observed
+from `create_worktree`; unobserved completion and existing-worktree attachment
+are not creation signals. Markers contain no task or conversation ownership,
+have no expiration, and never alter `.agent-activity/` records.
+
+The installed `codex-app-tools/26.1111.21308/server.mjs` wraps payloads in MCP
+`content` text. The earlier Desktop dynamic-tool representation uses `success`
+and `contentItems` with `inputText`; the core runtime converts a single text item
+to a JSON string for hook delivery. These representations are fixture-tested.
+No actual development worktree is created to test this hook.
+
+**Portable-plugin limitation verified locally:** this exact build parses the
+OpenAI extension, but its [tagged loader](https://raw.githubusercontent.com/openai/codex/rust-v0.169.0-alpha.11.1/codex-rs/core-plugins/src/loader.rs)
+explicitly skips hooks for `AgentPlugin` packages. Isolated native installation
+followed by `hooks/list` returned no hook entries or errors. Current documentation
+describes bundled support, but it does not override the installed behavior.
+The portable manifest is retained; no legacy installation projection or runtime
+patch bypasses this restriction.
+
+The [explicit configuration example](post-tool-use.toml) uses the same packaged
+handler through the normal user/project configuration layer. In a disposable
+Codex home, that configuration produced one `postToolUse` command hook with the
+expected matcher, ten-second timeout, `additionalContextLimit: 0`, and no discovery
+errors. It remains subject to normal hook review and managed policy. No normal
+profile was changed, and actual live creation-trigger delivery remains
+unverified. Use one registration path, not both, if a later build loads the
+bundled declaration.
+
+Shell creation is deliberately outside this hook's trigger. In this exact
+runtime, the [unified-exec hook response](https://raw.githubusercontent.com/openai/codex/rust-v0.169.0-alpha.11.1/codex-rs/core/src/tools/context.rs)
+contains truncated stdout without the exit code supplied separately to code
+mode. Searching stdout or command text would not prove a new checkout was
+created. Other creation routes retain explicit invocation and the optional
+AGENTS default. Earlier activation findings above describe the previous build;
+this hook adds a specific trusted trigger, not mandatory activation everywhere.

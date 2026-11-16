@@ -11,7 +11,7 @@ Read [runtime identity](references/runtime-identity.md) before relying on native
 
 ## When to invoke
 
-Invoke for an actual development assignment in existing authorized worktrees, before delegation into those worktrees, when reconciling progress or resuming unfinished work, and for requested read-only recovery inspection. Do not register merely because a chat opened or a directory was read.
+Invoke for an actual development assignment in existing authorized worktrees, before delegation into those worktrees, when reconciling progress or resuming unfinished work, and for requested read-only recovery inspection. An enabled `PostToolUse` hook also supplies this skill after managed Desktop creation completes; see the package guide for the tested runtime's explicit configuration fallback. Hook delivery does not establish coordinator role, authorize development, or register an assignment. Do not register merely because a chat opened, a directory was read, or an unassigned checkout was created.
 
 ## Inputs and evidence
 
@@ -51,7 +51,7 @@ Scan only Git-registered linked worktrees of explicitly supplied primary project
 
 ## Outputs and handoff
 
-Report target worktrees, root ownership, unfinished tasks/blockers, verification evidence, discrepancies, and whether each record remains or was explicitly finalized. Distinguish fixture coverage from live Desktop evidence. Installation permits implicit selection but does not guarantee every assignment loads this skill; offer the [global integration block](references/global-agents-integration.md) for deliberate default adoption without editing global instructions automatically.
+Report target worktrees, root ownership, unfinished tasks/blockers, verification evidence, discrepancies, and whether each record remains or was explicitly finalized. Distinguish fixture coverage from live Desktop evidence. The configured creation hook covers managed Desktop creation, not every development assignment; offer the [global integration block](references/global-agents-integration.md) for deliberate default adoption without editing global instructions automatically.
 
 ## Completion evidence
 

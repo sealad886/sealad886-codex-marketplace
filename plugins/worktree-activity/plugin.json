@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "worktree-activity",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keep unfinished Git work attributable to its responsible Codex conversation until owner-verified completion or authorized cancellation.",
   "author": {
     "name": "Andrew Cox",
@@ -36,7 +36,8 @@
         "logo": "./skills/worktree-activity/assets/icon.svg",
         "brandColor": "#276579",
         "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/worktree-activity"
-      }
+      },
+      "hooks": "./skills/worktree-activity/hooks/hooks.json"
     },
     "com.sealad886.marketplace": {
       "clients": [

@@ -1,6 +1,6 @@
 {
   "name": "worktree-activity",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keep unfinished Git work attributable to its responsible Codex conversation until owner-verified completion or authorized cancellation.",
   "author": {
     "name": "Andrew Cox",

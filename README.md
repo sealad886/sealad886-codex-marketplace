@@ -141,7 +141,7 @@ Ownership remains until that root verifies completion or reconciles explicit
 user-authorized cancellation. Includes a local registry helper and versioned
 schema; supports multiple owners in one checkout.
 
-**Version:** `0.1.0` · **Codex only** · [Setup and activation](plugins/worktree-activity/README.md)
+**Release:** `0.2.0` · **Codex only** · [Setup and activation](plugins/worktree-activity/README.md)
 
 ### [Repository Guidance](plugins/repository-guidance/README.md)
 

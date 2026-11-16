@@ -3,6 +3,20 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Worktree Activity 0.2.0 - 2026-11-16
+
+### Added
+
+- A trusted Codex `PostToolUse` hook that supplies the packaged skill after
+  managed Desktop worktree creation, including asynchronous completion and
+  checkouts created before setup errors. It does not register work automatically.
+- Pending-operation correlation in plugin data prevents existing-worktree
+  attachment status from being mistaken for creation. Ownership records and
+  root-only lifecycle rules remain unchanged.
+- An explicit configuration fallback for Desktop runtime `0.169.0-alpha.11.1`,
+  which skips bundled hooks in portable plugin packages. Hook discovery was
+  verified in an isolated profile; live worktree creation remains untested.
+
 ## Marketplace 0.2.0 - 2026-11-11
 
 ### Added
