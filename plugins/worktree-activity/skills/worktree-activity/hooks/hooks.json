@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "^(mcp__codex_app__)?(create_worktree|get_worktree_creation_status)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/skills/worktree-activity/scripts/post_tool_use.py\"",
+            "timeout": 10,
+            "additionalContextLimit": 0
+          }
+        ]
+      }
+    ]
+  }
+}

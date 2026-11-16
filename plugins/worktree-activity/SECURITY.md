@@ -19,3 +19,9 @@ plans may expose local paths and conversation IDs; share intentionally.
 Malformed, unsupported, conflicting, or unsafe records must remain for owner
 review. No age, shutdown, interrupted run, or background sweep authorizes deletion.
 Report a security issue privately to the repository owner before public disclosure.
+
+The post-creation handler emits only trusted packaged skill instructions;
+it does not copy tool output into developer context or mutate ownership records.
+Hook trust must be reviewed separately. Its plugin-data markers correlate pending
+managed creation operations with their completion; they grant no ownership or
+permission and are separate from the unfinished-work registry.
