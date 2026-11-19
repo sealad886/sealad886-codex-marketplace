@@ -4,7 +4,7 @@
 [![HOL Plugin Scanner](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml/badge.svg)](https://github.com/sealad886/sealad886-codex-marketplace/actions/workflows/hol-plugin-scanner.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-Tools for planning and shipping software, reviewing and consolidating Git work, simplifying code, researching the web, managing releases and iCloud email, browsing the web with Camofox, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need; each works independently.
+Tools for planning and shipping software, reviewing and consolidating Git work, simplifying code, researching the web, managing releases, watching long-running jobs, browsing the web with Camofox, working with visuals, and optimizing MLX on Apple Silicon. Install the plugins you need independently.
 
 Available as a plugin marketplace for **Codex**, **GitHub Copilot**, and **Claude Code**. All
 packages expose portable Agent Plugins 1.0 manifests, with Codex presentation
@@ -66,13 +66,11 @@ Bring useful images, diagrams, and generated visuals into supported Codex and Ch
 
 **Version:** `0.1.3` · [Guide and supported capabilities](plugins/conversation-visuals/README.md)
 
-### [iCloud Mail](plugins/icloud-mail/README.md)
+### [Event-Driven Job Watcher](plugins/event-driven-job-watcher/README.md)
 
-[![iCloud Mail — Your mailbox, thoughtfully connected.](plugins/icloud-mail/assets/readme-banner.png)](plugins/icloud-mail/README.md)
+Watch a build, test, or batch job through completion without polling. Save the result to a local receipt and optionally resume the originating Codex chat when the job ends.
 
-Connect iCloud Mail through one temporary setup page on your Mac, with an Apple app-specific password stored in macOS Keychain. Search, read, organize, draft, and send mail directly on iCloud, including attachments, replies, and forwarding. No local email repository, cache, search index, or background sync.
-
-**Release:** `0.4.1` (optional self-hosted read-only remote access; hosting required) · [Setup and usage](plugins/icloud-mail/README.md)
+**Release:** `0.1.0` · [Setup and usage](plugins/event-driven-job-watcher/README.md)
 
 ### [Build Multi-target Tauri Apps](plugins/build-multi-target-tauri-apps/README.md)
 
@@ -180,7 +178,7 @@ codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref main
 ```
 
 Marketplace releases use their own `marketplace-vX.Y.Z` tags and GitHub releases.
-Plugin tags such as `icloud-mail-v0.2.0` are independent and do not identify a
+Plugin tags such as `event-driven-job-watcher-v0.1.0` are independent and do not identify a
 marketplace release. To install a pinned marketplace version, use its
 `marketplace-vX.Y.Z` tag as the `--ref`.
 
@@ -191,7 +189,7 @@ codex plugin add project-delivery@sealad886-codex-marketplace
 codex plugin add semantic-versioning@sealad886-codex-marketplace
 codex plugin add mlx-optimizer@sealad886-codex-marketplace
 codex plugin add conversation-visuals@sealad886-codex-marketplace
-codex plugin add icloud-mail@sealad886-codex-marketplace
+codex plugin add event-driven-job-watcher@sealad886-codex-marketplace
 codex plugin add build-multi-target-tauri-apps@sealad886-codex-marketplace
 codex plugin add iterating-pr-bot-fixes@sealad886-codex-marketplace
 codex plugin add repo-consolidation@sealad886-codex-marketplace
@@ -209,7 +207,7 @@ codex plugin add mindrally-skills@sealad886-codex-marketplace
 To refresh an existing marketplace, run `codex plugin marketplace upgrade sealad886-codex-marketplace`. Start a fresh Codex task after installation. Each plugin's guide covers its requirements and usage.
 
 Most single-skill workflow plugins contain instructions without requiring a local
-executor. Worktree Activity also uses a local Python helper; follow its setup guide.
+executor. Event-Driven Job Watcher and Worktree Activity use local Python helpers.
 Marketplace installation makes the plugins available in the local client;
 cloud use requires a separately available account copy. Each task still needs
 the relevant tools, repository access, and authentication. Invoke each skill as
@@ -236,9 +234,9 @@ The Copilot catalog uses repository-relative sources: each plugin comes from the
 selected marketplace checkout. Codex retains its own catalog and release pins.
 Copilot discovers skills under `skills/` and MCP servers through root `mcp.json`.
 Client-specific features still require the relevant host tools; for example,
-Conversation Visuals' Codex panels and image generation need a supported host,
-and iCloud Mail's local setup requires macOS Keychain. See each plugin's guide
-for its runtime and authentication requirements.
+Conversation Visuals' Codex panels and image generation need a supported host.
+Event-Driven Job Watcher can save local receipts in any supported client with
+shell access. Automatic chat resumption requires the Codex queue CLI.
 
 The catalog follows GitHub's
 [marketplace format](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-marketplace)
@@ -271,8 +269,14 @@ Host features remain client-specific. Claude Code does not supply Codex panels,
 ChatGPT media presentation, or native Codex plugin settings. Conversation Visuals
 uses available local artifacts or connected tools; Local Translation uses its
 file/environment configuration path when the native settings modal is absent.
-iCloud Mail requires its documented local setup, and Camofox requires explicit
-browser setup. Installation does not configure accounts or run those operations.
+Camofox requires explicit browser setup. Event-Driven Job Watcher's automatic
+chat resumption requires the Codex queue CLI.
+
+### Retired plugins
+
+The custom iCloud Mail plugin has been retired from the active catalogs. Use
+the official iCloud Mail integration in ChatGPT. The [custom plugin source](plugins/icloud-mail/README.md)
+and historical marketplace snapshots remain available.
 
 ## Contributing and validation
 

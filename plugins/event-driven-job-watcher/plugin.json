@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "event-driven-job-watcher",
+  "version": "0.1.0",
+  "description": "Wait for builds, tests, and batch jobs without polling. Save a local receipt and optionally resume the originating Codex chat once.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/event-driven-job-watcher",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "jobs",
+    "watcher",
+    "builds",
+    "completion",
+    "codex"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Event-Driven Job Watcher",
+        "shortDescription": "Wait for jobs without polling",
+        "longDescription": "Wait for an authorized job to exit or reach a terminal service event without periodic polling. Record the result locally and, when supported, queue a single wakeup for the originating Codex chat.",
+        "developerName": "Andrew Cox",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "defaultPrompt": [
+          "Run the tests with a watcher and save the result. Resume this Codex chat once if supported.",
+          "Attach a watcher to this running build and use its existing report to determine the outcome."
+        ],
+        "composerIcon": "./skills/event-driven-job-watcher/assets/icon.svg",
+        "logo": "./skills/event-driven-job-watcher/assets/icon.svg",
+        "brandColor": "#296762",
+        "websiteURL": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/event-driven-job-watcher"
+      }
+    }
+  }
+}

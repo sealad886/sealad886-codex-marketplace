@@ -59,18 +59,16 @@
       "category": "Developer Tools"
     },
     {
-      "name": "icloud-mail",
+      "name": "event-driven-job-watcher",
       "source": {
-        "source": "git-subdir",
-        "url": "https://github.com/sealad886/sealad886-codex-marketplace.git",
-        "ref": "15e06a3b06923e06c9298b79c33e4e57436f39cd",
-        "path": "./plugins/icloud-mail"
+        "source": "local",
+        "path": "./plugins/event-driven-job-watcher"
       },
       "policy": {
         "installation": "AVAILABLE",
         "authentication": "ON_INSTALL"
       },
-      "category": "Productivity"
+      "category": "Developer Tools"
     },
     {
       "name": "build-multi-target-tauri-apps",

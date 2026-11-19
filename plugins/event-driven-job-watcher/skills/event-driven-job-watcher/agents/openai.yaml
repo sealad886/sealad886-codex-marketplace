@@ -1,0 +1,7 @@
+interface:
+  display_name: "Event-Driven Job Watcher"
+  short_description: "Wait for jobs without polling"
+  brand_color: "#296762"
+  default_prompt: "Use $event-driven-job-watcher:event-driven-job-watcher to attach to this job, save its completion result, and resume this Codex chat once if supported."
+  icon_small: "./assets/icon.svg"
+  icon_large: "./assets/icon.svg"

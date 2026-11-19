@@ -32,10 +32,10 @@
       "source": "./plugins/semantic-versioning"
     },
     {
-      "name": "icloud-mail",
-      "description": "Read, organize, draft, and send iCloud Mail locally, with optional self-hosted read-only remote access.",
-      "version": "0.4.1",
-      "source": "./plugins/icloud-mail"
+      "name": "event-driven-job-watcher",
+      "description": "Wait for builds, tests, and batch jobs without polling. Save a local receipt and optionally resume the originating Codex chat once.",
+      "version": "0.1.0",
+      "source": "./plugins/event-driven-job-watcher"
     },
     {
       "name": "build-multi-target-tauri-apps",
