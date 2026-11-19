@@ -34,7 +34,7 @@
     {
       "name": "event-driven-job-watcher",
       "description": "Wait for builds, tests, and batch jobs without polling. Save a local receipt and optionally resume the originating Codex chat once.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "./plugins/event-driven-job-watcher"
     },
     {

@@ -79,7 +79,7 @@ class WatcherTests(unittest.TestCase):
 
         for queue_code, queue_status in [(0, "queued"), (2, "uncertain")]:
             with self.subTest(queue_code=queue_code):
-                self.receipt = self.directory / f"status-{queue_code}.json"
+                self.receipt = self.directory / f"status {queue_code}.json"
                 self.log = self.directory / f"job-{queue_code}.log"
                 fake_script.write_text(
                     "import json, pathlib, sys\n"
@@ -91,7 +91,7 @@ class WatcherTests(unittest.TestCase):
                     encoding="utf-8",
                 )
                 result = self.run_job(
-                    sys.executable, "-c", "raise SystemExit(23)",
+                    sys.executable, "-c", "print('private job output'); raise SystemExit(23)",
                     options=("--thread", THREAD, "--codex", str(fake_cli)),
                 )
                 self.assertNotEqual(result.returncode, 0)
@@ -100,7 +100,10 @@ class WatcherTests(unittest.TestCase):
                 self.assertEqual(receipt["callback"], {"status": queue_status, "exit_code": queue_code})
                 call, saved_receipt = json.loads(calls.read_text(encoding="utf-8"))
                 self.assertEqual(call[:-1], ["queue", "--thread", THREAD, "--resume", "--message"])
-                self.assertIn(str(self.receipt), call[-1])
+                self.assertIn(json.dumps(str(self.receipt), ensure_ascii=False), call[-1])
+                self.assertIn("report it to the user", call[-1])
+                self.assertIn("continue any authorized follow-up", call[-1])
+                self.assertNotIn("private job output", call[-1])
                 self.assertEqual(saved_receipt["exit_code"], 23)
                 self.assertEqual(saved_receipt["callback"], {"status": "submitting"})
                 self.assertEqual(result.stderr, "")

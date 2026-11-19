@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "event-driven-job-watcher",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Wait for builds, tests, and batch jobs without polling. Save a local receipt and optionally resume the originating Codex chat once.",
   "author": {
     "name": "Andrew Cox",

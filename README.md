@@ -70,7 +70,7 @@ Bring useful images, diagrams, and generated visuals into supported Codex and Ch
 
 Watch a build, test, or batch job through completion without polling. Save the result to a local receipt and optionally resume the originating Codex chat when the job ends.
 
-**Release:** `0.1.0` · [Setup and usage](plugins/event-driven-job-watcher/README.md)
+**Release:** `0.1.1` · [Setup and usage](plugins/event-driven-job-watcher/README.md)
 
 ### [Build Multi-target Tauri Apps](plugins/build-multi-target-tauri-apps/README.md)
 
