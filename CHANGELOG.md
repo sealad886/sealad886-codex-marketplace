@@ -3,6 +3,20 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Event-Driven Job Watcher 0.1.0 - 2026-11-19
+
+### Added
+
+- Completion-only monitoring for local commands and existing macOS processes,
+  with local result receipts and an optional one-time Codex chat wakeup.
+- Skill guidance for using durable completion events from remote jobs.
+
+### Marketplace changes
+
+- Added Event-Driven Job Watcher to Codex, GitHub Copilot, and Claude Code.
+- Retired the custom iCloud Mail plugin from all three catalogs. The official
+  iCloud Mail integration is available in ChatGPT.
+
 ## Worktree Activity 0.2.0 - 2026-11-16
 
 ### Added

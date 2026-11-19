@@ -28,13 +28,21 @@ an independent review.
 - Plugin changes belong under the canonical `plugins/<plugin-id>/` package and must follow that plugin's documented contracts and validation workflow.
 - Do not create cross-plugin runtime dependencies merely to share prompts, assets, terminology, or implementation details.
 
-Project Delivery, Conversation Visuals, MLX Optimizer, and iCloud Mail are marketplace plugins. Each package owns its contribution contract: use the [Project Delivery guide](plugins/project-delivery/README.md) for lifecycle and routing changes; the [Conversation Visuals guide](plugins/conversation-visuals/README.md) plus its [security policy](plugins/conversation-visuals/SECURITY.md) for visual-selection, MCP, provenance, privacy, and consent changes; the [MLX Optimizer guide](plugins/mlx-optimizer/README.md) for MLX skills, references, scripts, and measurement contracts; and the [iCloud Mail guide](plugins/icloud-mail/README.md) plus its [security policy](plugins/icloud-mail/SECURITY.md) for IMAP/SMTP, mailbox, credential, attachment, and mutation changes. The Project Delivery-specific guidance below does not override another package's contract.
+Project Delivery, Conversation Visuals, and MLX Optimizer each own their contribution contracts. Use the [Project Delivery guide](plugins/project-delivery/README.md) for lifecycle and routing changes, the [Conversation Visuals guide](plugins/conversation-visuals/README.md) and its [security policy](plugins/conversation-visuals/SECURITY.md) for visual-selection, MCP, provenance, privacy, and consent changes, and the [MLX Optimizer guide](plugins/mlx-optimizer/README.md) for MLX skills, references, scripts, and measurement contracts.
+
+The custom iCloud Mail package is retired from the active catalogs. Its
+[package guide](plugins/icloud-mail/README.md) and [security policy](plugins/icloud-mail/SECURITY.md)
+document the retained implementation.
 
 Semantic Versioning follows the same release and validation requirements. Its [package guide](plugins/semantic-versioning/README.md) describes native examples, helper contracts, progressive disclosure, and release boundaries. Its catalog entry uses the package in this marketplace checkout so Codex can show its details before installation. Immutable Git tags still identify published releases; validate the package before publishing a new version.
 
 Build Multi-target Tauri Apps follows the same package and release contracts. Its [guide](plugins/build-multi-target-tauri-apps/README.md) and [research ledger](plugins/build-multi-target-tauri-apps/skills/.shared/research.md) define original capability adaptation, target evidence and source freshness. Keep shared references inside its skill tree so the distribution remains self-contained.
 
 The standalone workflow plugins each expose one skill: [Iterating PR Bot Fixes](plugins/iterating-pr-bot-fixes/README.md), [Repository Consolidation](plugins/repo-consolidation/README.md), [Conventional Commit](plugins/conventional-commit/README.md), [Simplify Code](plugins/simplify-code/README.md), [Adversarial Audit](plugins/adversarial-audit/README.md), [Web Research](plugins/web-research/README.md), and [Repository Guidance](plugins/repository-guidance/README.md). Their guides define invocation, prerequisites, authority, outputs, and verification. Keep supporting references and templates beneath the owning skill; another plugin or a sibling skill directory must not be a hidden runtime dependency.
+
+[Event-Driven Job Watcher](plugins/event-driven-job-watcher/README.md) ships one
+skill and a standard-library Python helper. Its guide covers portable local
+receipts, macOS process attachment, and the optional Codex callback.
 
 ## Camofox Browser source ownership
 

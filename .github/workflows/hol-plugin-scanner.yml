@@ -208,6 +208,7 @@ jobs:
           - adversarial-audit
           - web-research
           - repository-guidance
+          - event-driven-job-watcher
           - worktree-activity
     steps:
       - name: Check out source

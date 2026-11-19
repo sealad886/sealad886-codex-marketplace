@@ -1,0 +1,19 @@
+{
+  "name": "event-driven-job-watcher",
+  "version": "0.1.0",
+  "description": "Wait for builds, tests, and batch jobs without polling. Save a local receipt and optionally resume the originating Codex chat once.",
+  "author": {
+    "name": "Andrew Cox",
+    "url": "https://github.com/sealad886"
+  },
+  "homepage": "https://github.com/sealad886/sealad886-codex-marketplace/tree/main/plugins/event-driven-job-watcher",
+  "repository": "https://github.com/sealad886/sealad886-codex-marketplace",
+  "license": "MIT",
+  "keywords": [
+    "jobs",
+    "watcher",
+    "builds",
+    "completion",
+    "codex"
+  ]
+}

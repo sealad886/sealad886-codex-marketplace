@@ -2,16 +2,19 @@
 
 # iCloud Mail
 
+**Retired.** This custom plugin is available through historical marketplace
+snapshots. Use the official iCloud Mail integration in ChatGPT for new setups.
+
 iCloud Mail gives coding agents a local, dependency-free email integration using
 Apple's documented IMAP and SMTP endpoints. It offers the practical core of
 the Gmail and Outlook integrations: mailbox counts, structured search, message
 and conversation reading, attachment access, flags, archive/move/Trash,
 drafts, replies, forwards, and sending.
 
-## Claude Code installation
+## Historical Claude Code installation
 
 ```sh
-claude plugin marketplace add sealad886/sealad886-codex-marketplace
+claude plugin marketplace add https://github.com/sealad886/sealad886-codex-marketplace.git#marketplace-v0.2.1
 claude plugin install icloud-mail@sealad886-codex-marketplace
 ```
 
@@ -266,12 +269,11 @@ Body truncation flags still apply to each returned message.
 **Migration from 0.2.x:** `max_results` is removed from these public tools.
 Refresh tool discovery, remove that argument, and follow continuation tokens.
 Existing account configuration and message identifiers need no data migration.
-The marketplace advertises and installs version **0.4.1**, pinned to the immutable
-source commit containing this release's package. The `icloud-mail-v0.4.1` release
-tag contains the same package files. Refresh and install through the marketplace:
+The historical `marketplace-v0.2.1` snapshot advertises version **0.4.1**.
+The `icloud-mail-v0.4.1` tag identifies the standalone plugin release.
 
 ```bash
-codex plugin marketplace upgrade sealad886-codex-marketplace
+codex plugin marketplace add sealad886/sealad886-codex-marketplace --ref marketplace-v0.2.1
 codex plugin add icloud-mail@sealad886-codex-marketplace
 ```
 
