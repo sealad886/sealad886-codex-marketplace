@@ -14,9 +14,8 @@ receipt, tell the user where the result will land, and yield.
 ## Inputs and evidence
 
 Identify the job, its owner, the authoritative result, and a fresh private
-directory for the watcher receipt and any local logs. For a Codex callback,
-verify the exact authorized chat UUID and run `codex queue --help` once. Use
-the main chat for delegated work. Keep credentials, logs, and job details local.
+directory for the watcher receipt and any local logs. Keep credentials, logs,
+and job details local.
 
 ## Workflow
 
@@ -37,11 +36,47 @@ the main chat for delegated work. Keep credentials, logs, and job details local.
    running or watching receipt once. If the job has already finished, read its
    terminal receipt. If the host reaps background processes, use its persistent
    runner or supported waiter.
-3. Persist the outcome before attempting one callback. The local helper can run
-   `codex queue --thread UUID --resume --message TEXT` with a short receipt pointer.
-   For Copilot and Claude Code, use the helper without a Codex callback. Use a
-   supported host completion mechanism if available and authorized. Otherwise,
-   explain that the saved receipt is available for later inspection.
+3. Persist the terminal result before sending the completion callback. When
+   using Codex, follow the loop below. In Copilot and Claude Code, save the
+   receipt and use an authorized host completion mechanism if available.
+
+## Close the loop in Codex
+
+1. **Bind the watcher to the originating chat.** Resolve the exact authorized
+   chat UUID from trusted session context. Use `CODEX_THREAD_ID` when the host
+   provides it for the owning chat. Use the main chat for delegated work.
+   Run `codex queue --help` on the CLI the watcher will use. Verify that
+   the callback runner can reach the chat's daemon and that the resumed chat
+   can read the receipt. If any prerequisite is missing, save the result for
+   later inspection and tell the user where to find it.
+2. **Send one completion message.** After saving the terminal receipt,
+   [watch.py](scripts/watch.py) sends this command to the local daemon. Use the
+   same command from an authorized service completion hook when that hook
+   owns the callback. Keep exactly one sender for the job.
+
+   ```bash
+   codex queue --thread "$chat_uuid" --resume \
+     --message "Job watcher finished. Read the receipt at \"$receipt\" first. Verify the job outcome, report it to the user, and continue any authorized follow-up."
+   ```
+
+   - `--thread` targets the exact existing chat UUID. Keep that UUID when
+     launching the job, so the callback returns to the conversation that owns it.
+   - `--resume` asks Codex to resume the chat after queueing. A resume warning
+     can accompany a successful queue request and an exit code of zero.
+   - `--message` carries the receipt pointer and the action for the resumed
+     chat. Keep job output and credentials in their local storage.
+   - A service hook that uses a verified remote Codex daemon can select it
+     with `--remote`. If the daemon requires authentication, use
+     `--remote-auth-token-env` with the name of the configured environment
+     variable. The packaged helper uses the local daemon.
+3. **Close the job in the resumed chat.** Treat the callback as a continuation
+   of the original request. Open the receipt first, then verify the outcome
+   against the job log or canonical result. Tell the user what finished and
+   what the evidence shows, then carry out any authorized follow-up. Use
+   `status` and `exit_code` as job evidence. `callback.status` tracks message
+   submission separately. If the callback arrives while that field is
+   `submitting`, use the terminal job fields immediately. Reconcile uncertain
+   delivery against the original chat and receipt without another send.
 
 ### Local helper
 
@@ -64,11 +99,9 @@ an existing macOS process, replace the `run` arguments with
 
 ## Outputs and handoff
 
-Report what was started or attached and the receipt location. Read the receipt
-first when resuming, then the original log or canonical artifacts. Keep
-callback status separate from job status. `queued` means Codex acknowledged the
-queue request. Resume can fail after queueing. A `submitting` or `uncertain`
-callback needs reconciliation with the chat, without another send.
+Before yielding, tell the user what was started or attached and where the result
+will land. `queued` records CLI acceptance of the message. The resumed chat's
+user-facing report closes the loop.
 
 ## Completion evidence
 

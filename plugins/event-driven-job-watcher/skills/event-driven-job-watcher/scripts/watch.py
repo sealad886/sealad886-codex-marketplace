@@ -83,11 +83,16 @@ def run(args, state):
 def notify(args, state):
     state["callback"] = {"status": "submitting"}
     save(args.receipt, state)
+    receipt_pointer = json.dumps(str(args.receipt), ensure_ascii=False)
+    message = (
+        f"Job watcher finished. Read the receipt at {receipt_pointer} first. "
+        "Verify the job outcome, report it to the user, and continue any authorized follow-up."
+    )
     try:
         result = subprocess.run(
             [
                 args.codex, "queue", "--thread", args.thread, "--resume", "--message",
-                f"Job watcher settled. Read {args.receipt} first.",
+                message,
             ],
             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
             timeout=30, check=False,

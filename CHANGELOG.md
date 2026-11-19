@@ -3,6 +3,15 @@
 This file records user-visible marketplace and contained plugin changes. Dates
 use ISO 8601 and plugin versions follow Semantic Versioning.
 
+## Event-Driven Job Watcher 0.1.1 - 2026-11-19
+
+### Changed
+
+- Document how the watcher uses `codex queue --thread UUID --resume --message TEXT`
+  and how the originating chat verifies the job receipt and reports the result.
+- Include the follow-up instructions in the single callback message and explain
+  how to reconcile a resume warning or uncertain submission.
+
 ## Event-Driven Job Watcher 0.1.0 - 2026-11-19
 
 ### Added

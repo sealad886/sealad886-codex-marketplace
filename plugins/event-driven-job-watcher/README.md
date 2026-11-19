@@ -1,6 +1,6 @@
 # Event-Driven Job Watcher
 
-Version **0.1.0**. Wait for builds, tests, and batch jobs without polling. The
+Version **0.1.1**. Wait for builds, tests, and batch jobs without polling. The
 [shared skill](skills/event-driven-job-watcher/SKILL.md) records a local receipt
 or uses a service's durable completion event. In Codex, the local helper can
 also queue one wakeup for the originating chat.
@@ -61,10 +61,17 @@ output in the requested job log. Attach mode records observed exit with
 `exit_code: null`. A setup or watcher failure records `needs_attention`.
 Use a new receipt and log for each authorized attempt.
 
-The optional callback is recorded separately. `queued` records a successful
-queue response. Actual resume is confirmed when the chat processes the
-message. A timeout, ambiguous CLI response, or interrupted callback needs
-reconciliation without a resend. See [security boundaries](SECURITY.md).
+When given a chat UUID, the helper saves the terminal receipt, then sends one
+`codex queue --thread UUID --resume --message TEXT` to the originating Codex
+chat. The message contains the receipt path and asks the chat to verify the
+result, report it to the user, and carry out any authorized follow-up. The
+receipt records callback submission separately from the job result.
+
+`queued` records CLI acceptance. Codex can accept the message even if resume
+produces a warning. The user-facing report in the originating chat completes
+the loop. A timeout, ambiguous CLI response, or interrupted submission needs
+reconciliation without a resend. See the [callback workflow](skills/event-driven-job-watcher/SKILL.md#close-the-loop-in-codex)
+and [security boundaries](SECURITY.md).
 
 ## Maintainer validation
 
